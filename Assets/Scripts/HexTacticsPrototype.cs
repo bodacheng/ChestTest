@@ -25,7 +25,6 @@ public sealed class HexTacticsPrototype : MonoBehaviour
     [SerializeField, Min(0.05f)] private float cpuThinkDelay = 0.35f;
     [SerializeField, Min(1)] private int playerTeamCostLimit = 12;
     [SerializeField, Min(1)] private int cpuTeamCostLimit = 12;
-    [SerializeField, Range(1, 8)] private int maxDeploySlotsPerTeam = 5;
     [SerializeField] private bool autoPopulateDefaultRoster = true;
 
     [Header("Roster")]
@@ -218,10 +217,10 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         characterRoster = new List<CharacterDefinition>
         {
             new("先锋", "均衡近战", 12, 3, 4, 2),
-            new("游骑", "高攻击突击", 9, 4, 4, 2),
-            new("卫士", "高血量前排", 16, 2, 5, 2),
-            new("斗士", "爆发输出", 8, 5, 5, 1),
-            new("斥候", "低 cost 补位", 7, 2, 2, 3)
+            new("游骑", "高机动突击", 9, 4, 4, 3),
+            new("卫士", "高血量前排", 16, 2, 5, 1),
+            new("斗士", "爆发输出", 8, 5, 5, 2),
+            new("斥候", "低 cost 高机动", 7, 2, 2, 3)
         };
     }
 
@@ -412,18 +411,6 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         }
 
         var definition = characterRoster[rosterIndex];
-        if (playerTeamSelection.Count >= maxDeploySlotsPerTeam)
-        {
-            builderStatus = $"最多只能出战 {maxDeploySlotsPerTeam} 名角色";
-            return;
-        }
-
-        if (CountSelectedCopies(playerTeamSelection, rosterIndex) >= definition.maxCopies)
-        {
-            builderStatus = $"{definition.displayName} 已达到可出战上限";
-            return;
-        }
-
         if (GetTeamCost(playerTeamSelection) + definition.cost > playerTeamCostLimit)
         {
             builderStatus = "已超过队伍总 cost 上限";
@@ -467,25 +454,15 @@ public sealed class HexTacticsPrototype : MonoBehaviour
     {
         cpuTeamSelection.Clear();
 
-        var candidateEntries = new List<int>();
-        for (var i = 0; i < characterRoster.Count; i++)
-        {
-            var copies = Mathf.Max(1, characterRoster[i].maxCopies);
-            for (var copy = 0; copy < copies; copy++)
-            {
-                candidateEntries.Add(i);
-            }
-        }
-
         var remainingCost = cpuTeamCostLimit;
-        while (cpuTeamSelection.Count < maxDeploySlotsPerTeam)
+        while (true)
         {
             var affordable = new List<int>();
-            foreach (var rosterIndex in candidateEntries)
+            for (var i = 0; i < characterRoster.Count; i++)
             {
-                if (characterRoster[rosterIndex].cost <= remainingCost)
+                if (characterRoster[i].cost <= remainingCost)
                 {
-                    affordable.Add(rosterIndex);
+                    affordable.Add(i);
                 }
             }
 
@@ -497,7 +474,6 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             var pick = affordable[Random.Range(0, affordable.Count)];
             cpuTeamSelection.Add(pick);
             remainingCost -= characterRoster[pick].cost;
-            candidateEntries.Remove(pick);
         }
 
         return cpuTeamSelection.Count > 0;
@@ -533,8 +509,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
 
         foreach (var unit in units)
         {
-            unit.PlannedAction = ActionType.Wait;
-            unit.PlannedTarget = unit.Coord;
+            AssignWaitCommand(unit);
         }
 
         RefreshVisuals();
@@ -596,7 +571,8 @@ public sealed class HexTacticsPrototype : MonoBehaviour
                 team == Team.Blue ? blueRingMaterial : redRingMaterial,
                 definition.maxHealth,
                 definition.attackPower,
-                definition.cost);
+                definition.cost,
+                definition.moveRange);
 
             RegisterUnitCollider(body.GetComponent<Collider>(), unit);
             RegisterUnitCollider(head.GetComponent<Collider>(), unit);
@@ -633,24 +609,42 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         {
             var leftWorld = HexToWorld(left);
             var rightWorld = HexToWorld(right);
-
-            var xCompare = team == Team.Blue
-                ? leftWorld.x.CompareTo(rightWorld.x)
-                : rightWorld.x.CompareTo(leftWorld.x);
+            var xCompare = leftWorld.x.CompareTo(rightWorld.x);
             if (xCompare != 0)
             {
                 return xCompare;
             }
 
-            return Mathf.Abs(leftWorld.z).CompareTo(Mathf.Abs(rightWorld.z));
+            return leftWorld.z.CompareTo(rightWorld.z);
         });
 
-        if (allCoords.Count > maxDeploySlotsPerTeam)
-        {
-            allCoords.RemoveRange(maxDeploySlotsPerTeam, allCoords.Count - maxDeploySlotsPerTeam);
-        }
+        var blueSlotCount = (allCoords.Count + 1) / 2;
+        var deploySlots = team == Team.Blue
+            ? allCoords.GetRange(0, blueSlotCount)
+            : allCoords.GetRange(blueSlotCount, allCoords.Count - blueSlotCount);
 
-        return allCoords;
+        deploySlots.Sort((left, right) =>
+        {
+            var leftWorld = HexToWorld(left);
+            var rightWorld = HexToWorld(right);
+
+            var sideCompare = team == Team.Blue
+                ? leftWorld.x.CompareTo(rightWorld.x)
+                : rightWorld.x.CompareTo(leftWorld.x);
+            if (sideCompare != 0)
+            {
+                return sideCompare;
+            }
+
+            var spreadCompare = Mathf.Abs(rightWorld.z).CompareTo(Mathf.Abs(leftWorld.z));
+            if (spreadCompare != 0)
+            {
+                return spreadCompare;
+            }
+
+            return leftWorld.z.CompareTo(rightWorld.z);
+        });
+        return deploySlots;
     }
 
     private void HandlePlanningPointerInput()
@@ -663,20 +657,29 @@ public sealed class HexTacticsPrototype : MonoBehaviour
 
         var pointerPosition = Mouse.current.position.ReadValue();
         var ray = mainCamera.ScreenPointToRay(pointerPosition);
-        if (!Physics.Raycast(ray, out var hit, 200f))
+        var hits = Physics.RaycastAll(ray, 200f);
+        if (hits.Length == 0)
         {
             SelectUnit(null);
             return;
         }
 
-        if (unitLookups.TryGetValue(hit.collider, out var clickedUnit))
+        System.Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+
+        if (TryResolvePlanningUnitHit(hits, out var clickedUnit))
         {
             HandlePlanningUnitClick(clickedUnit);
             return;
         }
 
-        if (cellLookups.TryGetValue(hit.collider, out var clickedCell))
+        if (TryResolvePlanningCellHit(hits, out var clickedCell))
         {
+            if (clickedCell.Occupant != null)
+            {
+                HandlePlanningUnitClick(clickedCell.Occupant);
+                return;
+            }
+
             HandlePlanningCellClick(clickedCell);
             return;
         }
@@ -684,10 +687,80 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         SelectUnit(null);
     }
 
+    private bool TryResolvePlanningUnitHit(RaycastHit[] hits, out HexUnit clickedUnit)
+    {
+        clickedUnit = null;
+        var bestPriority = int.MaxValue;
+        var bestDistance = float.MaxValue;
+
+        foreach (var hit in hits)
+        {
+            if (!unitLookups.TryGetValue(hit.collider, out var candidate))
+            {
+                continue;
+            }
+
+            var priority = GetPlanningUnitHitPriority(candidate);
+            if (priority >= 10)
+            {
+                continue;
+            }
+
+            if (priority < bestPriority || (priority == bestPriority && hit.distance < bestDistance))
+            {
+                bestPriority = priority;
+                bestDistance = hit.distance;
+                clickedUnit = candidate;
+            }
+        }
+
+        return clickedUnit != null;
+    }
+
+    private bool TryResolvePlanningCellHit(RaycastHit[] hits, out HexCell clickedCell)
+    {
+        clickedCell = null;
+        foreach (var hit in hits)
+        {
+            if (cellLookups.TryGetValue(hit.collider, out clickedCell))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int GetPlanningUnitHitPriority(HexUnit unit)
+    {
+        if (unit == null)
+        {
+            return 10;
+        }
+
+        if (unit.Team != Team.Blue)
+        {
+            return selectedUnit != null && selectedUnit.Team == Team.Blue && IsAttackOption(unit.Coord) ? 0 : 10;
+        }
+
+        if (selectedUnit != null && selectedUnit != unit && IsMoveOption(unit.Coord))
+        {
+            return 1;
+        }
+
+        return 2;
+    }
+
     private void HandlePlanningUnitClick(HexUnit clickedUnit)
     {
         if (clickedUnit.Team == Team.Blue)
         {
+            if (selectedUnit != null && selectedUnit != clickedUnit && IsMoveOption(clickedUnit.Coord))
+            {
+                SetUnitMoveCommand(selectedUnit, clickedUnit.Coord);
+                return;
+            }
+
             SelectUnit(selectedUnit == clickedUnit ? null : clickedUnit);
             return;
         }
@@ -739,6 +812,11 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         if (unit != null && unit.Team == Team.Blue && currentFlowState == FlowState.Planning)
         {
             selectedUnit = unit;
+            foreach (var cell in GetMoveOptions(unit))
+            {
+                moveCells.Add(cell);
+            }
+
             foreach (var direction in NeighborDirections)
             {
                 var target = unit.Coord + direction;
@@ -747,11 +825,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
                     continue;
                 }
 
-                if (cell.Occupant == null || cell.Occupant == unit)
-                {
-                    moveCells.Add(cell);
-                }
-                else if (cell.Occupant.Team != unit.Team)
+                if (cell.Occupant != null && cell.Occupant.Team != unit.Team)
                 {
                     attackCells.Add(cell);
                 }
@@ -789,14 +863,15 @@ public sealed class HexTacticsPrototype : MonoBehaviour
 
     private void SetUnitMoveCommand(HexUnit unit, HexCoord target)
     {
-        if (unit == null || unit.Team != Team.Blue || !AreAdjacent(unit.Coord, target) || !cells.ContainsKey(target))
+        if (unit == null || unit.Team != Team.Blue)
         {
             return;
         }
 
-        unit.PlannedAction = ActionType.Move;
-        unit.PlannedTarget = target;
-        RefreshVisuals();
+        if (TryAssignMoveCommand(unit, target))
+        {
+            RefreshVisuals();
+        }
     }
 
     private void SetUnitAttackCommand(HexUnit unit, HexCoord target)
@@ -806,8 +881,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             return;
         }
 
-        unit.PlannedAction = ActionType.Attack;
-        unit.PlannedTarget = target;
+        TryAssignAttackCommand(unit, target);
         RefreshVisuals();
     }
 
@@ -818,8 +892,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             return;
         }
 
-        unit.PlannedAction = ActionType.Wait;
-        unit.PlannedTarget = unit.Coord;
+        AssignWaitCommand(unit);
         RefreshVisuals();
     }
 
@@ -832,22 +905,19 @@ public sealed class HexTacticsPrototype : MonoBehaviour
                 continue;
             }
 
-            unit.PlannedAction = ActionType.Wait;
-            unit.PlannedTarget = unit.Coord;
+            AssignWaitCommand(unit);
 
             var attackTarget = ChooseCpuAttackTarget(unit);
             if (attackTarget != null)
             {
-                unit.PlannedAction = ActionType.Attack;
-                unit.PlannedTarget = attackTarget.Coord;
+                TryAssignAttackCommand(unit, attackTarget.Coord);
                 continue;
             }
 
             var moveTarget = ChooseCpuMoveTarget(unit);
             if (moveTarget.HasValue)
             {
-                unit.PlannedAction = ActionType.Move;
-                unit.PlannedTarget = moveTarget.Value;
+                TryAssignMoveCommand(unit, moveTarget.Value);
             }
         }
     }
@@ -886,17 +956,13 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         HexCoord? bestTarget = null;
         var bestScore = int.MaxValue;
 
-        foreach (var direction in NeighborDirections)
+        foreach (var cell in GetMoveOptions(unit))
         {
-            var target = unit.Coord + direction;
-            if (!cells.TryGetValue(target, out _))
-            {
-                continue;
-            }
-
+            var target = cell.Coord;
             var distance = GetDistanceToNearestEnemy(target, Team.Blue);
             var centerBias = HexDistance(target, new HexCoord(0, 0));
-            var score = distance * 10 + centerBias;
+            var occupantPenalty = cell.Occupant == null ? 0 : 6;
+            var score = distance * 10 + centerBias + occupantPenalty;
             if (score < bestScore)
             {
                 bestScore = score;
@@ -967,9 +1033,54 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             }
         }
 
-        lastResolutionKind = ResolutionKind.Move;
-        yield return ResolveMoveTurn(attacks.Count > 0);
-        resolvedTurnCount++;
+        var hasMoveSteps = HasPendingMoveSteps();
+        if (!hasMoveSteps)
+        {
+            lastResolutionKind = ResolutionKind.Move;
+            yield return ResolveMoveTurn(attacks.Count > 0, 1);
+        }
+        else
+        {
+            var moveTurnIndex = 1;
+            while (HasPendingMoveSteps())
+            {
+                var stepResult = EvaluateMoveTurn();
+                if (stepResult.HasEnemyContest)
+                {
+                    lastResolutionKind = ResolutionKind.Attack;
+                    resolutionStatus = $"第 {planningRoundNumber} 轮移动第 {moveTurnIndex} 回合发生抢格，自动转入接触攻击，本轮移动结束";
+
+                    var contactAttacks = BuildContactAttackEvents(stepResult.EnemyContacts);
+                    if (contactAttacks.Count > 0)
+                    {
+                        yield return ResolveAttackTurn(contactAttacks);
+                        resolvedTurnCount++;
+                    }
+
+                    break;
+                }
+
+                lastResolutionKind = ResolutionKind.Move;
+                yield return ResolveMoveTurn(attacks.Count > 0 || moveTurnIndex > 1, moveTurnIndex, stepResult);
+                if (stepResult.SuccessfulMoves.Count == 0)
+                {
+                    break;
+                }
+
+                AdvanceMovePaths(stepResult.SuccessfulMoves);
+                resolvedTurnCount++;
+
+                if (CheckVictory())
+                {
+                    currentFlowState = FlowState.Victory;
+                    RefreshVisuals();
+                    yield break;
+                }
+
+                moveTurnIndex++;
+            }
+        }
+
         isAnimating = false;
         isResolving = false;
 
@@ -1099,30 +1210,34 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         RefreshVisuals();
     }
 
-    private IEnumerator ResolveMoveTurn(bool followsAttackPhase)
+    private IEnumerator ResolveMoveTurn(bool followsAttackPhase, int moveTurnIndex, MoveStepResolution stepResult = default)
     {
-        var intents = CollectMoveIntents();
-        if (intents.Count == 0)
+        var effectiveResult = stepResult.HasValue ? stepResult : EvaluateMoveTurn();
+        if (effectiveResult.Intents.Count == 0)
         {
             resolutionStatus = followsAttackPhase
-                ? $"第 {planningRoundNumber} 轮攻击回合结束，移动回合没有可执行的移动命令"
-                : $"第 {planningRoundNumber} 轮进入移动回合：所有棋子待机";
+                ? $"第 {planningRoundNumber} 轮攻击回合结束，移动第 {moveTurnIndex} 回合没有可执行的移动命令"
+                : $"第 {planningRoundNumber} 轮进入移动第 {moveTurnIndex} 回合：所有棋子待机";
             yield return new WaitForSeconds(moveDuration * 0.6f);
             RefreshVisuals();
             yield break;
         }
 
-        var winners = ChooseMoveWinners(intents, out var conflictCount);
-        var successfulMoves = FilterSuccessfulMoves(winners);
-
-        resolutionStatus = conflictCount > 0
-            ? $"第 {planningRoundNumber} 轮进入移动回合：{conflictCount} 处抢格冲突已随机判定"
+        resolutionStatus = effectiveResult.ConflictCount > 0
+            ? $"第 {planningRoundNumber} 轮移动第 {moveTurnIndex} 回合：{effectiveResult.ConflictCount} 处同阵营抢格已随机判定"
             : followsAttackPhase
-                ? $"第 {planningRoundNumber} 轮攻击回合结束，{successfulMoves.Count} 名棋子继续同步移动"
-                : $"第 {planningRoundNumber} 轮进入移动回合：{successfulMoves.Count} 名棋子尝试同步移动";
+                ? $"第 {planningRoundNumber} 轮攻击回合结束，{effectiveResult.SuccessfulMoves.Count} 名棋子继续同步前进一格"
+                : $"第 {planningRoundNumber} 轮进入移动第 {moveTurnIndex} 回合：{effectiveResult.SuccessfulMoves.Count} 名棋子同步前进一格";
 
-        yield return AnimateMoveTurn(successfulMoves);
-        ApplyMoveResults(successfulMoves);
+        if (effectiveResult.SuccessfulMoves.Count == 0)
+        {
+            yield return new WaitForSeconds(moveDuration * 0.6f);
+            RefreshVisuals();
+            yield break;
+        }
+
+        yield return AnimateMoveTurn(effectiveResult.SuccessfulMoves);
+        ApplyMoveResults(effectiveResult.SuccessfulMoves);
         RefreshVisuals();
     }
 
@@ -1131,25 +1246,218 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         var intents = new List<MoveIntent>();
         foreach (var unit in units)
         {
-            if (unit.PlannedAction != ActionType.Move)
+            if (!HasPendingMoveStep(unit))
             {
                 continue;
             }
 
-            if (!cells.ContainsKey(unit.PlannedTarget))
+            if (!TryGetNextMoveStep(unit, out var nextStep))
             {
                 continue;
             }
 
-            if (!AreAdjacent(unit.Coord, unit.PlannedTarget))
-            {
-                continue;
-            }
-
-            intents.Add(new MoveIntent(unit, unit.PlannedTarget));
+            intents.Add(new MoveIntent(unit, nextStep));
         }
 
         return intents;
+    }
+
+    private bool TryGetNextMoveStep(HexUnit unit, out HexCoord nextStep)
+    {
+        nextStep = default;
+        if (!HasPendingMoveStep(unit))
+        {
+            return false;
+        }
+
+        var currentDistance = HexDistance(unit.Coord, unit.PlannedTarget);
+        if (currentDistance <= 0)
+        {
+            return false;
+        }
+
+        var hasCandidate = false;
+        var bestPriority = int.MaxValue;
+        var bestCenterBias = int.MaxValue;
+        var bestQ = int.MaxValue;
+        var bestR = int.MaxValue;
+
+        foreach (var direction in NeighborDirections)
+        {
+            var candidate = unit.Coord + direction;
+            if (!cells.TryGetValue(candidate, out var candidateCell))
+            {
+                continue;
+            }
+
+            if (HexDistance(candidate, unit.PlannedTarget) != currentDistance - 1)
+            {
+                continue;
+            }
+
+            var priority = GetMoveStepPriority(unit, candidateCell);
+            var centerBias = HexDistance(candidate, new HexCoord(0, 0));
+            if (!hasCandidate ||
+                priority < bestPriority ||
+                (priority == bestPriority && centerBias < bestCenterBias) ||
+                (priority == bestPriority && centerBias == bestCenterBias && candidate.Q < bestQ) ||
+                (priority == bestPriority && centerBias == bestCenterBias && candidate.Q == bestQ && candidate.R < bestR))
+            {
+                hasCandidate = true;
+                bestPriority = priority;
+                bestCenterBias = centerBias;
+                bestQ = candidate.Q;
+                bestR = candidate.R;
+                nextStep = candidate;
+            }
+        }
+
+        return hasCandidate;
+    }
+
+    private int GetMoveStepPriority(HexUnit unit, HexCell candidateCell)
+    {
+        var occupant = candidateCell.Occupant;
+        if (occupant == null)
+        {
+            return 0;
+        }
+
+        if (occupant.Team == unit.Team)
+        {
+            return HasPendingMoveStep(occupant) ? 1 : 2;
+        }
+
+        return 3;
+    }
+
+    private MoveStepResolution EvaluateMoveTurn()
+    {
+        var intents = CollectMoveIntents();
+        if (intents.Count == 0)
+        {
+            return new MoveStepResolution(intents, new Dictionary<HexUnit, HexCoord>(), 0, new Dictionary<HexUnit, HashSet<HexUnit>>());
+        }
+
+        var enemyContacts = CollectEnemyMoveContacts(intents);
+        if (enemyContacts.Count > 0)
+        {
+            return new MoveStepResolution(intents, new Dictionary<HexUnit, HexCoord>(), 0, enemyContacts);
+        }
+
+        var winners = ChooseMoveWinners(intents, out var conflictCount);
+        var successfulMoves = FilterSuccessfulMoves(winners);
+        return new MoveStepResolution(intents, successfulMoves, conflictCount, enemyContacts);
+    }
+
+    private Dictionary<HexUnit, HashSet<HexUnit>> CollectEnemyMoveContacts(List<MoveIntent> intents)
+    {
+        var contacts = new Dictionary<HexUnit, HashSet<HexUnit>>();
+        var groupedByTarget = new Dictionary<HexCoord, List<HexUnit>>();
+
+        foreach (var intent in intents)
+        {
+            if (!groupedByTarget.TryGetValue(intent.Target, out var contenders))
+            {
+                contenders = new List<HexUnit>();
+                groupedByTarget.Add(intent.Target, contenders);
+            }
+
+            contenders.Add(intent.Unit);
+        }
+
+        foreach (var pair in groupedByTarget)
+        {
+            for (var i = 0; i < pair.Value.Count; i++)
+            {
+                for (var j = i + 1; j < pair.Value.Count; j++)
+                {
+                    if (pair.Value[i].Team == pair.Value[j].Team)
+                    {
+                        continue;
+                    }
+
+                    RegisterContact(contacts, pair.Value[i], pair.Value[j]);
+                }
+            }
+        }
+
+        foreach (var intent in intents)
+        {
+            if (!cells.TryGetValue(intent.Target, out var targetCell) || targetCell.Occupant == null)
+            {
+                continue;
+            }
+
+            if (targetCell.Occupant.Team == intent.Unit.Team)
+            {
+                continue;
+            }
+
+            RegisterContact(contacts, intent.Unit, targetCell.Occupant);
+        }
+
+        return contacts;
+    }
+
+    private void RegisterContact(Dictionary<HexUnit, HashSet<HexUnit>> contacts, HexUnit left, HexUnit right)
+    {
+        if (!contacts.TryGetValue(left, out var leftTargets))
+        {
+            leftTargets = new HashSet<HexUnit>();
+            contacts.Add(left, leftTargets);
+        }
+
+        if (!contacts.TryGetValue(right, out var rightTargets))
+        {
+            rightTargets = new HashSet<HexUnit>();
+            contacts.Add(right, rightTargets);
+        }
+
+        leftTargets.Add(right);
+        rightTargets.Add(left);
+    }
+
+    private List<AttackEvent> BuildContactAttackEvents(Dictionary<HexUnit, HashSet<HexUnit>> contacts)
+    {
+        var events = new List<AttackEvent>();
+        foreach (var pair in contacts)
+        {
+            var attacker = pair.Key;
+            if (!units.Contains(attacker) || attacker.CurrentHealth <= 0)
+            {
+                continue;
+            }
+
+            HexUnit bestTarget = null;
+            var bestScore = int.MinValue;
+            foreach (var candidate in pair.Value)
+            {
+                if (!units.Contains(candidate) || candidate.CurrentHealth <= 0)
+                {
+                    continue;
+                }
+
+                var score = candidate.AttackPower * 10 - candidate.CurrentHealth;
+                if (candidate.CurrentHealth <= attacker.AttackPower)
+                {
+                    score += 50;
+                }
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestTarget = candidate;
+                }
+            }
+
+            if (bestTarget != null)
+            {
+                events.Add(new AttackEvent(attacker, bestTarget));
+            }
+        }
+
+        return events;
     }
 
     private Dictionary<HexUnit, HexCoord> ChooseMoveWinners(List<MoveIntent> intents, out int conflictCount)
@@ -1281,6 +1589,14 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         }
     }
 
+    private void AdvanceMovePaths(Dictionary<HexUnit, HexCoord> moves)
+    {
+        foreach (var pair in moves)
+        {
+            pair.Key.PlannedPathIndex = Mathf.Min(pair.Key.PlannedPathIndex + 1, pair.Key.MoveRange);
+        }
+    }
+
     private IEnumerator AnimateUnitDefeat(List<HexUnit> defeatedUnits)
     {
         var startScales = new Dictionary<HexUnit, Vector3>();
@@ -1387,18 +1703,100 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         return total;
     }
 
-    private int CountSelectedCopies(List<int> selection, int rosterIndex)
+    private bool TryAssignMoveCommand(HexUnit unit, HexCoord target)
     {
-        var count = 0;
-        foreach (var selected in selection)
+        if (!CanSelectMoveTarget(unit, target))
         {
-            if (selected == rosterIndex)
+            return false;
+        }
+
+        unit.PlannedAction = ActionType.Move;
+        unit.PlannedTarget = target;
+        unit.PlannedPath.Clear();
+        unit.PlannedPathIndex = 0;
+        return true;
+    }
+
+    private void TryAssignAttackCommand(HexUnit unit, HexCoord target)
+    {
+        unit.PlannedAction = ActionType.Attack;
+        unit.PlannedTarget = target;
+        unit.PlannedPath.Clear();
+        unit.PlannedPathIndex = 0;
+    }
+
+    private void AssignWaitCommand(HexUnit unit)
+    {
+        unit.PlannedAction = ActionType.Wait;
+        unit.PlannedTarget = unit.Coord;
+        unit.PlannedPath.Clear();
+        unit.PlannedPathIndex = 0;
+    }
+
+    private List<HexCell> GetMoveOptions(HexUnit unit)
+    {
+        var options = new List<HexCell>();
+        if (unit == null)
+        {
+            return options;
+        }
+
+        foreach (var cell in cells.Values)
+        {
+            if (CanSelectMoveTarget(unit, cell.Coord))
             {
-                count++;
+                options.Add(cell);
             }
         }
 
-        return count;
+        return options;
+    }
+
+    private bool CanSelectMoveTarget(HexUnit unit, HexCoord target)
+    {
+        if (unit == null || !cells.TryGetValue(target, out var targetCell))
+        {
+            return false;
+        }
+
+        if (target == unit.Coord)
+        {
+            return false;
+        }
+
+        if (HexDistance(unit.Coord, target) > unit.MoveRange)
+        {
+            return false;
+        }
+
+        if (targetCell.Occupant != null && targetCell.Occupant.Team != unit.Team)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool HasPendingMoveStep(HexUnit unit)
+    {
+        return unit != null &&
+            unit.PlannedAction == ActionType.Move &&
+            unit.PlannedPathIndex >= 0 &&
+            unit.PlannedPathIndex < unit.MoveRange &&
+            unit.Coord != unit.PlannedTarget;
+    }
+
+    private bool HasPendingMoveSteps()
+    {
+        foreach (var unit in units)
+        {
+            if (HasPendingMoveStep(unit))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void RefreshVisuals()
@@ -1616,7 +2014,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         GUI.color = Color.white;
         GUI.Label(new Rect(leftPanel.x + 18f, leftPanel.y + 18f, 320f, 24f), "角色选择", titleLabelStyle);
         GUI.Label(new Rect(leftPanel.x + 18f, leftPanel.y + 50f, 420f, 22f), $"玩家总 cost 上限：{playerTeamCostLimit}    CPU 总 cost 上限：{cpuTeamCostLimit}");
-        GUI.Label(new Rect(leftPanel.x + 18f, leftPanel.y + 72f, 420f, 22f), $"可部署上限：{maxDeploySlotsPerTeam}    当前已选：{playerTeamSelection.Count}");
+        GUI.Label(new Rect(leftPanel.x + 18f, leftPanel.y + 72f, 420f, 22f), $"当前已选：{playerTeamSelection.Count}    同角色可重复选择，直到 cost 用尽");
 
         var rowY = leftPanel.y + 108f;
         for (var i = 0; i < characterRoster.Count; i++)
@@ -1664,19 +2062,15 @@ public sealed class HexTacticsPrototype : MonoBehaviour
     private void DrawRosterRow(float x, float y, float width, int rosterIndex)
     {
         var definition = characterRoster[rosterIndex];
-        var usedCopies = CountSelectedCopies(playerTeamSelection, rosterIndex);
-        var canAdd =
-            playerTeamSelection.Count < maxDeploySlotsPerTeam &&
-            usedCopies < definition.maxCopies &&
-            GetTeamCost(playerTeamSelection) + definition.cost <= playerTeamCostLimit;
+        var canAdd = GetTeamCost(playerTeamSelection) + definition.cost <= playerTeamCostLimit;
 
         GUI.color = new Color(0f, 0f, 0f, 0.22f);
         GUI.Box(new Rect(x, y, width, 72f), GUIContent.none);
         GUI.color = Color.white;
 
         GUI.Label(new Rect(x + 12f, y + 8f, width - 140f, 22f), $"{definition.displayName}  [{definition.description}]");
-        GUI.Label(new Rect(x + 12f, y + 30f, width - 140f, 22f), $"HP {definition.maxHealth}  ATK {definition.attackPower}  COST {definition.cost}");
-        GUI.Label(new Rect(x + 12f, y + 50f, width - 140f, 18f), $"已选 {usedCopies} / 可用 {definition.maxCopies}");
+        GUI.Label(new Rect(x + 12f, y + 30f, width - 140f, 22f), $"HP {definition.maxHealth}  ATK {definition.attackPower}  MOVE {definition.moveRange}  COST {definition.cost}");
+        GUI.Label(new Rect(x + 12f, y + 50f, width - 140f, 18f), "可重复加入队伍，只受总 cost 限制");
 
         GUI.enabled = canAdd;
         if (GUI.Button(new Rect(x + width - 104f, y + 18f, 88f, 32f), "加入"))
@@ -1697,7 +2091,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         GUI.color = Color.white;
 
         GUI.Label(new Rect(x + 12f, y + 6f, width - 110f, 18f), $"{selectionIndex + 1}. {definition.displayName}");
-        GUI.Label(new Rect(x + 12f, y + 24f, width - 110f, 18f), $"HP {definition.maxHealth}  ATK {definition.attackPower}  COST {definition.cost}");
+        GUI.Label(new Rect(x + 12f, y + 24f, width - 110f, 18f), $"HP {definition.maxHealth}  ATK {definition.attackPower}  MOVE {definition.moveRange}  COST {definition.cost}");
 
         if (GUI.Button(new Rect(x + width - 92f, y + 8f, 76f, 28f), "移除"))
         {
@@ -1725,12 +2119,12 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         GUI.Label(new Rect(labelX, panelY + 12f, labelWidth, 24f), $"第 {planningRoundNumber} 轮计划  |  已同步结算 {resolvedTurnCount} 个回合");
         GUI.Label(new Rect(labelX, panelY + 36f, labelWidth, 22f), $"蓝方剩余 {blueUnitCount} 名  |  红方剩余 {CountAliveUnits(Team.Red)} 名");
         GUI.Label(new Rect(labelX, panelY + 60f, labelWidth, 22f), "先为所有蓝方棋子下达指令，再确认同步结算");
-        GUI.Label(new Rect(labelX, panelY + 82f, labelWidth, 22f), "若本轮存在有效攻击命令，会先进入攻击回合，随后继续执行已设定的移动命令");
-        GUI.Label(new Rect(labelX, panelY + 104f, labelWidth, 22f), "指令方式：选中蓝方棋子后，点相邻空格下移动，点相邻红棋下攻击，或设为待机");
+        GUI.Label(new Rect(labelX, panelY + 82f, labelWidth, 22f), "移动命令会按目标逐回合一格推进；当前被堵住也能先下令，腾出空间后会继续尝试前进");
+        GUI.Label(new Rect(labelX, panelY + 104f, labelWidth, 22f), "指令方式：选中蓝方棋子后，可直接点 MOVE 范围内的目标格；若目标格当前有友军，也可直接点该友军，切换选择用左侧按钮");
 
         var selectedLabel = selectedUnit == null
             ? "当前未选择棋子"
-            : $"当前选择：{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  ATK {selectedUnit.AttackPower}";
+            : $"当前选择：{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  ATK {selectedUnit.AttackPower}  MOVE {selectedUnit.MoveRange}";
         GUI.Label(new Rect(labelX, panelY + 128f, labelWidth, 22f), selectedLabel);
 
         var columnX = labelX;
@@ -1804,8 +2198,8 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         GUI.Label(new Rect(panelX + 14f, panelY + 12f, 452f, 24f), $"第 {planningRoundNumber} 轮同步结算  |  {turnTypeLabel}");
         GUI.Label(new Rect(panelX + 14f, panelY + 36f, 452f, 22f), $"蓝方剩余 {CountAliveUnits(Team.Blue)} 名  |  红方剩余 {CountAliveUnits(Team.Red)} 名");
         GUI.Label(new Rect(panelX + 14f, panelY + 62f, 452f, 44f), resolutionStatus);
-        GUI.Label(new Rect(panelX + 14f, panelY + 110f, 452f, 22f), "若本轮既有攻击也有移动，会按“攻击 -> 移动”的顺序连续结算");
-        GUI.Label(new Rect(panelX + 14f, panelY + 132f, 452f, 22f), "同一移动目标若被争抢，会在移动回合里随机判定获胜者");
+        GUI.Label(new Rect(panelX + 14f, panelY + 110f, 452f, 22f), "移动命令会逐回合一格推进；同阵营抢同一格时，会在该回合随机判定胜者");
+        GUI.Label(new Rect(panelX + 14f, panelY + 132f, 452f, 22f), "若和敌方发生抢格，移动会中断，并立刻转入接触攻击，本轮不再继续前进");
     }
 
     private void DrawVictoryOverlay()
@@ -1862,7 +2256,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
 
             var detail = currentFlowState == FlowState.Planning
                 ? DescribeCommand(unit, true)
-                : $"HP {unit.CurrentHealth}/{unit.MaxHealth}  ATK {unit.AttackPower}";
+                : $"HP {unit.CurrentHealth}/{unit.MaxHealth}  ATK {unit.AttackPower}  MOVE {unit.MoveRange}";
             GUI.Label(new Rect(x + 4f, y + 18f, 140f, 14f), detail, worldLabelStyle);
         }
 
@@ -1871,11 +2265,12 @@ public sealed class HexTacticsPrototype : MonoBehaviour
 
     private string DescribeCommand(HexUnit unit, bool compact)
     {
+        var plannedDistance = HexDistance(unit.Coord, unit.PlannedTarget);
         return unit.PlannedAction switch
         {
             ActionType.Move => compact
-                ? $"移动 -> ({unit.PlannedTarget.Q},{unit.PlannedTarget.R})"
-                : $"移动到 ({unit.PlannedTarget.Q},{unit.PlannedTarget.R})",
+                ? $"移动目标 -> ({unit.PlannedTarget.Q},{unit.PlannedTarget.R})"
+                : $"移动目标 ({unit.PlannedTarget.Q},{unit.PlannedTarget.R})，距离 {plannedDistance}",
             ActionType.Attack => compact
                 ? $"攻击 -> ({unit.PlannedTarget.Q},{unit.PlannedTarget.R})"
                 : $"攻击 ({unit.PlannedTarget.Q},{unit.PlannedTarget.R})",
@@ -2034,7 +2429,8 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             Material defaultRingMaterial,
             int maxHealth,
             int attackPower,
-            int cost)
+            int cost,
+            int moveRange)
         {
             Name = name;
             RoleName = roleName;
@@ -2047,6 +2443,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             CurrentHealth = maxHealth;
             AttackPower = attackPower;
             Cost = cost;
+            MoveRange = moveRange;
             PlannedAction = ActionType.Wait;
             PlannedTarget = coord;
         }
@@ -2062,8 +2459,11 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         public int CurrentHealth { get; set; }
         public int AttackPower { get; }
         public int Cost { get; }
+        public int MoveRange { get; }
         public ActionType PlannedAction { get; set; }
         public HexCoord PlannedTarget { get; set; }
+        public List<HexCoord> PlannedPath { get; } = new();
+        public int PlannedPathIndex { get; set; }
     }
 
     private readonly struct MoveIntent
@@ -2090,17 +2490,39 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         public HexUnit Defender { get; }
     }
 
+    private readonly struct MoveStepResolution
+    {
+        public MoveStepResolution(
+            List<MoveIntent> intents,
+            Dictionary<HexUnit, HexCoord> successfulMoves,
+            int conflictCount,
+            Dictionary<HexUnit, HashSet<HexUnit>> enemyContacts)
+        {
+            Intents = intents;
+            SuccessfulMoves = successfulMoves;
+            ConflictCount = conflictCount;
+            EnemyContacts = enemyContacts;
+        }
+
+        public List<MoveIntent> Intents { get; }
+        public Dictionary<HexUnit, HexCoord> SuccessfulMoves { get; }
+        public int ConflictCount { get; }
+        public Dictionary<HexUnit, HashSet<HexUnit>> EnemyContacts { get; }
+        public bool HasEnemyContest => EnemyContacts.Count > 0;
+        public bool HasValue => Intents != null;
+    }
+
     [System.Serializable]
     private sealed class CharacterDefinition
     {
-        public CharacterDefinition(string displayName, string description, int maxHealth, int attackPower, int cost, int maxCopies)
+        public CharacterDefinition(string displayName, string description, int maxHealth, int attackPower, int cost, int moveRange)
         {
             this.displayName = displayName;
             this.description = description;
             this.maxHealth = maxHealth;
             this.attackPower = attackPower;
             this.cost = cost;
-            this.maxCopies = maxCopies;
+            this.moveRange = moveRange;
         }
 
         public string displayName = "角色";
@@ -2108,7 +2530,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         [Min(1)] public int maxHealth = 10;
         [Min(1)] public int attackPower = 3;
         [Min(1)] public int cost = 3;
-        [Min(1)] public int maxCopies = 2;
+        [Min(1)] public int moveRange = 2;
     }
 
     private enum Team
