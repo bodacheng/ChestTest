@@ -862,13 +862,13 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         if (IsMoveCommand(unit) && unit.PlannedMoveTarget == target)
         {
             AssignWaitCommand(unit);
-            RefreshVisuals();
+            SelectUnit(null);
             return;
         }
 
         if (TryAssignMoveCommand(unit, target))
         {
-            RefreshVisuals();
+            SelectUnit(null);
         }
     }
 
@@ -882,12 +882,12 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         if (IsEnemyCommand(unit) && unit.PlannedEnemyTargetUnit != null && unit.PlannedEnemyTargetUnit.Coord == target)
         {
             AssignWaitCommand(unit);
-            RefreshVisuals();
+            SelectUnit(null);
             return;
         }
 
         TryAssignAttackCommand(unit, target);
-        RefreshVisuals();
+        SelectUnit(null);
     }
 
     private void SetUnitWaitCommand(HexUnit unit)
@@ -898,7 +898,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         }
 
         AssignWaitCommand(unit);
-        RefreshVisuals();
+        SelectUnit(null);
     }
 
     private void AutoPlanCpuCommands()
@@ -1468,6 +1468,9 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         var frontier = new Queue<HexCoord>();
         var parents = new Dictionary<HexCoord, HexCoord>();
         var distances = new Dictionary<HexCoord, int>();
+        var bestCoord = start;
+        var bestGoalDistance = GetPathGoalDistance(start, goal, stopAdjacentToGoal);
+        var bestTravelDistance = 0;
 
         frontier.Enqueue(start);
         distances[start] = 0;
@@ -1495,11 +1498,27 @@ public sealed class HexTacticsPrototype : MonoBehaviour
                     return ReconstructPath(start, neighbor, parents);
                 }
 
+                var goalDistance = GetPathGoalDistance(neighbor, goal, stopAdjacentToGoal);
+                var travelDistance = distance + 1;
+                if (goalDistance < bestGoalDistance ||
+                    (goalDistance == bestGoalDistance && travelDistance > bestTravelDistance))
+                {
+                    bestCoord = neighbor;
+                    bestGoalDistance = goalDistance;
+                    bestTravelDistance = travelDistance;
+                }
+
                 frontier.Enqueue(neighbor);
             }
         }
 
-        return path;
+        if (bestCoord == start)
+        {
+            path.Add(start);
+            return path;
+        }
+
+        return ReconstructPath(start, bestCoord, parents);
     }
 
     private IEnumerable<HexCoord> GetPathNeighbors(
@@ -1634,6 +1653,12 @@ public sealed class HexTacticsPrototype : MonoBehaviour
     private static bool IsPathGoalReached(HexCoord coord, HexCoord goal, bool stopAdjacentToGoal)
     {
         return stopAdjacentToGoal ? AreAdjacent(coord, goal) : coord == goal;
+    }
+
+    private static int GetPathGoalDistance(HexCoord coord, HexCoord goal, bool stopAdjacentToGoal)
+    {
+        var distance = HexDistance(coord, goal);
+        return stopAdjacentToGoal ? Mathf.Max(0, distance - 1) : distance;
     }
 
     private static List<HexCoord> ReconstructPath(HexCoord start, HexCoord end, Dictionary<HexCoord, HexCoord> parents)
@@ -2135,13 +2160,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             return false;
         }
 
-        return FindShortestPath(
-            unit,
-            unit.Coord,
-            target,
-            unit.MoveRange,
-            stopAdjacentToGoal: false,
-            allowFriendlyWaitingOccupants: true).Count > 0;
+        return true;
     }
 
     private bool CanSelectAttackTarget(HexUnit unit, HexCoord target)
@@ -2156,13 +2175,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             return false;
         }
 
-        return FindShortestPath(
-            unit,
-            unit.Coord,
-            target,
-            unit.MoveRange,
-            stopAdjacentToGoal: true,
-            allowFriendlyWaitingOccupants: true).Count > 0;
+        return true;
     }
 
     private void ClearMoveCommand(HexUnit unit)
@@ -2536,8 +2549,8 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         GUI.Label(new Rect(labelX, panelY + 12f, labelWidth, 24f), $"第 {planningRoundNumber} 轮计划  |  已同步结算 {resolvedTurnCount} 个回合");
         GUI.Label(new Rect(labelX, panelY + 36f, labelWidth, 22f), $"蓝方剩余 {blueUnitCount} 名  |  红方剩余 {CountAliveUnits(Team.Red)} 名");
         GUI.Label(new Rect(labelX, panelY + 60f, labelWidth, 22f), "先为所有蓝方棋子下达指令，再确认同步结算");
-        GUI.Label(new Rect(labelX, panelY + 82f, labelWidth, 22f), "每名棋子一轮只设置 1 次命令：点格子是移动命令，点范围内敌人是追击命令");
-        GUI.Label(new Rect(labelX, panelY + 104f, labelWidth, 22f), "追击命令只会攻击指定敌人；若一开始已贴身，则原地攻击该目标。移动命令若起手贴身，会先自动攻击接触敌人再尝试移动");
+        GUI.Label(new Rect(labelX, panelY + 82f, labelWidth, 22f), "每名棋子一轮只设置 1 次命令：点任意格子是移动命令，点任意敌人是追击命令");
+        GUI.Label(new Rect(labelX, panelY + 104f, labelWidth, 22f), "范围外目标也能指定；本轮到不了时会尽量接近。追击命令只攻击指定敌人，若最终贴身则攻击；移动命令起手贴身会先自动攻击");
 
         var selectedLabel = selectedUnit == null
             ? "当前未选择棋子"
@@ -2615,7 +2628,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         GUI.Label(new Rect(panelX + 14f, panelY + 12f, 452f, 24f), $"第 {planningRoundNumber} 轮同步结算  |  {turnTypeLabel}");
         GUI.Label(new Rect(panelX + 14f, panelY + 36f, 452f, 22f), $"蓝方剩余 {CountAliveUnits(Team.Blue)} 名  |  红方剩余 {CountAliveUnits(Team.Red)} 名");
         GUI.Label(new Rect(panelX + 14f, panelY + 62f, 452f, 44f), resolutionStatus);
-        GUI.Label(new Rect(panelX + 14f, panelY + 110f, 452f, 22f), "追击命令只会攻击指定目标敌人；若途中遇到其他敌人，不会自动转成攻击");
+        GUI.Label(new Rect(panelX + 14f, panelY + 110f, 452f, 22f), "范围外的格子或敌人也能作为目标；本轮会按最短路尽量接近，追击只有在最终贴到指定敌人时才会攻击");
         GUI.Label(new Rect(panelX + 14f, panelY + 132f, 452f, 22f), "同一格抢位会随机判定胜者；若目标格暂时被别的棋子占住，本回合会原地等待，等后续空间腾出再继续尝试");
     }
 
