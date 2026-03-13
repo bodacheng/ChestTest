@@ -37,6 +37,7 @@ public sealed partial class HexTacticsPrototype
             ringRenderer.sharedMaterial = team == Team.Blue ? blueRingMaterial : redRingMaterial;
 
             var unit = new HexUnit(
+                nextUnitId++,
                 unitRoot.name,
                 definition.displayName,
                 team,

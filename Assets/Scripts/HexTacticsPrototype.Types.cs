@@ -21,6 +21,7 @@ public sealed partial class HexTacticsPrototype
     private sealed class HexUnit
     {
         public HexUnit(
+            int id,
             string name,
             string roleName,
             Team team,
@@ -33,6 +34,7 @@ public sealed partial class HexTacticsPrototype
             int cost,
             int moveRange)
         {
+            Id = id;
             Name = name;
             RoleName = roleName;
             Team = team;
@@ -51,6 +53,7 @@ public sealed partial class HexTacticsPrototype
             PlannedAttackTiming = AttackTiming.BeforeMove;
         }
 
+        public int Id { get; }
         public string Name { get; }
         public string RoleName { get; }
         public Team Team { get; }

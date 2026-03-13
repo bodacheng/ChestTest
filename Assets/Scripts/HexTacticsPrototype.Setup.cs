@@ -159,6 +159,7 @@ public sealed partial class HexTacticsPrototype
     {
         unitLookups.Clear();
         units.Clear();
+        nextUnitId = 1;
         DestroyChildren(unitsRoot);
 
         foreach (var cell in cells.Values)

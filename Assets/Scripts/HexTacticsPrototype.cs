@@ -95,16 +95,18 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     private bool isResolving;
     private string builderStatus = string.Empty;
     private string resolutionStatus = string.Empty;
-
-    private GUIStyle centeredLabelStyle;
-    private GUIStyle worldLabelStyle;
-    private GUIStyle titleLabelStyle;
+    private int nextUnitId;
     private int lastScreenWidth;
     private int lastScreenHeight;
 
     private void Awake()
     {
         BuildPrototype();
+    }
+
+    private void OnValidate()
+    {
+        PopulateCharacterRosterIfNeeded();
     }
 
     private void Update()
@@ -196,6 +198,7 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         isResolving = false;
         builderStatus = string.Empty;
         resolutionStatus = string.Empty;
+        nextUnitId = 1;
 
         EnsureCharacterRoster();
         BuildMaterials();
@@ -227,20 +230,56 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
 
     private void EnsureCharacterRoster()
     {
+        PopulateCharacterRosterIfNeeded();
+    }
+
+    [ContextMenu("Rebuild Character Roster From Available Prefabs")]
+    private void RebuildCharacterRosterFromAvailablePrefabs()
+    {
+        characterRoster = BuildDefaultCharacterRosterFromPrefabs();
+    }
+
+    private void PopulateCharacterRosterIfNeeded()
+    {
         if (!autoPopulateDefaultRoster || characterRoster.Count > 0)
         {
             return;
         }
 
-        characterRoster = new List<CharacterDefinition>
+        characterRoster = BuildDefaultCharacterRosterFromPrefabs();
+    }
+
+    private List<CharacterDefinition> BuildDefaultCharacterRosterFromPrefabs()
+    {
+        var roster = new List<CharacterDefinition>();
+
+        TryAddDefaultCharacter(roster, UnitVisualArchetype.Fawn, "幼鹿斥候", "幼鹿，低 cost 高机动侦察", 7, 2, 2, 4);
+        TryAddDefaultCharacter(roster, UnitVisualArchetype.Doe, "林地游骑", "母鹿，游击压制与快速补位", 9, 3, 3, 3);
+        TryAddDefaultCharacter(roster, UnitVisualArchetype.Stag, "角冠先锋", "牡鹿，稳健推进的均衡前锋", 12, 4, 4, 2);
+        TryAddDefaultCharacter(roster, UnitVisualArchetype.WhiteTiger, "霜牙猎手", "白虎，擅长追击的精英猎手", 10, 4, 4, 3);
+        TryAddDefaultCharacter(roster, UnitVisualArchetype.Tiger, "猛虎斗士", "孟加拉虎，高爆发近战输出", 11, 5, 5, 2);
+        TryAddDefaultCharacter(roster, UnitVisualArchetype.Elk, "巨角卫士", "驼鹿，高血量低机动防线", 16, 3, 5, 1);
+
+        return roster;
+    }
+
+    private void TryAddDefaultCharacter(
+        List<CharacterDefinition> roster,
+        UnitVisualArchetype archetype,
+        string displayName,
+        string description,
+        int maxHealth,
+        int attackPower,
+        int cost,
+        int moveRange)
+    {
+        var resourcePath = GetVisualResourcePath(archetype);
+        if (string.IsNullOrEmpty(resourcePath) || Resources.Load<GameObject>(resourcePath) == null)
         {
-            new("角冠先锋", "牡鹿，均衡近战", 12, 3, 4, 2, UnitVisualArchetype.Stag),
-            new("林地游骑", "母鹿，快速突击", 9, 4, 4, 3, UnitVisualArchetype.Doe),
-            new("巨角卫士", "驼鹿，高血量前排", 16, 2, 5, 1, UnitVisualArchetype.Elk),
-            new("幼鹿斥候", "幼鹿，低 cost 高机动", 7, 2, 2, 4, UnitVisualArchetype.Fawn),
-            new("猛虎斗士", "孟加拉虎，爆发输出", 8, 5, 5, 2, UnitVisualArchetype.Tiger),
-            new("霜牙猎手", "白虎，稳定追击", 11, 4, 4, 3, UnitVisualArchetype.WhiteTiger)
-        };
+            return;
+        }
+
+        roster.Add(new CharacterDefinition(displayName, description, maxHealth, attackPower, cost, moveRange, archetype));
     }
 
     private void BuildMaterials()
