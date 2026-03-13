@@ -27,6 +27,11 @@ public sealed class HexTacticsPrototype : MonoBehaviour
     [SerializeField, Min(1)] private int cpuTeamCostLimit = 12;
     [SerializeField] private bool autoPopulateDefaultRoster = true;
 
+    [Header("Presentation")]
+    [SerializeField, Min(0.8f)] private float baseUnitVisualHeight = 1.52f;
+    [SerializeField, Min(0.15f)] private float worldLabelPadding = 0.34f;
+    [SerializeField, Range(0.8f, 1.4f)] private float selectionFootprintPadding = 1.05f;
+
     [Header("Roster")]
     [SerializeField] private List<CharacterDefinition> characterRoster = new();
 
@@ -40,6 +45,18 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         new(-1, 1)
     };
 
+    private static readonly int VerticalHash = Animator.StringToHash("Vertical");
+    private static readonly int HorizontalHash = Animator.StringToHash("Horizontal");
+    private static readonly int Attack1Hash = Animator.StringToHash("Attack1");
+    private static readonly int DamagedHash = Animator.StringToHash("Damaged");
+    private static readonly int ShiftHash = Animator.StringToHash("Shift");
+    private static readonly int StandHash = Animator.StringToHash("Stand");
+    private static readonly int SwimHash = Animator.StringToHash("Swim");
+    private static readonly int FallHash = Animator.StringToHash("Fall");
+    private static readonly int ActionHash = Animator.StringToHash("Action");
+    private static readonly int StunnedHash = Animator.StringToHash("Stunned");
+    private static readonly int DeathHash = Animator.StringToHash("Death");
+
     private readonly Dictionary<HexCoord, HexCell> cells = new();
     private readonly Dictionary<Collider, HexCell> cellLookups = new();
     private readonly Dictionary<Collider, HexUnit> unitLookups = new();
@@ -49,6 +66,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
     private readonly List<Material> runtimeMaterials = new();
     private readonly List<int> playerTeamSelection = new();
     private readonly List<int> cpuTeamSelection = new();
+    private readonly Dictionary<UnitVisualArchetype, GameObject> unitVisualPrefabCache = new();
 
     private Transform boardRoot;
     private Transform unitsRoot;
@@ -216,22 +234,23 @@ public sealed class HexTacticsPrototype : MonoBehaviour
 
         characterRoster = new List<CharacterDefinition>
         {
-            new("先锋", "均衡近战", 12, 3, 4, 2),
-            new("游骑", "高机动突击", 9, 4, 4, 3),
-            new("卫士", "高血量前排", 16, 2, 5, 1),
-            new("斗士", "爆发输出", 8, 5, 5, 2),
-            new("斥候", "低 cost 高机动", 7, 2, 2, 3)
+            new("角冠先锋", "牡鹿，均衡近战", 12, 3, 4, 2, UnitVisualArchetype.Stag),
+            new("林地游骑", "母鹿，快速突击", 9, 4, 4, 3, UnitVisualArchetype.Doe),
+            new("巨角卫士", "驼鹿，高血量前排", 16, 2, 5, 1, UnitVisualArchetype.Elk),
+            new("幼鹿斥候", "幼鹿，低 cost 高机动", 7, 2, 2, 4, UnitVisualArchetype.Fawn),
+            new("猛虎斗士", "孟加拉虎，爆发输出", 8, 5, 5, 2, UnitVisualArchetype.Tiger),
+            new("霜牙猎手", "白虎，稳定追击", 11, 4, 4, 3, UnitVisualArchetype.WhiteTiger)
         };
     }
 
     private void BuildMaterials()
     {
-        tilePrimaryMaterial = CreateLitMaterial(new Color(0.82f, 0.77f, 0.64f), new Color(0.05f, 0.03f, 0.01f));
-        tileSecondaryMaterial = CreateLitMaterial(new Color(0.72f, 0.68f, 0.56f), new Color(0.04f, 0.03f, 0.02f));
+        tilePrimaryMaterial = CreateLitMaterial(new Color(0.42f, 0.49f, 0.34f), new Color(0.05f, 0.08f, 0.04f));
+        tileSecondaryMaterial = CreateLitMaterial(new Color(0.50f, 0.43f, 0.30f), new Color(0.06f, 0.05f, 0.03f));
         tileMoveMaterial = CreateLitMaterial(new Color(0.44f, 0.88f, 0.72f), new Color(0.10f, 0.25f, 0.18f));
         tileAttackMaterial = CreateLitMaterial(new Color(0.95f, 0.55f, 0.36f), new Color(0.26f, 0.09f, 0.04f));
         tileSelectedMaterial = CreateLitMaterial(new Color(1.00f, 0.85f, 0.42f), new Color(0.25f, 0.18f, 0.04f));
-        platformMaterial = CreateLitMaterial(new Color(0.23f, 0.29f, 0.25f), new Color(0.02f, 0.03f, 0.02f));
+        platformMaterial = CreateLitMaterial(new Color(0.22f, 0.27f, 0.20f), new Color(0.01f, 0.03f, 0.02f));
         blueBodyMaterial = CreateLitMaterial(new Color(0.18f, 0.45f, 0.82f), new Color(0.03f, 0.06f, 0.12f));
         blueRingMaterial = CreateLitMaterial(new Color(0.36f, 0.66f, 0.98f), new Color(0.07f, 0.11f, 0.18f));
         redBodyMaterial = CreateLitMaterial(new Color(0.82f, 0.30f, 0.26f), new Color(0.11f, 0.04f, 0.03f));
@@ -348,7 +367,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         mainCamera.nearClipPlane = 0.1f;
         mainCamera.farClipPlane = Mathf.Max(200f, requiredDistance * 6f);
         mainCamera.fieldOfView = cameraFieldOfView;
-        mainCamera.backgroundColor = new Color(0.16f, 0.19f, 0.22f);
+        mainCamera.backgroundColor = new Color(0.72f, 0.79f, 0.78f);
 
         lastScreenWidth = Screen.width;
         lastScreenHeight = Screen.height;
@@ -547,20 +566,6 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             var ringRenderer = ring.AddComponent<MeshRenderer>();
             ringRenderer.sharedMaterial = team == Team.Blue ? blueRingMaterial : redRingMaterial;
 
-            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            body.name = "Body";
-            body.transform.SetParent(unitRoot.transform, false);
-            body.transform.localPosition = new Vector3(0f, 0.75f, 0f);
-            body.transform.localScale = new Vector3(0.55f, 0.62f, 0.55f);
-            body.GetComponent<MeshRenderer>().sharedMaterial = team == Team.Blue ? blueBodyMaterial : redBodyMaterial;
-
-            var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            head.name = "Head";
-            head.transform.SetParent(unitRoot.transform, false);
-            head.transform.localPosition = new Vector3(0f, 1.52f, 0f);
-            head.transform.localScale = Vector3.one * 0.34f;
-            head.GetComponent<MeshRenderer>().sharedMaterial = team == Team.Blue ? blueRingMaterial : redRingMaterial;
-
             var unit = new HexUnit(
                 unitRoot.name,
                 definition.displayName,
@@ -574,8 +579,18 @@ public sealed class HexTacticsPrototype : MonoBehaviour
                 definition.cost,
                 definition.moveRange);
 
-            RegisterUnitCollider(body.GetComponent<Collider>(), unit);
-            RegisterUnitCollider(head.GetComponent<Collider>(), unit);
+            unit.VisualHeight = baseUnitVisualHeight;
+            unit.LabelHeight = baseUnitVisualHeight + worldLabelPadding;
+            unit.SelectionRadius = hexRadius * 0.42f;
+
+            if (!TryAttachAnimatedVisual(unit, definition))
+            {
+                AttachFallbackUnitVisual(unit);
+            }
+
+            ApplyRingScale(unit);
+            FaceUnitTowards(unit, unit.Transform.position + GetTeamFacingDirection(team), immediate: true);
+            SetUnitIdle(unit);
 
             cell.Occupant = unit;
             units.Add(unit);
@@ -600,6 +615,260 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         {
             unitLookups[collider] = unit;
         }
+    }
+
+    private bool TryAttachAnimatedVisual(HexUnit unit, CharacterDefinition definition)
+    {
+        var prefab = LoadUnitVisualPrefab(definition.visualArchetype);
+        if (prefab == null)
+        {
+            return false;
+        }
+
+        var visualInstance = Instantiate(prefab);
+        visualInstance.name = $"{definition.visualArchetype} Visual";
+        visualInstance.transform.SetParent(unit.Transform, false);
+        visualInstance.transform.localPosition = Vector3.zero;
+        visualInstance.transform.localRotation = Quaternion.identity;
+        visualInstance.transform.localScale = Vector3.one;
+
+        PrepareVisualInstance(visualInstance);
+
+        if (!TryFitVisualToCell(unit, visualInstance.transform, definition.visualArchetype, out var fittedBounds))
+        {
+            if (Application.isPlaying)
+            {
+                Destroy(visualInstance);
+            }
+            else
+            {
+                DestroyImmediate(visualInstance);
+            }
+
+            return false;
+        }
+
+        unit.VisualRoot = visualInstance.transform;
+        unit.Animator = visualInstance.GetComponentInChildren<Animator>(true);
+        ConfigureAnimator(unit.Animator);
+        UpdateUnitPresentationMetrics(unit, fittedBounds);
+        ConfigureUnitSelectionCollider(unit, fittedBounds);
+        return true;
+    }
+
+    private void AttachFallbackUnitVisual(HexUnit unit)
+    {
+        var teamBodyMaterial = unit.Team == Team.Blue ? blueBodyMaterial : redBodyMaterial;
+        var teamAccentMaterial = unit.Team == Team.Blue ? blueRingMaterial : redRingMaterial;
+
+        var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+        body.name = "Body";
+        body.transform.SetParent(unit.Transform, false);
+        body.transform.localPosition = new Vector3(0f, 0.75f, 0f);
+        body.transform.localScale = new Vector3(0.55f, 0.62f, 0.55f);
+        body.GetComponent<MeshRenderer>().sharedMaterial = teamBodyMaterial;
+
+        var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        head.name = "Head";
+        head.transform.SetParent(unit.Transform, false);
+        head.transform.localPosition = new Vector3(0f, 1.52f, 0f);
+        head.transform.localScale = Vector3.one * 0.34f;
+        head.GetComponent<MeshRenderer>().sharedMaterial = teamAccentMaterial;
+
+        unit.VisualHeight = 1.78f;
+        unit.LabelHeight = 2.12f;
+        unit.SelectionRadius = hexRadius * 0.42f;
+
+        RegisterUnitCollider(body.GetComponent<Collider>(), unit);
+        RegisterUnitCollider(head.GetComponent<Collider>(), unit);
+    }
+
+    private GameObject LoadUnitVisualPrefab(UnitVisualArchetype archetype)
+    {
+        if (unitVisualPrefabCache.TryGetValue(archetype, out var cachedPrefab) && cachedPrefab != null)
+        {
+            return cachedPrefab;
+        }
+
+        var resourcePath = GetVisualResourcePath(archetype);
+        if (string.IsNullOrEmpty(resourcePath))
+        {
+            return null;
+        }
+
+        var prefab = Resources.Load<GameObject>(resourcePath);
+        if (prefab != null)
+        {
+            unitVisualPrefabCache[archetype] = prefab;
+        }
+
+        return prefab;
+    }
+
+    private static string GetVisualResourcePath(UnitVisualArchetype archetype)
+    {
+        return archetype switch
+        {
+            UnitVisualArchetype.Stag => "BattleUnits/Stag",
+            UnitVisualArchetype.Doe => "BattleUnits/Doe",
+            UnitVisualArchetype.Elk => "BattleUnits/Elk",
+            UnitVisualArchetype.Fawn => "BattleUnits/Fawn",
+            UnitVisualArchetype.Tiger => "BattleUnits/Tiger",
+            UnitVisualArchetype.WhiteTiger => "BattleUnits/WhiteTiger",
+            _ => string.Empty
+        };
+    }
+
+    private float GetTargetVisualHeight(UnitVisualArchetype archetype)
+    {
+        return archetype switch
+        {
+            UnitVisualArchetype.Elk => baseUnitVisualHeight * 1.20f,
+            UnitVisualArchetype.Stag => baseUnitVisualHeight * 1.08f,
+            UnitVisualArchetype.Doe => baseUnitVisualHeight * 0.98f,
+            UnitVisualArchetype.Fawn => baseUnitVisualHeight * 0.76f,
+            UnitVisualArchetype.Tiger => baseUnitVisualHeight * 0.96f,
+            UnitVisualArchetype.WhiteTiger => baseUnitVisualHeight * 1.02f,
+            _ => baseUnitVisualHeight
+        };
+    }
+
+    private void PrepareVisualInstance(GameObject visualInstance)
+    {
+        foreach (var collider in visualInstance.GetComponentsInChildren<Collider>(true))
+        {
+            collider.enabled = false;
+        }
+
+        foreach (var rigidBody in visualInstance.GetComponentsInChildren<Rigidbody>(true))
+        {
+            rigidBody.useGravity = false;
+            rigidBody.isKinematic = true;
+            rigidBody.detectCollisions = false;
+        }
+
+        foreach (var trailRenderer in visualInstance.GetComponentsInChildren<TrailRenderer>(true))
+        {
+            trailRenderer.enabled = false;
+        }
+
+        foreach (var lineRenderer in visualInstance.GetComponentsInChildren<LineRenderer>(true))
+        {
+            lineRenderer.enabled = false;
+        }
+
+        foreach (var particleSystem in visualInstance.GetComponentsInChildren<ParticleSystem>(true))
+        {
+            particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            particleSystem.gameObject.SetActive(false);
+        }
+
+        foreach (var audioSource in visualInstance.GetComponentsInChildren<AudioSource>(true))
+        {
+            audioSource.enabled = false;
+        }
+    }
+
+    private bool TryFitVisualToCell(HexUnit unit, Transform visualRoot, UnitVisualArchetype archetype, out Bounds fittedBounds)
+    {
+        fittedBounds = default;
+        if (!TryGetRenderableBounds(visualRoot, out var initialBounds))
+        {
+            return false;
+        }
+
+        var targetHeight = GetTargetVisualHeight(archetype);
+        var safeHeight = Mathf.Max(0.01f, initialBounds.size.y);
+        var scaleFactor = targetHeight / safeHeight;
+        visualRoot.localScale *= scaleFactor;
+
+        if (!TryGetRenderableBounds(visualRoot, out var scaledBounds))
+        {
+            return false;
+        }
+
+        var anchor = unit.Transform.position;
+        var offset = new Vector3(
+            anchor.x - scaledBounds.center.x,
+            anchor.y - scaledBounds.min.y,
+            anchor.z - scaledBounds.center.z);
+        visualRoot.position += offset;
+
+        if (!TryGetRenderableBounds(visualRoot, out fittedBounds))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryGetRenderableBounds(Transform root, out Bounds bounds)
+    {
+        bounds = default;
+        var hasBounds = false;
+        foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+        {
+            if (!renderer.enabled || !renderer.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (renderer is ParticleSystemRenderer || renderer is TrailRenderer || renderer is LineRenderer)
+            {
+                continue;
+            }
+
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+                continue;
+            }
+
+            bounds.Encapsulate(renderer.bounds);
+        }
+
+        return hasBounds;
+    }
+
+    private void UpdateUnitPresentationMetrics(HexUnit unit, Bounds bounds)
+    {
+        unit.VisualHeight = Mathf.Max(baseUnitVisualHeight * 0.75f, bounds.max.y - unit.Transform.position.y);
+        unit.LabelHeight = unit.VisualHeight + worldLabelPadding;
+        unit.SelectionRadius = Mathf.Clamp(
+            Mathf.Max(bounds.extents.x, bounds.extents.z) * selectionFootprintPadding,
+            hexRadius * 0.26f,
+            hexRadius * 0.58f);
+    }
+
+    private void ConfigureUnitSelectionCollider(HexUnit unit, Bounds bounds)
+    {
+        var collider = unit.Transform.GetComponent<CapsuleCollider>();
+        if (collider == null)
+        {
+            collider = unit.Transform.gameObject.AddComponent<CapsuleCollider>();
+        }
+
+        var centerWorld = new Vector3(unit.Transform.position.x, bounds.center.y, unit.Transform.position.z);
+        collider.center = unit.Transform.InverseTransformPoint(centerWorld);
+        collider.radius = unit.SelectionRadius;
+        collider.height = Mathf.Max(0.95f, bounds.size.y);
+        collider.direction = 1;
+        collider.isTrigger = false;
+        collider.enabled = true;
+        RegisterUnitCollider(collider, unit);
+    }
+
+    private void ApplyRingScale(HexUnit unit)
+    {
+        var ringScale = Mathf.Clamp((unit.SelectionRadius / hexRadius) * 1.35f, 0.42f, 0.92f);
+        unit.RingRenderer.transform.localPosition = new Vector3(0f, -unitHoverHeight * 0.55f, 0f);
+        unit.RingRenderer.transform.localScale = new Vector3(ringScale, 0.16f, ringScale);
+    }
+
+    private static Vector3 GetTeamFacingDirection(Team team)
+    {
+        return team == Team.Blue ? Vector3.right : Vector3.left;
     }
 
     private List<HexCoord> GetDeploySlots(Team team)
@@ -1095,6 +1364,8 @@ public sealed class HexTacticsPrototype : MonoBehaviour
 
             if (CheckVictory())
             {
+                isAnimating = false;
+                isResolving = false;
                 currentFlowState = FlowState.Victory;
                 RefreshVisuals();
                 yield break;
@@ -1111,6 +1382,8 @@ public sealed class HexTacticsPrototype : MonoBehaviour
 
                 if (CheckVictory())
                 {
+                    isAnimating = false;
+                    isResolving = false;
                     currentFlowState = FlowState.Victory;
                     RefreshVisuals();
                     yield break;
@@ -1207,14 +1480,178 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         }
     }
 
+    private void ConfigureAnimator(Animator animator)
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        animator.applyRootMotion = false;
+        animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+        animator.updateMode = AnimatorUpdateMode.Normal;
+        animator.Rebind();
+        animator.Update(0f);
+        SetAnimatorLocomotion(animator, 0f, false);
+        animator.SetBool(Attack1Hash, false);
+        animator.SetBool(DamagedHash, false);
+        animator.SetBool(StandHash, false);
+        animator.SetBool(SwimHash, false);
+        animator.SetBool(FallHash, false);
+        animator.SetBool(ActionHash, false);
+        animator.SetBool(StunnedHash, false);
+    }
+
+    private static void SetAnimatorLocomotion(Animator animator, float vertical, bool shift)
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        animator.SetFloat(VerticalHash, vertical);
+        animator.SetFloat(HorizontalHash, 0f);
+        animator.SetBool(ShiftHash, shift);
+    }
+
+    private void SetUnitIdle(HexUnit unit)
+    {
+        if (unit == null || unit.Animator == null)
+        {
+            return;
+        }
+
+        SetAnimatorLocomotion(unit.Animator, 0f, false);
+        unit.Animator.SetBool(Attack1Hash, false);
+        unit.Animator.SetBool(DamagedHash, false);
+        unit.Animator.SetBool(ActionHash, false);
+        unit.Animator.SetBool(FallHash, false);
+        unit.Animator.SetBool(SwimHash, false);
+        unit.Animator.SetBool(StunnedHash, false);
+    }
+
+    private void SetUnitMoving(HexUnit unit, Vector3 worldTarget)
+    {
+        if (unit == null)
+        {
+            return;
+        }
+
+        FaceUnitTowards(unit, worldTarget, immediate: false);
+        if (unit.Animator == null)
+        {
+            return;
+        }
+
+        var usesFastStride = unit.MoveRange >= 3;
+        SetAnimatorLocomotion(unit.Animator, usesFastStride ? 1.15f : 0.82f, usesFastStride);
+    }
+
+    private void PlayUnitAttack(HexUnit unit, Vector3 worldTarget)
+    {
+        if (unit == null)
+        {
+            return;
+        }
+
+        FaceUnitTowards(unit, worldTarget, immediate: true);
+        if (unit.Animator == null)
+        {
+            return;
+        }
+
+        SetAnimatorLocomotion(unit.Animator, 0f, false);
+        unit.Animator.SetBool(Attack1Hash, true);
+        StartCoroutine(ResetAnimatorBoolAfterDelay(unit.Animator, Attack1Hash, attackDuration * 0.45f));
+    }
+
+    private void PlayUnitDamaged(HexUnit unit)
+    {
+        if (unit == null || unit.Animator == null)
+        {
+            return;
+        }
+
+        unit.Animator.SetBool(DamagedHash, true);
+        StartCoroutine(ResetAnimatorBoolAfterDelay(unit.Animator, DamagedHash, 0.16f));
+    }
+
+    private void PlayUnitDeath(HexUnit unit)
+    {
+        if (unit == null)
+        {
+            return;
+        }
+
+        SetSelectionColliderEnabled(unit, false);
+        if (unit.Animator == null)
+        {
+            return;
+        }
+
+        SetAnimatorLocomotion(unit.Animator, 0f, false);
+        unit.Animator.SetBool(Attack1Hash, false);
+        unit.Animator.SetBool(DamagedHash, false);
+        unit.Animator.SetTrigger(DeathHash);
+    }
+
+    private IEnumerator ResetAnimatorBoolAfterDelay(Animator animator, int parameterHash, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (animator != null)
+        {
+            animator.SetBool(parameterHash, false);
+        }
+    }
+
+    private static void SetSelectionColliderEnabled(HexUnit unit, bool enabled)
+    {
+        if (unit?.Transform == null)
+        {
+            return;
+        }
+
+        var collider = unit.Transform.GetComponent<Collider>();
+        if (collider != null)
+        {
+            collider.enabled = enabled;
+        }
+    }
+
+    private void FaceUnitTowards(HexUnit unit, Vector3 worldTarget, bool immediate)
+    {
+        if (unit?.Transform == null)
+        {
+            return;
+        }
+
+        var direction = worldTarget - unit.Transform.position;
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 0.0001f)
+        {
+            return;
+        }
+
+        var targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+        unit.Transform.rotation = immediate
+            ? targetRotation
+            : Quaternion.Slerp(unit.Transform.rotation, targetRotation, 0.4f);
+    }
+
     private IEnumerator ResolveAttackTurn(List<AttackEvent> attacks)
     {
         var attackerStarts = new Dictionary<HexUnit, Vector3>();
+        var animatedAttackers = new HashSet<HexUnit>();
         foreach (var attack in attacks)
         {
             if (!attackerStarts.ContainsKey(attack.Attacker))
             {
                 attackerStarts.Add(attack.Attacker, attack.Attacker.Transform.localPosition);
+            }
+
+            if (animatedAttackers.Add(attack.Attacker))
+            {
+                PlayUnitAttack(attack.Attacker, attack.Defender.Transform.position);
             }
         }
 
@@ -1241,6 +1678,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
                     direction = Vector3.forward;
                 }
 
+                FaceUnitTowards(attack.Attacker, attack.Defender.Transform.position, immediate: false);
                 direction.Normalize();
                 var target = start + direction * (hexRadius * 0.48f);
                 attack.Attacker.Transform.localPosition = Vector3.Lerp(start, target, smoothed);
@@ -1264,6 +1702,10 @@ public sealed class HexTacticsPrototype : MonoBehaviour
                 foreach (var pair in damageMap)
                 {
                     pair.Key.CurrentHealth = Mathf.Max(0, pair.Key.CurrentHealth - pair.Value);
+                    if (pair.Key.CurrentHealth > 0)
+                    {
+                        PlayUnitDamaged(pair.Key);
+                    }
                 }
             }
 
@@ -1273,6 +1715,10 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         foreach (var pair in attackerStarts)
         {
             pair.Key.Transform.localPosition = pair.Value;
+            if (pair.Key.CurrentHealth > 0)
+            {
+                SetUnitIdle(pair.Key);
+            }
         }
 
         var defeated = new List<HexUnit>();
@@ -1281,6 +1727,14 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             if (unit.CurrentHealth <= 0)
             {
                 defeated.Add(unit);
+            }
+        }
+
+        foreach (var attack in attacks)
+        {
+            if (attack.Defender.CurrentHealth > 0)
+            {
+                SetUnitIdle(attack.Defender);
             }
         }
 
@@ -1884,6 +2338,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         foreach (var pair in moves)
         {
             startPositions[pair.Key] = pair.Key.Transform.localPosition;
+            SetUnitMoving(pair.Key, unitsRoot.TransformPoint(CellToUnitPosition(pair.Value)));
         }
 
         var elapsed = 0f;
@@ -1897,6 +2352,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             {
                 var start = startPositions[pair.Key];
                 var target = CellToUnitPosition(pair.Value);
+                FaceUnitTowards(pair.Key, unitsRoot.TransformPoint(target), immediate: false);
                 var position = Vector3.Lerp(start, target, curvedT);
                 position.y += Mathf.Sin(curvedT * Mathf.PI) * 0.15f;
                 pair.Key.Transform.localPosition = position;
@@ -1908,6 +2364,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         foreach (var pair in moves)
         {
             pair.Key.Transform.localPosition = CellToUnitPosition(pair.Value);
+            SetUnitIdle(pair.Key);
         }
     }
 
@@ -1949,9 +2406,12 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         foreach (var unit in defeatedUnits)
         {
             startScales[unit] = unit.Transform.localScale;
+            PlayUnitDeath(unit);
         }
 
-        const float defeatDuration = 0.14f;
+        yield return new WaitForSeconds(0.22f);
+
+        const float defeatDuration = 0.16f;
         var elapsed = 0f;
         while (elapsed < defeatDuration)
         {
@@ -1963,6 +2423,11 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             }
 
             yield return null;
+        }
+
+        foreach (var pair in startScales)
+        {
+            pair.Key.Transform.localScale = Vector3.zero;
         }
     }
 
@@ -2268,6 +2733,27 @@ public sealed class HexTacticsPrototype : MonoBehaviour
                 unit.RingRenderer.sharedMaterial = unit.DefaultRingMaterial;
             }
         }
+
+        if (isAnimating)
+        {
+            return;
+        }
+
+        foreach (var unit in units)
+        {
+            if (currentFlowState == FlowState.Planning && unit.HasPlannedMove)
+            {
+                var targetPoint = IsEnemyCommand(unit) && IsUnitAlive(unit.PlannedEnemyTargetUnit)
+                    ? unit.PlannedEnemyTargetUnit.Transform.position
+                    : unitsRoot.TransformPoint(CellToUnitPosition(unit.PlannedMoveTarget));
+                FaceUnitTowards(unit, targetPoint, immediate: true);
+            }
+
+            if (unit.CurrentHealth > 0)
+            {
+                SetUnitIdle(unit);
+            }
+        }
     }
 
     private Vector3 CellToUnitPosition(HexCoord coord)
@@ -2285,14 +2771,14 @@ public sealed class HexTacticsPrototype : MonoBehaviour
 
     private List<Vector3> CollectCameraFramingPoints()
     {
-        var points = new List<Vector3>(cells.Count * 7);
-        var unitTopHeight = tileHeight * 0.5f + unitHoverHeight + 1.75f;
+        var points = new List<Vector3>(cells.Count * 7 + units.Count * 5);
+        var boardTopHeight = tileHeight * 0.5f + unitHoverHeight + baseUnitVisualHeight * 1.25f;
 
         foreach (var cell in cells.Values)
         {
             var center = HexToWorld(cell.Coord);
             points.Add(center);
-            points.Add(center + Vector3.up * unitTopHeight);
+            points.Add(center + Vector3.up * boardTopHeight);
 
             for (var i = 0; i < 6; i++)
             {
@@ -2300,6 +2786,20 @@ public sealed class HexTacticsPrototype : MonoBehaviour
                 var cornerOffset = new Vector3(Mathf.Cos(radians) * hexRadius, 0f, Mathf.Sin(radians) * hexRadius);
                 points.Add(center + cornerOffset);
             }
+        }
+
+        foreach (var unit in units)
+        {
+            var center = unit.Transform.position;
+            var height = Mathf.Max(baseUnitVisualHeight, unit.VisualHeight);
+            var radius = Mathf.Max(hexRadius * 0.22f, unit.SelectionRadius);
+            var midHeight = height * 0.55f;
+
+            points.Add(center + Vector3.up * height);
+            points.Add(center + new Vector3(radius, midHeight, 0f));
+            points.Add(center + new Vector3(-radius, midHeight, 0f));
+            points.Add(center + new Vector3(0f, midHeight, radius));
+            points.Add(center + new Vector3(0f, midHeight, -radius));
         }
 
         return points;
@@ -2665,7 +3165,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
 
         foreach (var unit in units)
         {
-            var worldPoint = unit.Transform.position + new Vector3(0f, 2.1f, 0f);
+            var worldPoint = unit.Transform.position + new Vector3(0f, unit.LabelHeight, 0f);
             var screenPoint = mainCamera.WorldToScreenPoint(worldPoint);
             if (screenPoint.z <= 0f)
             {
@@ -2908,6 +3408,11 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         public int PlannedMoveProgress { get; set; }
         public bool AttackConsumed { get; set; }
         public bool MovementLocked { get; set; }
+        public Transform VisualRoot { get; set; }
+        public Animator Animator { get; set; }
+        public float VisualHeight { get; set; }
+        public float LabelHeight { get; set; }
+        public float SelectionRadius { get; set; }
         public List<HexCoord> PlannedPath { get; } = new();
     }
 
@@ -2960,7 +3465,14 @@ public sealed class HexTacticsPrototype : MonoBehaviour
     [System.Serializable]
     private sealed class CharacterDefinition
     {
-        public CharacterDefinition(string displayName, string description, int maxHealth, int attackPower, int cost, int moveRange)
+        public CharacterDefinition(
+            string displayName,
+            string description,
+            int maxHealth,
+            int attackPower,
+            int cost,
+            int moveRange,
+            UnitVisualArchetype visualArchetype)
         {
             this.displayName = displayName;
             this.description = description;
@@ -2968,6 +3480,7 @@ public sealed class HexTacticsPrototype : MonoBehaviour
             this.attackPower = attackPower;
             this.cost = cost;
             this.moveRange = moveRange;
+            this.visualArchetype = visualArchetype;
         }
 
         public string displayName = "角色";
@@ -2976,6 +3489,17 @@ public sealed class HexTacticsPrototype : MonoBehaviour
         [Min(1)] public int attackPower = 3;
         [Min(1)] public int cost = 3;
         [Min(1)] public int moveRange = 2;
+        public UnitVisualArchetype visualArchetype = UnitVisualArchetype.Stag;
+    }
+
+    private enum UnitVisualArchetype
+    {
+        Stag,
+        Doe,
+        Elk,
+        Fawn,
+        Tiger,
+        WhiteTiger
     }
 
     private enum Team
