@@ -14,12 +14,11 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
     [SerializeField] private Text commandEmptyText;
     [SerializeField] private Button clearButton;
     [SerializeField] private Button waitButton;
-    [SerializeField] private Button confirmButton;
     [SerializeField] private HexTacticsCommandRowView commandRowPrefab;
 
     private readonly List<HexTacticsCommandRowView> commandRows = new();
 
-    protected override int CurrentLayoutVersion => 1;
+    protected override int CurrentLayoutVersion => 5;
 
     protected override bool HasCurrentBindings =>
         roundText != null &&
@@ -28,8 +27,7 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
         commandContentRoot != null &&
         commandEmptyText != null &&
         clearButton != null &&
-        waitButton != null &&
-        confirmButton != null;
+        waitButton != null;
 
     public RectTransform Root => (RectTransform)transform;
 
@@ -42,7 +40,6 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
         HexTacticsUiSnapshot snapshot,
         Action clearSelection,
         Action waitSelectedUnit,
-        Action confirmCommands,
         Action<int> selectCommandUnit,
         Action<int> waitCommandUnit)
     {
@@ -57,7 +54,6 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
 
         HexTacticsUiFactory.BindButton(clearButton, clearSelection);
         HexTacticsUiFactory.BindButton(waitButton, waitSelectedUnit);
-        HexTacticsUiFactory.BindButton(confirmButton, confirmCommands);
 
         HexTacticsUiFactory.EnsurePool(
             commandRows,
@@ -76,6 +72,9 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
                 commandRows[i].Bind(snapshot.PlayerCommandEntries[i], selectCommandUnit, waitCommandUnit);
             }
         }
+
+        HexTacticsUiFactory.ForceRebuildLayout(commandContentRoot);
+        HexTacticsUiFactory.ForceRebuildLayout(Root);
     }
 
     public override void BuildDefaultHierarchy()
@@ -87,49 +86,50 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
         root.anchorMin = new Vector2(0f, 1f);
         root.anchorMax = new Vector2(0f, 1f);
         root.pivot = new Vector2(0f, 1f);
-        root.sizeDelta = new Vector2(560f, 640f);
-        root.anchoredPosition = new Vector2(18f, -18f);
+        root.sizeDelta = new Vector2(448f, 596f);
+        root.anchoredPosition = new Vector2(22f, -22f);
 
-        HexTacticsUiFactory.AddImage(root.gameObject, new Color(0.05f, 0.08f, 0.10f, 0.86f));
+        var panel = HexTacticsUiFactory.AddImage(root.gameObject, new Color(0.05f, 0.08f, 0.10f, 0.86f));
+        HexTacticsUiFactory.StylePanel(panel, new Color(0.75f, 0.90f, 0.88f, 0.08f));
 
         var layout = root.gameObject.AddComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(18, 18, 16, 16);
-        layout.spacing = 10f;
+        layout.spacing = 8f;
         layout.childAlignment = TextAnchor.UpperLeft;
         layout.childControlHeight = false;
         layout.childControlWidth = true;
         layout.childForceExpandHeight = false;
         layout.childForceExpandWidth = true;
 
-        roundText = HexTacticsUiFactory.CreateText(root, "RoundText", string.Empty, 19, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.AddLayoutElement(roundText.gameObject, preferredHeight: 26f);
+        var badge = HexTacticsUiFactory.CreateText(root, "Badge", "BATTLE PLAN", 13, TextAnchor.MiddleLeft, new Color(0.63f, 0.82f, 0.80f), FontStyle.Bold);
+        HexTacticsUiFactory.AddLayoutElement(badge.gameObject, preferredHeight: 18f);
+
+        roundText = HexTacticsUiFactory.CreateText(root, "RoundText", string.Empty, 20, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+        HexTacticsUiFactory.AddLayoutElement(roundText.gameObject, preferredHeight: 28f);
 
         countText = HexTacticsUiFactory.CreateText(root, "CountText", string.Empty, 16, TextAnchor.MiddleLeft, new Color(0.82f, 0.90f, 0.92f));
-        HexTacticsUiFactory.AddLayoutElement(countText.gameObject, preferredHeight: 22f);
+        HexTacticsUiFactory.AddLayoutElement(countText.gameObject, preferredHeight: 20f);
 
-        var instruction1 = HexTacticsUiFactory.CreateText(root, "Instruction1", "先为所有蓝方棋子下达指令，再确认同步结算", 15, TextAnchor.MiddleLeft, new Color(0.66f, 0.80f, 0.79f));
-        HexTacticsUiFactory.AddLayoutElement(instruction1.gameObject, preferredHeight: 20f);
+        var instruction = HexTacticsUiFactory.CreateText(root, "Instruction", "点格子设置移动，点敌人设置追击；Delete / Backspace 可把当前棋子改为待机。", 14, TextAnchor.MiddleLeft, new Color(0.66f, 0.80f, 0.79f));
+        HexTacticsUiFactory.AddLayoutElement(instruction.gameObject, preferredHeight: 30f);
 
-        var instruction2 = HexTacticsUiFactory.CreateText(root, "Instruction2", "每名棋子一轮只设置 1 次命令：点任意格子是移动命令，点任意敌人是追击命令", 15, TextAnchor.MiddleLeft, new Color(0.66f, 0.80f, 0.79f));
-        HexTacticsUiFactory.AddLayoutElement(instruction2.gameObject, preferredHeight: 38f);
-
-        var instruction3 = HexTacticsUiFactory.CreateText(root, "Instruction3", "范围外目标也能指定；本轮到不了时会尽量接近。追击命令只攻击指定敌人，若最终贴身则攻击；移动命令起手贴身会先自动攻击", 15, TextAnchor.MiddleLeft, new Color(0.66f, 0.80f, 0.79f));
-        HexTacticsUiFactory.AddLayoutElement(instruction3.gameObject, preferredHeight: 56f);
+        var instruction2 = HexTacticsUiFactory.CreateText(root, "Instruction2", "所有蓝方角色都设置完成后会自动开始结算，不再需要手动确认。", 14, TextAnchor.MiddleLeft, new Color(0.82f, 0.91f, 0.73f));
+        HexTacticsUiFactory.AddLayoutElement(instruction2.gameObject, preferredHeight: 30f);
 
         selectedUnitText = HexTacticsUiFactory.CreateText(root, "SelectedUnitText", string.Empty, 16, TextAnchor.MiddleLeft, new Color(0.95f, 0.95f, 0.98f));
-        HexTacticsUiFactory.AddLayoutElement(selectedUnitText.gameObject, preferredHeight: 42f);
+        HexTacticsUiFactory.AddLayoutElement(selectedUnitText.gameObject, preferredHeight: 36f);
 
         var commandScrollContainer = HexTacticsUiFactory.CreateRect("CommandScrollContainer", root);
-        HexTacticsUiFactory.AddLayoutElement(commandScrollContainer.gameObject, preferredHeight: 288f);
+        HexTacticsUiFactory.AddLayoutElement(commandScrollContainer.gameObject, preferredHeight: 272f);
         var commandScrollRoot = HexTacticsUiFactory.CreateScrollView(commandScrollContainer, "ScrollRoot", out _, out commandContentRoot);
         HexTacticsUiFactory.Stretch(commandScrollRoot, Vector2.zero, Vector2.one);
         HexTacticsUiFactory.SetOffsets(commandScrollRoot, 0f, 0f, 0f, 0f);
 
         commandEmptyText = HexTacticsUiFactory.CreateText(root, "EmptyCommandText", "当前没有可下令的蓝方棋子", 15, TextAnchor.MiddleLeft, new Color(0.80f, 0.86f, 0.90f));
-        HexTacticsUiFactory.AddLayoutElement(commandEmptyText.gameObject, preferredHeight: 20f);
+        HexTacticsUiFactory.AddLayoutElement(commandEmptyText.gameObject, preferredHeight: 18f);
 
         var buttonRow = HexTacticsUiFactory.CreateRect("Buttons", root);
-        HexTacticsUiFactory.AddLayoutElement(buttonRow.gameObject, preferredHeight: 36f);
+        HexTacticsUiFactory.AddLayoutElement(buttonRow.gameObject, preferredHeight: 40f);
         var buttonRowLayout = buttonRow.gameObject.AddComponent<HorizontalLayoutGroup>();
         buttonRowLayout.spacing = 12f;
         buttonRowLayout.childAlignment = TextAnchor.MiddleCenter;
@@ -139,13 +139,10 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
         buttonRowLayout.childForceExpandWidth = true;
 
         clearButton = HexTacticsUiFactory.CreateButton(buttonRow, "ClearButton", "清空选择", new Color(0.25f, 0.31f, 0.36f, 0.96f), Color.white, out _);
-        HexTacticsUiFactory.AddLayoutElement(clearButton.gameObject, preferredHeight: 34f);
+        HexTacticsUiFactory.AddLayoutElement(clearButton.gameObject, preferredHeight: 40f);
 
         waitButton = HexTacticsUiFactory.CreateButton(buttonRow, "WaitButton", "当前待机", new Color(0.31f, 0.52f, 0.26f, 0.96f), Color.white, out _);
-        HexTacticsUiFactory.AddLayoutElement(waitButton.gameObject, preferredHeight: 34f);
-
-        confirmButton = HexTacticsUiFactory.CreateButton(buttonRow, "ConfirmButton", "确认指令", new Color(0.22f, 0.56f, 0.55f, 0.96f), Color.white, out _);
-        HexTacticsUiFactory.AddLayoutElement(confirmButton.gameObject, preferredHeight: 34f);
+        HexTacticsUiFactory.AddLayoutElement(waitButton.gameObject, preferredHeight: 40f);
     }
 
     public static HexTacticsPlanningScreenView CreateStandalone(Transform parent)

@@ -33,6 +33,20 @@ public sealed class HexTacticsUiSnapshot
     public readonly List<HexTacticsWorldLabelUiData> WorldLabels = new();
 }
 
+public readonly struct HexTacticsAvatarUiData
+{
+    public HexTacticsAvatarUiData(Sprite sprite, string fallbackText, Color backgroundColor)
+    {
+        Sprite = sprite;
+        FallbackText = fallbackText;
+        BackgroundColor = backgroundColor;
+    }
+
+    public Sprite Sprite { get; }
+    public string FallbackText { get; }
+    public Color BackgroundColor { get; }
+}
+
 public readonly struct HexTacticsRosterEntryUiData
 {
     public HexTacticsRosterEntryUiData(
@@ -43,6 +57,7 @@ public readonly struct HexTacticsRosterEntryUiData
         int attackPower,
         int moveRange,
         int cost,
+        HexTacticsAvatarUiData avatar,
         bool canAdd)
     {
         RosterIndex = rosterIndex;
@@ -52,6 +67,7 @@ public readonly struct HexTacticsRosterEntryUiData
         AttackPower = attackPower;
         MoveRange = moveRange;
         Cost = cost;
+        Avatar = avatar;
         CanAdd = canAdd;
     }
 
@@ -62,33 +78,43 @@ public readonly struct HexTacticsRosterEntryUiData
     public int AttackPower { get; }
     public int MoveRange { get; }
     public int Cost { get; }
+    public HexTacticsAvatarUiData Avatar { get; }
     public bool CanAdd { get; }
 }
 
 public readonly struct HexTacticsSelectionEntryUiData
 {
     public HexTacticsSelectionEntryUiData(
-        int selectionIndex,
+        int entryId,
+        int displayIndex,
         string displayName,
         int maxHealth,
         int attackPower,
         int moveRange,
-        int cost)
+        int cost,
+        string deploymentText,
+        HexTacticsAvatarUiData avatar)
     {
-        SelectionIndex = selectionIndex;
+        EntryId = entryId;
+        DisplayIndex = displayIndex;
         DisplayName = displayName;
         MaxHealth = maxHealth;
         AttackPower = attackPower;
         MoveRange = moveRange;
         Cost = cost;
+        DeploymentText = deploymentText;
+        Avatar = avatar;
     }
 
-    public int SelectionIndex { get; }
+    public int EntryId { get; }
+    public int DisplayIndex { get; }
     public string DisplayName { get; }
     public int MaxHealth { get; }
     public int AttackPower { get; }
     public int MoveRange { get; }
     public int Cost { get; }
+    public string DeploymentText { get; }
+    public HexTacticsAvatarUiData Avatar { get; }
 }
 
 public readonly struct HexTacticsCommandEntryUiData
@@ -97,18 +123,24 @@ public readonly struct HexTacticsCommandEntryUiData
         int unitId,
         string unitName,
         string commandText,
-        bool isSelected)
+        bool isSelected,
+        bool hasAssignedCommand,
+        HexTacticsAvatarUiData avatar)
     {
         UnitId = unitId;
         UnitName = unitName;
         CommandText = commandText;
         IsSelected = isSelected;
+        HasAssignedCommand = hasAssignedCommand;
+        Avatar = avatar;
     }
 
     public int UnitId { get; }
     public string UnitName { get; }
     public string CommandText { get; }
     public bool IsSelected { get; }
+    public bool HasAssignedCommand { get; }
+    public HexTacticsAvatarUiData Avatar { get; }
 }
 
 public readonly struct HexTacticsWorldLabelUiData
@@ -118,13 +150,17 @@ public readonly struct HexTacticsWorldLabelUiData
         Vector3 worldPosition,
         string title,
         string detail,
-        bool isBlueTeam)
+        bool isBlueTeam,
+        int currentHealth,
+        int maxHealth)
     {
         UnitId = unitId;
         WorldPosition = worldPosition;
         Title = title;
         Detail = detail;
         IsBlueTeam = isBlueTeam;
+        CurrentHealth = currentHealth;
+        MaxHealth = maxHealth;
     }
 
     public int UnitId { get; }
@@ -132,4 +168,7 @@ public readonly struct HexTacticsWorldLabelUiData
     public string Title { get; }
     public string Detail { get; }
     public bool IsBlueTeam { get; }
+    public int CurrentHealth { get; }
+    public int MaxHealth { get; }
+    public float HealthNormalized => MaxHealth <= 0 ? 0f : Mathf.Clamp01((float)CurrentHealth / MaxHealth);
 }

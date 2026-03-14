@@ -71,9 +71,29 @@ public static class HexTacticsUiFactory
     public static Image AddImage(GameObject gameObject, Color color, bool raycastTarget = true)
     {
         var image = gameObject.AddComponent<Image>();
+        image.sprite = null;
+        image.type = Image.Type.Simple;
         image.color = color;
         image.raycastTarget = raycastTarget;
         return image;
+    }
+
+    public static void StylePanel(Image image, Color borderColor, float shadowAlpha = 0.20f)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        var outline = image.gameObject.AddComponent<Outline>();
+        outline.effectColor = borderColor;
+        outline.effectDistance = new Vector2(1f, -1f);
+        outline.useGraphicAlpha = true;
+
+        var shadow = image.gameObject.AddComponent<Shadow>();
+        shadow.effectColor = new Color(0f, 0f, 0f, shadowAlpha);
+        shadow.effectDistance = new Vector2(0f, -3f);
+        shadow.useGraphicAlpha = true;
     }
 
     public static Text CreateText(
@@ -92,10 +112,19 @@ public static class HexTacticsUiFactory
         text.alignment = alignment;
         text.color = color;
         text.fontStyle = fontStyle;
+        text.lineSpacing = 1.04f;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
         text.verticalOverflow = VerticalWrapMode.Overflow;
+        text.supportRichText = false;
+        text.alignByGeometry = true;
         text.text = content;
         text.raycastTarget = false;
+
+        var shadow = text.gameObject.AddComponent<Shadow>();
+        shadow.effectColor = new Color(0f, 0f, 0f, fontStyle == FontStyle.Bold ? 0.60f : 0.48f);
+        shadow.effectDistance = new Vector2(0f, -1.35f);
+        shadow.useGraphicAlpha = true;
+
         return text;
     }
 
@@ -109,7 +138,7 @@ public static class HexTacticsUiFactory
     {
         var rect = CreateRect(name, parent);
         var image = AddImage(rect.gameObject, backgroundColor);
-        image.type = Image.Type.Sliced;
+        StylePanel(image, new Color(1f, 1f, 1f, 0.10f), 0.18f);
 
         var button = rect.gameObject.AddComponent<Button>();
         button.targetGraphic = image;
@@ -123,7 +152,7 @@ public static class HexTacticsUiFactory
         colors.fadeDuration = 0.08f;
         button.colors = colors;
 
-        labelText = CreateText(rect, "Label", label, 18, TextAnchor.MiddleCenter, textColor, FontStyle.Bold);
+        labelText = CreateText(rect, "Label", label, 19, TextAnchor.MiddleCenter, textColor, FontStyle.Bold);
         Stretch(labelText.rectTransform, Vector2.zero, Vector2.one);
         return button;
     }
@@ -133,14 +162,13 @@ public static class HexTacticsUiFactory
         var root = CreateRect(name, parent);
         var background = AddImage(root.gameObject, new Color(0f, 0f, 0f, 0.16f));
         background.raycastTarget = true;
+        StylePanel(background, new Color(1f, 1f, 1f, 0.06f), 0.12f);
 
         var viewport = CreateRect("Viewport", root);
         Stretch(viewport, Vector2.zero, Vector2.one);
         SetOffsets(viewport, 6f, 6f, 6f, 6f);
-        var viewportImage = AddImage(viewport.gameObject, new Color(0f, 0f, 0f, 0f), false);
-        viewportImage.maskable = true;
-        var mask = viewport.gameObject.AddComponent<Mask>();
-        mask.showMaskGraphic = false;
+        AddImage(viewport.gameObject, new Color(0f, 0f, 0f, 0f), false);
+        viewport.gameObject.AddComponent<RectMask2D>();
 
         content = CreateRect("Content", viewport);
         content.anchorMin = new Vector2(0f, 1f);
@@ -154,7 +182,7 @@ public static class HexTacticsUiFactory
         verticalLayout.childForceExpandHeight = false;
         verticalLayout.childControlWidth = true;
         verticalLayout.childForceExpandWidth = true;
-        verticalLayout.spacing = 10f;
+        verticalLayout.spacing = 12f;
         verticalLayout.padding = new RectOffset(0, 0, 0, 0);
 
         var fitter = content.gameObject.AddComponent<ContentSizeFitter>();
@@ -205,12 +233,24 @@ public static class HexTacticsUiFactory
         }
     }
 
+    public static void ForceRebuildLayout(RectTransform rect)
+    {
+        if (rect == null)
+        {
+            return;
+        }
+
+        LayoutRebuilder.MarkLayoutForRebuild(rect);
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+    }
+
     public static void ResetViewRoot<TView>(TView view) where TView : Component
     {
-        DestroyChildren(view.transform);
+        DestroyChildrenImmediate(view.transform);
 
         var components = view.gameObject.GetComponents<Component>();
-        for (var i = 0; i < components.Length; i++)
+        for (var i = components.Length - 1; i >= 0; i--)
         {
             var component = components[i];
             if (component == null || component is Transform || ReferenceEquals(component, view))
@@ -218,7 +258,7 @@ public static class HexTacticsUiFactory
                 continue;
             }
 
-            DestroyObject(component);
+            DestroyObjectImmediate(component);
         }
     }
 
@@ -229,7 +269,8 @@ public static class HexTacticsUiFactory
         panel.anchorMax = anchorMax;
         panel.pivot = new Vector2((anchorMin.x + anchorMax.x) * 0.5f, (anchorMin.y + anchorMax.y) * 0.5f);
         panel.sizeDelta = sizeDelta;
-        AddImage(panel.gameObject, backgroundColor);
+        var image = AddImage(panel.gameObject, backgroundColor);
+        StylePanel(image, new Color(1f, 1f, 1f, 0.08f));
         return panel;
     }
 
@@ -307,11 +348,29 @@ public static class HexTacticsUiFactory
         }
     }
 
+    private static void DestroyChildrenImmediate(Transform parent)
+    {
+        for (var i = parent.childCount - 1; i >= 0; i--)
+        {
+            DestroyObjectImmediate(parent.GetChild(i).gameObject);
+        }
+    }
+
     private static void DestroyObject(UnityEngine.Object target)
     {
         if (Application.isPlaying)
         {
             UnityEngine.Object.Destroy(target);
+            return;
+        }
+
+        UnityEngine.Object.DestroyImmediate(target);
+    }
+
+    private static void DestroyObjectImmediate(UnityEngine.Object target)
+    {
+        if (target == null)
+        {
             return;
         }
 

@@ -53,10 +53,11 @@ MonoBehaviour:
   canvasScaler: {fileID: 0}
   graphicRaycaster: {fileID: 0}
   rootLayer: {fileID: 0}
+  safeAreaLayer: {fileID: 0}
   worldLabelLayer: {fileID: 0}
-  modeSelectScreenPrefab: {fileID: 0}
-  teamBuilderScreenPrefab: {fileID: 0}
-  planningScreenPrefab: {fileID: 0}
-  resolvingScreenPrefab: {fileID: 0}
-  victoryOverlayPrefab: {fileID: 0}
-  worldLabelPrefab: {fileID: 0}
+  modeSelectScreenPrefab: {fileID: 3938357629852496165, guid: 2b335df1e226b40968fb08f4f4caf7f1, type: 3}
+  teamBuilderScreenPrefab: {fileID: 2357907948107415211, guid: 565b845c6685f489ebfece515bbbe686, type: 3}
+  planningScreenPrefab: {fileID: 379873814394439813, guid: 8eeefd06d2815442eb17fa6503771612, type: 3}
+  resolvingScreenPrefab: {fileID: 3127287774679664723, guid: 4893e513ae6d442129a233db602b91b9, type: 3}
+  victoryOverlayPrefab: {fileID: 33277775208291505, guid: 55f42c26eff7c41178b12294dc0cf438, type: 3}
+  worldLabelPrefab: {fileID: 2769756678451055263, guid: 4baabd013d0994b59ad350a5025fd5ec, type: 3}

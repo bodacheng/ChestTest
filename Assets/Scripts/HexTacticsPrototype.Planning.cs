@@ -219,13 +219,13 @@ public sealed partial class HexTacticsPrototype
         if (IsMoveCommand(unit) && unit.PlannedMoveTarget == target)
         {
             AssignWaitCommand(unit);
-            SelectUnit(null);
+            HandleAfterPlayerCommandChanged();
             return;
         }
 
         if (TryAssignMoveCommand(unit, target))
         {
-            SelectUnit(null);
+            HandleAfterPlayerCommandChanged();
         }
     }
 
@@ -239,12 +239,12 @@ public sealed partial class HexTacticsPrototype
         if (IsEnemyCommand(unit) && unit.PlannedEnemyTargetUnit != null && unit.PlannedEnemyTargetUnit.Coord == target)
         {
             AssignWaitCommand(unit);
-            SelectUnit(null);
+            HandleAfterPlayerCommandChanged();
             return;
         }
 
         TryAssignAttackCommand(unit, target);
-        SelectUnit(null);
+        HandleAfterPlayerCommandChanged();
     }
 
     private void SetUnitWaitCommand(HexUnit unit)
@@ -255,7 +255,7 @@ public sealed partial class HexTacticsPrototype
         }
 
         AssignWaitCommand(unit);
-        SelectUnit(null);
+        HandleAfterPlayerCommandChanged();
     }
 
     private void AutoPlanCpuCommands()
@@ -284,6 +284,24 @@ public sealed partial class HexTacticsPrototype
                 }
             }
         }
+    }
+
+    private void HandleAfterPlayerCommandChanged()
+    {
+        if (currentFlowState != FlowState.Planning || isResolving || isAnimating)
+        {
+            RefreshVisuals();
+            return;
+        }
+
+        if (AreAllBlueCommandsAssigned())
+        {
+            SelectUnit(null);
+            TryResolvePlanningRound();
+            return;
+        }
+
+        SelectUnit(FindFirstBlueUnitWithoutCommand());
     }
 
     private HexUnit ChooseCpuAttackTarget(HexUnit unit)

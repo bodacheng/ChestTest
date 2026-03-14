@@ -95,6 +95,11 @@ public sealed partial class HexTacticsPrototype
         var verticalHalfFov = cameraFieldOfView * Mathf.Deg2Rad * 0.5f;
         var tanVertical = Mathf.Tan(verticalHalfFov);
         var tanHorizontal = tanVertical * mainCamera.aspect;
+        var viewportMargins = GetViewportMargins();
+        var safeWidth = Mathf.Max(0.58f, 1f - viewportMargins.x - viewportMargins.y);
+        var safeHeight = Mathf.Max(0.68f, 1f - viewportMargins.z - viewportMargins.w);
+        var safeTanHorizontal = tanHorizontal * safeWidth;
+        var safeTanVertical = tanVertical * safeHeight;
 
         var requiredDistance = cameraMinDistance;
         foreach (var point in framingPoints)
@@ -103,9 +108,15 @@ public sealed partial class HexTacticsPrototype
             localPoint.x *= cameraFitPadding;
             localPoint.y *= cameraFitPadding;
 
-            requiredDistance = Mathf.Max(requiredDistance, Mathf.Abs(localPoint.x) / tanHorizontal - localPoint.z);
-            requiredDistance = Mathf.Max(requiredDistance, Mathf.Abs(localPoint.y) / tanVertical - localPoint.z);
+            requiredDistance = Mathf.Max(requiredDistance, Mathf.Abs(localPoint.x) / safeTanHorizontal - localPoint.z);
+            requiredDistance = Mathf.Max(requiredDistance, Mathf.Abs(localPoint.y) / safeTanVertical - localPoint.z);
         }
+
+        var focusOffset = new Vector3(
+            (viewportMargins.y - viewportMargins.x) * tanHorizontal * requiredDistance * 0.9f,
+            (viewportMargins.z - viewportMargins.w) * tanVertical * requiredDistance * 0.5f,
+            0f);
+        focus += rotation * focusOffset;
 
         var forward = rotation * Vector3.forward;
         mainCamera.transform.SetPositionAndRotation(focus - forward * requiredDistance, rotation);
@@ -116,6 +127,20 @@ public sealed partial class HexTacticsPrototype
 
         lastScreenWidth = Screen.width;
         lastScreenHeight = Screen.height;
+        lastCameraFlowState = currentFlowState;
+    }
+
+    private Vector4 GetViewportMargins()
+    {
+        var isPortrait = Screen.height > Screen.width * 1.05f;
+        return currentFlowState switch
+        {
+            FlowState.TeamBuilder => isPortrait ? new Vector4(0.05f, 0.05f, 0.14f, 0.34f) : new Vector4(0.22f, 0.24f, 0.08f, 0.06f),
+            FlowState.Planning => isPortrait ? new Vector4(0.06f, 0.06f, 0.06f, 0.30f) : new Vector4(0.26f, 0.04f, 0.06f, 0.04f),
+            FlowState.Resolving => isPortrait ? new Vector4(0.06f, 0.06f, 0.20f, 0.05f) : new Vector4(0.22f, 0.04f, 0.06f, 0.04f),
+            FlowState.Victory => new Vector4(0.08f, 0.08f, 0.06f, 0.06f),
+            _ => new Vector4(0.06f, 0.06f, 0.05f, 0.05f)
+        };
     }
 
     private void StartCpuMode()
@@ -152,6 +177,12 @@ public sealed partial class HexTacticsPrototype
         isAnimating = false;
         isResolving = false;
         resolutionStatus = string.Empty;
+        if (currentFlowState == FlowState.TeamBuilder)
+        {
+            SpawnTeamBuilderPreviewUnits();
+        }
+
+        ConfigureCamera();
         RefreshVisuals();
     }
 
@@ -175,33 +206,38 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        var definition = characterRoster[rosterIndex];
-        if (GetTeamCost(playerTeamSelection) + definition.cost > playerTeamCostLimit)
+        if (!TryGetNextAvailableBlueDeploySlot(out var target))
         {
-            builderStatus = "已超过队伍总 cost 上限";
+            builderStatus = "蓝方部署区已经放满了";
             return;
         }
 
-        playerTeamSelection.Add(rosterIndex);
-        builderStatus = string.Empty;
+        TryPlacePlayerDeployment(rosterIndex, target);
     }
 
-    private void RemovePlayerCharacterAt(int selectionIndex)
+    private void RemovePlayerCharacterAt(int entryId)
     {
-        if (selectionIndex < 0 || selectionIndex >= playerTeamSelection.Count)
+        for (var i = 0; i < playerDeploymentEntries.Count; i++)
         {
+            if (playerDeploymentEntries[i].EntryId != entryId)
+            {
+                continue;
+            }
+
+            playerDeploymentEntries.RemoveAt(i);
+            builderStatus = string.Empty;
+            RefreshTeamBuilderPreview();
             return;
         }
 
-        playerTeamSelection.RemoveAt(selectionIndex);
-        builderStatus = string.Empty;
+        builderStatus = "未找到要移除的布阵角色";
     }
 
     private bool TryStartCpuBattle()
     {
-        if (playerTeamSelection.Count == 0)
+        if (playerDeploymentEntries.Count == 0)
         {
-            builderStatus = "至少选择 1 名角色才能开始";
+            builderStatus = "至少放置 1 名角色到蓝方部署区才能开始";
             return false;
         }
 
@@ -225,7 +261,8 @@ public sealed partial class HexTacticsPrototype
             var affordable = new List<int>();
             for (var i = 0; i < characterRoster.Count; i++)
             {
-                if (characterRoster[i].cost <= remainingCost)
+                var config = characterRoster[i];
+                if (config != null && config.Cost <= remainingCost)
                 {
                     affordable.Add(i);
                 }
@@ -238,7 +275,7 @@ public sealed partial class HexTacticsPrototype
 
             var pick = affordable[Random.Range(0, affordable.Count)];
             cpuTeamSelection.Add(pick);
-            remainingCost -= characterRoster[pick].cost;
+            remainingCost -= characterRoster[pick].Cost;
         }
 
         return cpuTeamSelection.Count > 0;
@@ -258,8 +295,8 @@ public sealed partial class HexTacticsPrototype
         isAnimating = false;
         isResolving = false;
 
-        SpawnConfiguredTeam(playerTeamSelection, Team.Blue, GetDeploySlots(Team.Blue), "玩家");
-        SpawnConfiguredTeam(cpuTeamSelection, Team.Red, GetDeploySlots(Team.Red), "CPU");
+        SpawnConfiguredPlayerTeam();
+        SpawnConfiguredTeam(cpuTeamSelection, Team.Red, redDeploySlots, "CPU");
         BeginPlanningRound();
     }
 
@@ -274,10 +311,227 @@ public sealed partial class HexTacticsPrototype
 
         foreach (var unit in units)
         {
-            AssignWaitCommand(unit);
+            AssignWaitCommand(unit, markAsAssigned: false);
         }
 
+        SelectUnit(FindFirstBlueUnitWithoutCommand());
+    }
+
+    private void CacheDeploySlots()
+    {
+        blueDeploySlots.Clear();
+        redDeploySlots.Clear();
+        blueDeploySlotLookup.Clear();
+
+        blueDeploySlots.AddRange(GetDeploySlots(Team.Blue));
+        redDeploySlots.AddRange(GetDeploySlots(Team.Red));
+
+        foreach (var coord in blueDeploySlots)
+        {
+            blueDeploySlotLookup.Add(coord);
+        }
+    }
+
+    private void SpawnConfiguredPlayerTeam()
+    {
+        var displayCounts = new Dictionary<string, int>();
+        foreach (var entry in playerDeploymentEntries)
+        {
+            if (entry.Definition == null)
+            {
+                continue;
+            }
+
+            SpawnConfiguredCharacter(entry.Definition, Team.Blue, entry.Coord, "玩家", displayCounts);
+        }
+    }
+
+    private void SpawnTeamBuilderPreviewUnits()
+    {
+        if (currentFlowState != FlowState.TeamBuilder)
+        {
+            return;
+        }
+
+        SpawnConfiguredPlayerTeam();
+    }
+
+    private void RefreshTeamBuilderPreview()
+    {
+        if (currentFlowState != FlowState.TeamBuilder)
+        {
+            return;
+        }
+
+        ClearUnits();
+        SpawnTeamBuilderPreviewUnits();
+        ConfigureCamera();
         RefreshVisuals();
+    }
+
+    private bool TryPlacePlayerDeployment(int rosterIndex, HexCoord target)
+    {
+        if (currentFlowState != FlowState.TeamBuilder || !IsValidRosterIndex(rosterIndex))
+        {
+            return false;
+        }
+
+        if (!blueDeploySlotLookup.Contains(target))
+        {
+            builderStatus = "请把角色放到蓝方高亮部署区";
+            return false;
+        }
+
+        if (TryGetPlayerDeploymentEntryAt(target, out _))
+        {
+            builderStatus = "该部署格已经有角色了";
+            return false;
+        }
+
+        var definition = characterRoster[rosterIndex];
+        if (definition == null)
+        {
+            builderStatus = "角色配置丢失，无法放置";
+            return false;
+        }
+
+        if (GetPlayerTeamCost() + definition.Cost > playerTeamCostLimit)
+        {
+            builderStatus = "已超过队伍总 cost 上限";
+            return false;
+        }
+
+        playerDeploymentEntries.Add(new PlayerDeploymentEntry(nextPlayerDeploymentEntryId++, definition, target));
+        builderStatus = string.Empty;
+        RefreshTeamBuilderPreview();
+        return true;
+    }
+
+    private bool TryMovePlayerDeployment(int entryId, HexCoord target)
+    {
+        if (currentFlowState != FlowState.TeamBuilder || !blueDeploySlotLookup.Contains(target))
+        {
+            builderStatus = "请把角色放到蓝方高亮部署区";
+            return false;
+        }
+
+        var entry = FindPlayerDeploymentEntry(entryId);
+        if (entry == null)
+        {
+            builderStatus = "未找到要移动的角色";
+            return false;
+        }
+
+        if (entry.Coord == target)
+        {
+            builderStatus = string.Empty;
+            return true;
+        }
+
+        if (TryGetPlayerDeploymentEntryAt(target, out _))
+        {
+            builderStatus = "目标部署格已经被占用";
+            return false;
+        }
+
+        entry.Coord = target;
+        builderStatus = string.Empty;
+        RefreshTeamBuilderPreview();
+        return true;
+    }
+
+    private bool TryPlacePlayerDeploymentFromScreenPoint(int rosterIndex, Vector2 screenPosition)
+    {
+        return TryResolveBlueDeployCellFromScreenPoint(screenPosition, out var target) && TryPlacePlayerDeployment(rosterIndex, target);
+    }
+
+    private bool TryMovePlayerDeploymentFromScreenPoint(int entryId, Vector2 screenPosition)
+    {
+        return TryResolveBlueDeployCellFromScreenPoint(screenPosition, out var target) && TryMovePlayerDeployment(entryId, target);
+    }
+
+    private bool TryResolveBlueDeployCellFromScreenPoint(Vector2 screenPosition, out HexCoord target)
+    {
+        target = default;
+
+        var mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            builderStatus = "当前没有可用的主相机";
+            return false;
+        }
+
+        var ray = mainCamera.ScreenPointToRay(screenPosition);
+        var hits = Physics.RaycastAll(ray, 200f);
+        if (hits.Length == 0)
+        {
+            builderStatus = "请把角色拖到棋盘上的蓝方部署格";
+            return false;
+        }
+
+        System.Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+        foreach (var hit in hits)
+        {
+            if (!cellLookups.TryGetValue(hit.collider, out var cell))
+            {
+                continue;
+            }
+
+            if (!blueDeploySlotLookup.Contains(cell.Coord))
+            {
+                builderStatus = "只能放置到蓝方部署区";
+                return false;
+            }
+
+            target = cell.Coord;
+            return true;
+        }
+
+        builderStatus = "请把角色拖到蓝方部署格";
+        return false;
+    }
+
+    private bool TryGetNextAvailableBlueDeploySlot(out HexCoord target)
+    {
+        foreach (var coord in blueDeploySlots)
+        {
+            if (!TryGetPlayerDeploymentEntryAt(coord, out _))
+            {
+                target = coord;
+                return true;
+            }
+        }
+
+        target = default;
+        return false;
+    }
+
+    private PlayerDeploymentEntry FindPlayerDeploymentEntry(int entryId)
+    {
+        foreach (var entry in playerDeploymentEntries)
+        {
+            if (entry.EntryId == entryId)
+            {
+                return entry;
+            }
+        }
+
+        return null;
+    }
+
+    private bool TryGetPlayerDeploymentEntryAt(HexCoord coord, out PlayerDeploymentEntry entry)
+    {
+        foreach (var candidate in playerDeploymentEntries)
+        {
+            if (candidate.Coord == coord)
+            {
+                entry = candidate;
+                return true;
+            }
+        }
+
+        entry = null;
+        return false;
     }
 
 }

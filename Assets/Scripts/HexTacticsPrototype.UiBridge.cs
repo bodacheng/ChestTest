@@ -4,6 +4,7 @@ public sealed partial class HexTacticsPrototype
 {
     public HexTacticsUiSnapshot BuildUiSnapshot()
     {
+        var playerUsedCost = GetPlayerTeamCost();
         var snapshot = new HexTacticsUiSnapshot
         {
             FlowState = ConvertFlowState(currentFlowState),
@@ -13,12 +14,12 @@ public sealed partial class HexTacticsPrototype
             RedAliveCount = CountAliveUnits(Team.Red),
             PlayerCostLimit = playerTeamCostLimit,
             CpuCostLimit = cpuTeamCostLimit,
-            PlayerUsedCost = GetTeamCost(playerTeamSelection),
+            PlayerUsedCost = playerUsedCost,
             BuilderStatus = builderStatus ?? string.Empty,
             ResolutionStatus = resolutionStatus ?? string.Empty,
             TurnTypeLabel = GetTurnTypeLabel(),
             HasSelectedUnit = selectedUnit != null,
-            CanStartBattle = playerTeamSelection.Count > 0 && GetTeamCost(playerTeamSelection) <= playerTeamCostLimit,
+            CanStartBattle = playerDeploymentEntries.Count > 0 && playerUsedCost <= playerTeamCostLimit,
             SelectedUnitSummary = BuildSelectedUnitSummary(),
             VictorySummary = winningTeam.HasValue ? $"{TeamDisplayName(winningTeam.Value)}完成歼灭" : string.Empty
         };
@@ -26,33 +27,41 @@ public sealed partial class HexTacticsPrototype
         for (var i = 0; i < characterRoster.Count; i++)
         {
             var definition = characterRoster[i];
-            snapshot.RosterEntries.Add(new HexTacticsRosterEntryUiData(
-                i,
-                definition.displayName,
-                definition.description,
-                definition.maxHealth,
-                definition.attackPower,
-                definition.moveRange,
-                definition.cost,
-                snapshot.PlayerUsedCost + definition.cost <= playerTeamCostLimit));
-        }
-
-        for (var i = 0; i < playerTeamSelection.Count; i++)
-        {
-            var rosterIndex = playerTeamSelection[i];
-            if (!IsValidRosterIndex(rosterIndex))
+            if (definition == null)
             {
                 continue;
             }
 
-            var definition = characterRoster[rosterIndex];
-            snapshot.PlayerSelectionEntries.Add(new HexTacticsSelectionEntryUiData(
+            snapshot.RosterEntries.Add(new HexTacticsRosterEntryUiData(
                 i,
-                definition.displayName,
-                definition.maxHealth,
-                definition.attackPower,
-                definition.moveRange,
-                definition.cost));
+                definition.DisplayName,
+                definition.Description,
+                definition.MaxHealth,
+                definition.AttackPower,
+                definition.MoveRange,
+                definition.Cost,
+                BuildAvatarUiData(definition),
+                snapshot.PlayerUsedCost + definition.Cost <= playerTeamCostLimit));
+        }
+
+        for (var i = 0; i < playerDeploymentEntries.Count; i++)
+        {
+            var entry = playerDeploymentEntries[i];
+            if (entry.Definition == null)
+            {
+                continue;
+            }
+
+            snapshot.PlayerSelectionEntries.Add(new HexTacticsSelectionEntryUiData(
+                entry.EntryId,
+                i + 1,
+                entry.Definition.DisplayName,
+                entry.Definition.MaxHealth,
+                entry.Definition.AttackPower,
+                entry.Definition.MoveRange,
+                entry.Definition.Cost,
+                $"部署格 ({entry.Coord.Q},{entry.Coord.R})",
+                BuildAvatarUiData(entry.Definition)));
         }
 
         foreach (var unit in units)
@@ -63,7 +72,9 @@ public sealed partial class HexTacticsPrototype
                     unit.Id,
                     unit.Name,
                     DescribeCommand(unit, compact: false),
-                    selectedUnit == unit));
+                    selectedUnit == unit,
+                    unit.HasAssignedCommand,
+                    BuildAvatarUiData(unit.CharacterConfig)));
             }
 
             if (currentFlowState == FlowState.Planning || currentFlowState == FlowState.Resolving || currentFlowState == FlowState.Victory)
@@ -74,8 +85,10 @@ public sealed partial class HexTacticsPrototype
                     unit.Name,
                     currentFlowState == FlowState.Planning
                         ? DescribeCommand(unit, compact: true)
-                        : $"HP {unit.CurrentHealth}/{unit.MaxHealth}  ATK {unit.AttackPower}  MOVE {unit.MoveRange}",
-                    unit.Team == Team.Blue));
+                        : $"ATK {unit.AttackPower}  MOVE {unit.MoveRange}",
+                    unit.Team == Team.Blue,
+                    unit.CurrentHealth,
+                    unit.MaxHealth));
             }
         }
 
@@ -97,9 +110,19 @@ public sealed partial class HexTacticsPrototype
         TryAddCharacterToPlayerTeam(rosterIndex);
     }
 
-    public void UiRemovePlayerCharacterAt(int selectionIndex)
+    public void UiPlaceRosterCharacterAt(int rosterIndex, Vector2 screenPosition)
     {
-        RemovePlayerCharacterAt(selectionIndex);
+        TryPlacePlayerDeploymentFromScreenPoint(rosterIndex, screenPosition);
+    }
+
+    public void UiMovePlacedCharacterTo(int entryId, Vector2 screenPosition)
+    {
+        TryMovePlayerDeploymentFromScreenPoint(entryId, screenPosition);
+    }
+
+    public void UiRemovePlayerCharacterAt(int entryId)
+    {
+        RemovePlayerCharacterAt(entryId);
     }
 
     public void UiTryStartCpuBattle()
@@ -118,11 +141,6 @@ public sealed partial class HexTacticsPrototype
         {
             SetUnitWaitCommand(selectedUnit);
         }
-    }
-
-    public void UiTryResolvePlanningRound()
-    {
-        TryResolvePlanningRound();
     }
 
     public void UiSelectUnit(int unitId)
@@ -165,8 +183,19 @@ public sealed partial class HexTacticsPrototype
 
     private string BuildSelectedUnitSummary()
     {
+        var pendingCount = 0;
+        foreach (var unit in units)
+        {
+            if (unit.Team == Team.Blue && !unit.HasAssignedCommand)
+            {
+                pendingCount++;
+            }
+        }
+
         return selectedUnit == null
-            ? "当前未选择棋子"
+            ? pendingCount > 0
+                ? $"请继续下达命令，剩余 {pendingCount} 名蓝方角色未设置"
+                : "所有蓝方角色已设置命令，正在准备自动结算"
             : $"当前选择：{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  ATK {selectedUnit.AttackPower}  MOVE {selectedUnit.MoveRange}";
     }
 
@@ -190,6 +219,44 @@ public sealed partial class HexTacticsPrototype
             FlowState.Resolving => HexTacticsUiFlowState.Resolving,
             FlowState.Victory => HexTacticsUiFlowState.Victory,
             _ => HexTacticsUiFlowState.ModeSelect
+        };
+    }
+
+    private HexTacticsAvatarUiData BuildAvatarUiData(HexTacticsCharacterConfig definition)
+    {
+        if (definition == null)
+        {
+            return new HexTacticsAvatarUiData(null, "?", new Color(0.22f, 0.28f, 0.32f, 1f));
+        }
+
+        return new HexTacticsAvatarUiData(
+            definition.Avatar,
+            BuildAvatarFallback(definition.DisplayName),
+            GetAvatarBackgroundColor(definition.VisualArchetype));
+    }
+
+    private static string BuildAvatarFallback(string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            return "?";
+        }
+
+        var trimmed = displayName.Trim();
+        return trimmed.Length >= 2 ? trimmed.Substring(0, 2) : trimmed.Substring(0, 1);
+    }
+
+    private static Color GetAvatarBackgroundColor(HexTacticsCharacterVisualArchetype archetype)
+    {
+        return archetype switch
+        {
+            HexTacticsCharacterVisualArchetype.Fawn => new Color(0.58f, 0.52f, 0.34f, 1f),
+            HexTacticsCharacterVisualArchetype.Doe => new Color(0.41f, 0.56f, 0.34f, 1f),
+            HexTacticsCharacterVisualArchetype.Stag => new Color(0.34f, 0.44f, 0.24f, 1f),
+            HexTacticsCharacterVisualArchetype.Elk => new Color(0.46f, 0.34f, 0.24f, 1f),
+            HexTacticsCharacterVisualArchetype.Tiger => new Color(0.72f, 0.40f, 0.20f, 1f),
+            HexTacticsCharacterVisualArchetype.WhiteTiger => new Color(0.42f, 0.56f, 0.70f, 1f),
+            _ => new Color(0.25f, 0.34f, 0.40f, 1f)
         };
     }
 }

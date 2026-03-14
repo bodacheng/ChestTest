@@ -17,67 +17,83 @@ public sealed partial class HexTacticsPrototype
             }
 
             var definition = characterRoster[rosterIndex];
-            var coord = deploySlots[i];
-            if (!cells.TryGetValue(coord, out var cell) || cell.Occupant != null)
+            if (definition == null)
             {
                 continue;
             }
 
-            var unitRoot = new GameObject(CreateBattleUnitName(ownerLabel, definition, displayCounts));
-            unitRoot.transform.SetParent(unitsRoot, false);
-            unitRoot.transform.localPosition = CellToUnitPosition(coord);
-
-            var ring = new GameObject("Ring");
-            ring.transform.SetParent(unitRoot.transform, false);
-            ring.transform.localPosition = new Vector3(0f, -unitHoverHeight * 0.55f, 0f);
-            ring.transform.localScale = new Vector3(0.58f, 0.16f, 0.58f);
-            var ringFilter = ring.AddComponent<MeshFilter>();
-            ringFilter.sharedMesh = cellMesh;
-            var ringRenderer = ring.AddComponent<MeshRenderer>();
-            ringRenderer.sharedMaterial = team == Team.Blue ? blueRingMaterial : redRingMaterial;
-
-            var unit = new HexUnit(
-                nextUnitId++,
-                unitRoot.name,
-                definition.displayName,
-                team,
-                coord,
-                unitRoot.transform,
-                ringRenderer,
-                team == Team.Blue ? blueRingMaterial : redRingMaterial,
-                definition.maxHealth,
-                definition.attackPower,
-                definition.cost,
-                definition.moveRange);
-
-            unit.VisualHeight = baseUnitVisualHeight;
-            unit.LabelHeight = baseUnitVisualHeight + worldLabelPadding;
-            unit.SelectionRadius = hexRadius * 0.42f;
-
-            if (!TryAttachAnimatedVisual(unit, definition))
-            {
-                AttachFallbackUnitVisual(unit);
-            }
-
-            ApplyRingScale(unit);
-            FaceUnitTowards(unit, unit.Transform.position + GetTeamFacingDirection(team), immediate: true);
-            SetUnitIdle(unit);
-
-            cell.Occupant = unit;
-            units.Add(unit);
+            SpawnConfiguredCharacter(definition, team, deploySlots[i], ownerLabel, displayCounts);
         }
     }
 
-    private static string CreateBattleUnitName(string ownerLabel, CharacterDefinition definition, Dictionary<string, int> displayCounts)
+    private void SpawnConfiguredCharacter(
+        HexTacticsCharacterConfig definition,
+        Team team,
+        HexCoord coord,
+        string ownerLabel,
+        Dictionary<string, int> displayCounts)
     {
-        if (!displayCounts.TryGetValue(definition.displayName, out var count))
+        if (definition == null || !cells.TryGetValue(coord, out var cell) || cell.Occupant != null)
+        {
+            return;
+        }
+
+        var unitRoot = new GameObject(CreateBattleUnitName(ownerLabel, definition, displayCounts));
+        unitRoot.transform.SetParent(unitsRoot, false);
+        unitRoot.transform.localPosition = CellToUnitPosition(coord);
+
+        var ring = new GameObject("Ring");
+        ring.transform.SetParent(unitRoot.transform, false);
+        ring.transform.localPosition = new Vector3(0f, -unitHoverHeight * 0.55f, 0f);
+        ring.transform.localScale = new Vector3(0.58f, 0.16f, 0.58f);
+        var ringFilter = ring.AddComponent<MeshFilter>();
+        ringFilter.sharedMesh = cellMesh;
+        var ringRenderer = ring.AddComponent<MeshRenderer>();
+        ringRenderer.sharedMaterial = team == Team.Blue ? blueRingMaterial : redRingMaterial;
+
+        var unit = new HexUnit(
+            nextUnitId++,
+            definition,
+            unitRoot.name,
+            definition.DisplayName,
+            team,
+            coord,
+            unitRoot.transform,
+            ringRenderer,
+            team == Team.Blue ? blueRingMaterial : redRingMaterial,
+            definition.MaxHealth,
+            definition.AttackPower,
+            definition.Cost,
+            definition.MoveRange);
+
+        unit.VisualHeight = baseUnitVisualHeight;
+        unit.LabelHeight = baseUnitVisualHeight + worldLabelPadding;
+        unit.SelectionRadius = hexRadius * 0.42f;
+
+        if (!TryAttachAnimatedVisual(unit, definition))
+        {
+            AttachFallbackUnitVisual(unit);
+        }
+
+        ApplyRingScale(unit);
+        FaceUnitTowards(unit, unit.Transform.position + GetTeamFacingDirection(team), immediate: true);
+        SetUnitIdle(unit);
+
+        cell.Occupant = unit;
+        units.Add(unit);
+    }
+
+    private static string CreateBattleUnitName(string ownerLabel, HexTacticsCharacterConfig definition, Dictionary<string, int> displayCounts)
+    {
+        var displayName = definition != null ? definition.DisplayName : "角色";
+        if (!displayCounts.TryGetValue(displayName, out var count))
         {
             count = 0;
         }
 
         count++;
-        displayCounts[definition.displayName] = count;
-        return $"{ownerLabel} {definition.displayName} {count}";
+        displayCounts[displayName] = count;
+        return $"{ownerLabel} {displayName} {count}";
     }
 
     private void RegisterUnitCollider(Collider collider, HexUnit unit)
@@ -88,16 +104,16 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
-    private bool TryAttachAnimatedVisual(HexUnit unit, CharacterDefinition definition)
+    private bool TryAttachAnimatedVisual(HexUnit unit, HexTacticsCharacterConfig definition)
     {
-        var prefab = LoadUnitVisualPrefab(definition.visualArchetype);
+        var prefab = LoadUnitVisualPrefab(definition.VisualArchetype);
         if (prefab == null)
         {
             return false;
         }
 
         var visualInstance = Instantiate(prefab);
-        visualInstance.name = $"{definition.visualArchetype} Visual";
+        visualInstance.name = $"{definition.VisualArchetype} Visual";
         visualInstance.transform.SetParent(unit.Transform, false);
         visualInstance.transform.localPosition = Vector3.zero;
         visualInstance.transform.localRotation = Quaternion.identity;
@@ -105,7 +121,7 @@ public sealed partial class HexTacticsPrototype
 
         PrepareVisualInstance(visualInstance);
 
-        if (!TryFitVisualToCell(unit, visualInstance.transform, definition.visualArchetype, out var fittedBounds))
+        if (!TryFitVisualToCell(unit, visualInstance.transform, definition.VisualArchetype, out var fittedBounds))
         {
             if (Application.isPlaying)
             {
@@ -154,7 +170,7 @@ public sealed partial class HexTacticsPrototype
         RegisterUnitCollider(head.GetComponent<Collider>(), unit);
     }
 
-    private GameObject LoadUnitVisualPrefab(UnitVisualArchetype archetype)
+    private GameObject LoadUnitVisualPrefab(HexTacticsCharacterVisualArchetype archetype)
     {
         if (unitVisualPrefabCache.TryGetValue(archetype, out var cachedPrefab) && cachedPrefab != null)
         {
@@ -176,30 +192,30 @@ public sealed partial class HexTacticsPrototype
         return prefab;
     }
 
-    private static string GetVisualResourcePath(UnitVisualArchetype archetype)
+    private static string GetVisualResourcePath(HexTacticsCharacterVisualArchetype archetype)
     {
         return archetype switch
         {
-            UnitVisualArchetype.Stag => "BattleUnits/Stag",
-            UnitVisualArchetype.Doe => "BattleUnits/Doe",
-            UnitVisualArchetype.Elk => "BattleUnits/Elk",
-            UnitVisualArchetype.Fawn => "BattleUnits/Fawn",
-            UnitVisualArchetype.Tiger => "BattleUnits/Tiger",
-            UnitVisualArchetype.WhiteTiger => "BattleUnits/WhiteTiger",
+            HexTacticsCharacterVisualArchetype.Stag => "BattleUnits/Stag",
+            HexTacticsCharacterVisualArchetype.Doe => "BattleUnits/Doe",
+            HexTacticsCharacterVisualArchetype.Elk => "BattleUnits/Elk",
+            HexTacticsCharacterVisualArchetype.Fawn => "BattleUnits/Fawn",
+            HexTacticsCharacterVisualArchetype.Tiger => "BattleUnits/Tiger",
+            HexTacticsCharacterVisualArchetype.WhiteTiger => "BattleUnits/WhiteTiger",
             _ => string.Empty
         };
     }
 
-    private float GetTargetVisualHeight(UnitVisualArchetype archetype)
+    private float GetTargetVisualHeight(HexTacticsCharacterVisualArchetype archetype)
     {
         return archetype switch
         {
-            UnitVisualArchetype.Elk => baseUnitVisualHeight * 1.20f,
-            UnitVisualArchetype.Stag => baseUnitVisualHeight * 1.08f,
-            UnitVisualArchetype.Doe => baseUnitVisualHeight * 0.98f,
-            UnitVisualArchetype.Fawn => baseUnitVisualHeight * 0.76f,
-            UnitVisualArchetype.Tiger => baseUnitVisualHeight * 0.96f,
-            UnitVisualArchetype.WhiteTiger => baseUnitVisualHeight * 1.02f,
+            HexTacticsCharacterVisualArchetype.Elk => baseUnitVisualHeight * 1.20f,
+            HexTacticsCharacterVisualArchetype.Stag => baseUnitVisualHeight * 1.08f,
+            HexTacticsCharacterVisualArchetype.Doe => baseUnitVisualHeight * 0.98f,
+            HexTacticsCharacterVisualArchetype.Fawn => baseUnitVisualHeight * 0.76f,
+            HexTacticsCharacterVisualArchetype.Tiger => baseUnitVisualHeight * 0.96f,
+            HexTacticsCharacterVisualArchetype.WhiteTiger => baseUnitVisualHeight * 1.02f,
             _ => baseUnitVisualHeight
         };
     }
@@ -240,7 +256,7 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
-    private bool TryFitVisualToCell(HexUnit unit, Transform visualRoot, UnitVisualArchetype archetype, out Bounds fittedBounds)
+    private bool TryFitVisualToCell(HexUnit unit, Transform visualRoot, HexTacticsCharacterVisualArchetype archetype, out Bounds fittedBounds)
     {
         fittedBounds = default;
         if (!TryGetRenderableBounds(visualRoot, out var initialBounds))

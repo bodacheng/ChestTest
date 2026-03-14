@@ -22,6 +22,7 @@ public sealed partial class HexTacticsPrototype
     {
         public HexUnit(
             int id,
+            HexTacticsCharacterConfig characterConfig,
             string name,
             string roleName,
             Team team,
@@ -35,6 +36,7 @@ public sealed partial class HexTacticsPrototype
             int moveRange)
         {
             Id = id;
+            CharacterConfig = characterConfig;
             Name = name;
             RoleName = roleName;
             Team = team;
@@ -54,6 +56,7 @@ public sealed partial class HexTacticsPrototype
         }
 
         public int Id { get; }
+        public HexTacticsCharacterConfig CharacterConfig { get; }
         public string Name { get; }
         public string RoleName { get; }
         public Team Team { get; }
@@ -66,6 +69,7 @@ public sealed partial class HexTacticsPrototype
         public int AttackPower { get; }
         public int Cost { get; }
         public int MoveRange { get; }
+        public bool HasAssignedCommand { get; set; }
         public bool HasPlannedMove { get; set; }
         public HexCoord PlannedMoveTarget { get; set; }
         public bool HasPlannedAttack { get; set; }
@@ -81,6 +85,20 @@ public sealed partial class HexTacticsPrototype
         public float LabelHeight { get; set; }
         public float SelectionRadius { get; set; }
         public List<HexCoord> PlannedPath { get; } = new();
+    }
+
+    private sealed class PlayerDeploymentEntry
+    {
+        public PlayerDeploymentEntry(int entryId, HexTacticsCharacterConfig definition, HexCoord coord)
+        {
+            EntryId = entryId;
+            Definition = definition;
+            Coord = coord;
+        }
+
+        public int EntryId { get; }
+        public HexTacticsCharacterConfig Definition { get; }
+        public HexCoord Coord { get; set; }
     }
 
     private readonly struct MoveIntent
@@ -127,46 +145,6 @@ public sealed partial class HexTacticsPrototype
         public Dictionary<HexUnit, HashSet<HexUnit>> EnemyContacts { get; }
         public bool HasEnemyContest => EnemyContacts.Count > 0;
         public bool HasValue => Intents != null;
-    }
-
-    [System.Serializable]
-    private sealed class CharacterDefinition
-    {
-        public CharacterDefinition(
-            string displayName,
-            string description,
-            int maxHealth,
-            int attackPower,
-            int cost,
-            int moveRange,
-            UnitVisualArchetype visualArchetype)
-        {
-            this.displayName = displayName;
-            this.description = description;
-            this.maxHealth = maxHealth;
-            this.attackPower = attackPower;
-            this.cost = cost;
-            this.moveRange = moveRange;
-            this.visualArchetype = visualArchetype;
-        }
-
-        public string displayName = "角色";
-        public string description = "近战";
-        [Min(1)] public int maxHealth = 10;
-        [Min(1)] public int attackPower = 3;
-        [Min(1)] public int cost = 3;
-        [Min(1)] public int moveRange = 2;
-        public UnitVisualArchetype visualArchetype = UnitVisualArchetype.Stag;
-    }
-
-    private enum UnitVisualArchetype
-    {
-        Stag,
-        Doe,
-        Elk,
-        Fawn,
-        Tiger,
-        WhiteTiger
     }
 
     private enum Team

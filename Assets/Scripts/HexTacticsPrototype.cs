@@ -33,7 +33,7 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     [SerializeField, Range(0.8f, 1.4f)] private float selectionFootprintPadding = 1.05f;
 
     [Header("Roster")]
-    [SerializeField] private List<CharacterDefinition> characterRoster = new();
+    [SerializeField] private List<HexTacticsCharacterConfig> characterRoster = new();
 
     private static readonly HexCoord[] NeighborDirections =
     {
@@ -64,9 +64,12 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     private readonly List<HexCell> moveCells = new();
     private readonly List<HexCell> attackCells = new();
     private readonly List<Material> runtimeMaterials = new();
-    private readonly List<int> playerTeamSelection = new();
     private readonly List<int> cpuTeamSelection = new();
-    private readonly Dictionary<UnitVisualArchetype, GameObject> unitVisualPrefabCache = new();
+    private readonly List<PlayerDeploymentEntry> playerDeploymentEntries = new();
+    private readonly List<HexCoord> blueDeploySlots = new();
+    private readonly List<HexCoord> redDeploySlots = new();
+    private readonly HashSet<HexCoord> blueDeploySlotLookup = new();
+    private readonly Dictionary<HexTacticsCharacterVisualArchetype, GameObject> unitVisualPrefabCache = new();
 
     private Transform boardRoot;
     private Transform unitsRoot;
@@ -96,8 +99,10 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     private string builderStatus = string.Empty;
     private string resolutionStatus = string.Empty;
     private int nextUnitId;
+    private int nextPlayerDeploymentEntryId;
     private int lastScreenWidth;
     private int lastScreenHeight;
+    private FlowState lastCameraFlowState;
 
     private void Awake()
     {
@@ -160,7 +165,9 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (Screen.width == lastScreenWidth && Screen.height == lastScreenHeight)
+        if (Screen.width == lastScreenWidth &&
+            Screen.height == lastScreenHeight &&
+            currentFlowState == lastCameraFlowState)
         {
             return;
         }
@@ -186,8 +193,11 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         units.Clear();
         moveCells.Clear();
         attackCells.Clear();
-        playerTeamSelection.Clear();
         cpuTeamSelection.Clear();
+        playerDeploymentEntries.Clear();
+        blueDeploySlots.Clear();
+        redDeploySlots.Clear();
+        blueDeploySlotLookup.Clear();
         selectedUnit = null;
         currentFlowState = FlowState.ModeSelect;
         lastResolutionKind = ResolutionKind.None;
@@ -199,12 +209,14 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         builderStatus = string.Empty;
         resolutionStatus = string.Empty;
         nextUnitId = 1;
+        nextPlayerDeploymentEntryId = 1;
 
         EnsureCharacterRoster();
         BuildMaterials();
         cellMesh = BuildHexPrismMesh(hexRadius, tileHeight);
 
         BuildBoard();
+        CacheDeploySlots();
         ConfigureCamera();
         RefreshVisuals();
     }
@@ -233,10 +245,10 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         PopulateCharacterRosterIfNeeded();
     }
 
-    [ContextMenu("Rebuild Character Roster From Available Prefabs")]
+    [ContextMenu("Reload Character Roster From Resources")]
     private void RebuildCharacterRosterFromAvailablePrefabs()
     {
-        characterRoster = BuildDefaultCharacterRosterFromPrefabs();
+        characterRoster = LoadCharacterRosterFromResources();
     }
 
     private void PopulateCharacterRosterIfNeeded()
@@ -246,26 +258,37 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
             return;
         }
 
-        characterRoster = BuildDefaultCharacterRosterFromPrefabs();
+        characterRoster = LoadCharacterRosterFromResources();
     }
 
-    private List<CharacterDefinition> BuildDefaultCharacterRosterFromPrefabs()
+    private List<HexTacticsCharacterConfig> LoadCharacterRosterFromResources()
     {
-        var roster = new List<CharacterDefinition>();
+        var roster = new List<HexTacticsCharacterConfig>(Resources.LoadAll<HexTacticsCharacterConfig>("CharacterConfigs"));
+        roster.RemoveAll(config => config == null);
+        roster.Sort((left, right) => string.CompareOrdinal(left.DisplayName, right.DisplayName));
+        if (roster.Count > 0)
+        {
+            return roster;
+        }
 
-        TryAddDefaultCharacter(roster, UnitVisualArchetype.Fawn, "幼鹿斥候", "幼鹿，低 cost 高机动侦察", 7, 2, 2, 4);
-        TryAddDefaultCharacter(roster, UnitVisualArchetype.Doe, "林地游骑", "母鹿，游击压制与快速补位", 9, 3, 3, 3);
-        TryAddDefaultCharacter(roster, UnitVisualArchetype.Stag, "角冠先锋", "牡鹿，稳健推进的均衡前锋", 12, 4, 4, 2);
-        TryAddDefaultCharacter(roster, UnitVisualArchetype.WhiteTiger, "霜牙猎手", "白虎，擅长追击的精英猎手", 10, 4, 4, 3);
-        TryAddDefaultCharacter(roster, UnitVisualArchetype.Tiger, "猛虎斗士", "孟加拉虎，高爆发近战输出", 11, 5, 5, 2);
-        TryAddDefaultCharacter(roster, UnitVisualArchetype.Elk, "巨角卫士", "驼鹿，高血量低机动防线", 16, 3, 5, 1);
+        return BuildFallbackCharacterRoster();
+    }
 
+    private List<HexTacticsCharacterConfig> BuildFallbackCharacterRoster()
+    {
+        var roster = new List<HexTacticsCharacterConfig>();
+        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Fawn, "幼鹿斥候", "幼鹿，低 cost 高机动侦察", 7, 2, 2, 4);
+        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Doe, "林地游骑", "母鹿，游击压制与快速补位", 9, 3, 3, 3);
+        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Stag, "角冠先锋", "牡鹿，稳健推进的均衡前锋", 12, 4, 4, 2);
+        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.WhiteTiger, "霜牙猎手", "白虎，擅长追击的精英猎手", 10, 4, 4, 3);
+        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Tiger, "猛虎斗士", "孟加拉虎，高爆发近战输出", 11, 5, 5, 2);
+        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Elk, "巨角卫士", "驼鹿，高血量低机动防线", 16, 3, 5, 1);
         return roster;
     }
 
-    private void TryAddDefaultCharacter(
-        List<CharacterDefinition> roster,
-        UnitVisualArchetype archetype,
+    private void TryAddFallbackCharacter(
+        List<HexTacticsCharacterConfig> roster,
+        HexTacticsCharacterVisualArchetype archetype,
         string displayName,
         string description,
         int maxHealth,
@@ -279,7 +302,10 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
             return;
         }
 
-        roster.Add(new CharacterDefinition(displayName, description, maxHealth, attackPower, cost, moveRange, archetype));
+        var config = ScriptableObject.CreateInstance<HexTacticsCharacterConfig>();
+        config.hideFlags = HideFlags.DontSave;
+        config.ConfigureRuntime(displayName, description, maxHealth, attackPower, cost, moveRange, archetype);
+        roster.Add(config);
     }
 
     private void BuildMaterials()

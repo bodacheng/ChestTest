@@ -11,6 +11,11 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
+        if (!AreAllBlueCommandsAssigned())
+        {
+            return;
+        }
+
         AutoPlanCpuCommands();
         StartCoroutine(ResolvePlanningRound());
     }
@@ -1214,7 +1219,25 @@ public sealed partial class HexTacticsPrototype
         {
             if (IsValidRosterIndex(rosterIndex))
             {
-                total += characterRoster[rosterIndex].cost;
+                var config = characterRoster[rosterIndex];
+                if (config != null)
+                {
+                    total += config.Cost;
+                }
+            }
+        }
+
+        return total;
+    }
+
+    private int GetPlayerTeamCost()
+    {
+        var total = 0;
+        foreach (var entry in playerDeploymentEntries)
+        {
+            if (entry.Definition != null)
+            {
+                total += entry.Definition.Cost;
             }
         }
 
@@ -1237,6 +1260,7 @@ public sealed partial class HexTacticsPrototype
         unit.PlannedMoveProgress = 0;
         unit.AttackConsumed = false;
         unit.MovementLocked = false;
+        unit.HasAssignedCommand = true;
         return true;
     }
 
@@ -1256,9 +1280,10 @@ public sealed partial class HexTacticsPrototype
         unit.PlannedMoveProgress = 0;
         unit.AttackConsumed = false;
         unit.MovementLocked = false;
+        unit.HasAssignedCommand = true;
     }
 
-    private void AssignWaitCommand(HexUnit unit)
+    private void AssignWaitCommand(HexUnit unit, bool markAsAssigned = true)
     {
         unit.HasPlannedMove = false;
         unit.HasPlannedAttack = false;
@@ -1270,6 +1295,7 @@ public sealed partial class HexTacticsPrototype
         unit.PlannedMoveProgress = 0;
         unit.AttackConsumed = false;
         unit.MovementLocked = false;
+        unit.HasAssignedCommand = markAsAssigned;
     }
 
     private List<HexCell> GetMoveOptions(HexUnit unit)
@@ -1399,6 +1425,39 @@ public sealed partial class HexTacticsPrototype
         }
 
         return false;
+    }
+
+    private HexUnit FindFirstBlueUnitWithoutCommand()
+    {
+        foreach (var unit in units)
+        {
+            if (unit.Team == Team.Blue && !unit.HasAssignedCommand)
+            {
+                return unit;
+            }
+        }
+
+        return null;
+    }
+
+    private bool AreAllBlueCommandsAssigned()
+    {
+        var hasBlueUnit = false;
+        foreach (var unit in units)
+        {
+            if (unit.Team != Team.Blue)
+            {
+                continue;
+            }
+
+            hasBlueUnit = true;
+            if (!unit.HasAssignedCommand)
+            {
+                return false;
+            }
+        }
+
+        return hasBlueUnit;
     }
 
 }

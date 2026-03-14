@@ -8,7 +8,14 @@ public sealed partial class HexTacticsPrototype
         foreach (var cell in cells.Values)
         {
             var material = cell.BaseMaterial;
-            if (currentFlowState == FlowState.Planning)
+            if (currentFlowState == FlowState.TeamBuilder)
+            {
+                if (blueDeploySlotLookup.Contains(cell.Coord))
+                {
+                    material = cell.Occupant != null ? tileSelectedMaterial : tileMoveMaterial;
+                }
+            }
+            else if (currentFlowState == FlowState.Planning)
             {
                 if (selectedUnit != null && cell.Coord == selectedUnit.Coord)
                 {
@@ -33,7 +40,7 @@ public sealed partial class HexTacticsPrototype
             {
                 unit.RingRenderer.sharedMaterial = selectedRingMaterial;
             }
-            else if (currentFlowState == FlowState.Planning && unit.Team == Team.Blue && (unit.HasPlannedMove || unit.HasPlannedAttack))
+            else if (currentFlowState == FlowState.Planning && unit.Team == Team.Blue && unit.HasAssignedCommand)
             {
                 unit.RingRenderer.sharedMaterial = plannedRingMaterial;
             }
@@ -168,6 +175,11 @@ public sealed partial class HexTacticsPrototype
 
     private string DescribeCommand(HexUnit unit, bool compact)
     {
+        if (!unit.HasAssignedCommand)
+        {
+            return compact ? "未设置" : "尚未设置命令";
+        }
+
         if (!unit.HasPlannedMove)
         {
             return "待机";
