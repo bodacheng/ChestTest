@@ -17,11 +17,15 @@ public sealed class HexTacticsUiSnapshot
     public int ResolvedTurnCount;
     public int BlueAliveCount;
     public int RedAliveCount;
+    public int BlueAssignedCommandCount;
+    public int BluePendingCommandCount;
     public int PlayerCostLimit;
     public int CpuCostLimit;
     public int PlayerUsedCost;
     public bool HasSelectedUnit;
     public bool CanStartBattle;
+    public string CurrentCommandSummary = string.Empty;
+    public string CommandProgressSummary = string.Empty;
     public string BuilderStatus = string.Empty;
     public string ResolutionStatus = string.Empty;
     public string TurnTypeLabel = string.Empty;

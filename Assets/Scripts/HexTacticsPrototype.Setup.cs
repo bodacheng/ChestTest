@@ -69,7 +69,7 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
-    private void ConfigureCamera()
+    private void ConfigureCamera(bool immediate = false)
     {
         var mainCamera = Camera.main;
         if (mainCamera == null)
@@ -77,7 +77,9 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        var framingPoints = CollectCameraFramingPoints();
+        const float attackZoomBlend = 0.18f;
+
+        var framingPoints = ResolveCameraFramingPoints();
         if (framingPoints.Count == 0)
         {
             return;
@@ -101,7 +103,14 @@ public sealed partial class HexTacticsPrototype
         var safeTanHorizontal = tanHorizontal * safeWidth;
         var safeTanVertical = tanVertical * safeHeight;
 
-        var requiredDistance = cameraMinDistance;
+        var conservativeMinScale = Mathf.Max(0.9f, attackCameraMinDistanceScale);
+        var conservativeDistanceScale = Mathf.Max(0.92f, attackCameraDistanceScale);
+        var attackMinDistanceScale = Mathf.Lerp(1f, conservativeMinScale, attackZoomBlend);
+        var attackDistanceScale = Mathf.Lerp(1f, conservativeDistanceScale, attackZoomBlend);
+        var minimumDistance = activeCameraFocusOverride != null
+            ? cameraMinDistance * attackMinDistanceScale
+            : cameraMinDistance;
+        var requiredDistance = minimumDistance;
         foreach (var point in framingPoints)
         {
             var localPoint = inverseRotation * (point - focus);
@@ -112,6 +121,11 @@ public sealed partial class HexTacticsPrototype
             requiredDistance = Mathf.Max(requiredDistance, Mathf.Abs(localPoint.y) / safeTanVertical - localPoint.z);
         }
 
+        if (activeCameraFocusOverride != null)
+        {
+            requiredDistance = Mathf.Max(minimumDistance, requiredDistance * attackDistanceScale);
+        }
+
         var focusOffset = new Vector3(
             (viewportMargins.y - viewportMargins.x) * tanHorizontal * requiredDistance * 0.9f,
             (viewportMargins.z - viewportMargins.w) * tanVertical * requiredDistance * 0.5f,
@@ -119,15 +133,129 @@ public sealed partial class HexTacticsPrototype
         focus += rotation * focusOffset;
 
         var forward = rotation * Vector3.forward;
-        mainCamera.transform.SetPositionAndRotation(focus - forward * requiredDistance, rotation);
-        mainCamera.nearClipPlane = 0.1f;
-        mainCamera.farClipPlane = Mathf.Max(200f, requiredDistance * 6f);
-        mainCamera.fieldOfView = cameraFieldOfView;
-        mainCamera.backgroundColor = new Color(0.72f, 0.79f, 0.78f);
+        SetCameraTarget(
+            mainCamera,
+            focus - forward * requiredDistance,
+            rotation,
+            cameraFieldOfView,
+            Mathf.Max(200f, requiredDistance * 6f),
+            immediate);
 
         lastScreenWidth = Screen.width;
         lastScreenHeight = Screen.height;
         lastCameraFlowState = currentFlowState;
+    }
+
+    private List<Vector3> ResolveCameraFramingPoints()
+    {
+        return TryCollectAttackCameraFramingPoints(out var focusedPoints)
+            ? focusedPoints
+            : CollectCameraFramingPoints();
+    }
+
+    private bool TryCollectAttackCameraFramingPoints(out List<Vector3> points)
+    {
+        points = null;
+        if (activeCameraFocusOverride == null)
+        {
+            return false;
+        }
+
+        var attacker = activeCameraFocusOverride.Attacker;
+        var defender = activeCameraFocusOverride.Defender;
+        if (attacker?.Transform == null || defender?.Transform == null)
+        {
+            activeCameraFocusOverride = null;
+            return false;
+        }
+
+        points = new List<Vector3>(12);
+        AddUnitCameraFramingPoints(points, attacker, 1.16f, 1.08f);
+        AddUnitCameraFramingPoints(points, defender, 1.16f, 1.08f);
+
+        var attackerCenter = attacker.Transform.position;
+        var defenderCenter = defender.Transform.position;
+        var midpoint = Vector3.Lerp(attackerCenter, defenderCenter, 0.5f) + Vector3.up * attackCameraFocusLift;
+        var direction = defenderCenter - attackerCenter;
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 0.0001f)
+        {
+            direction = Vector3.right;
+        }
+
+        var lateral = Vector3.Cross(Vector3.up, direction.normalized);
+        var spread = Mathf.Max(hexRadius * 0.82f, direction.magnitude * 0.36f);
+        var longitudinal = direction.normalized * Mathf.Max(hexRadius * 0.46f, direction.magnitude * 0.22f);
+        points.Add(midpoint);
+        points.Add(midpoint + lateral * spread);
+        points.Add(midpoint - lateral * spread);
+        points.Add(midpoint + longitudinal);
+        points.Add(midpoint - longitudinal);
+        return true;
+    }
+
+    private void SetCameraTarget(Camera mainCamera, Vector3 position, Quaternion rotation, float fieldOfView, float farClipPlane, bool immediate)
+    {
+        cameraTargetPosition = position;
+        cameraTargetRotation = rotation;
+        cameraTargetFieldOfView = fieldOfView;
+        cameraTargetFarClipPlane = farClipPlane;
+        hasCameraTarget = true;
+        if (immediate || !Application.isPlaying || !cameraTransformInitialized)
+        {
+            cameraPositionVelocity = Vector3.zero;
+            cameraFovVelocity = 0f;
+            mainCamera.transform.SetPositionAndRotation(cameraTargetPosition, cameraTargetRotation);
+            mainCamera.nearClipPlane = 0.1f;
+            mainCamera.farClipPlane = cameraTargetFarClipPlane;
+            mainCamera.fieldOfView = cameraTargetFieldOfView;
+            mainCamera.backgroundColor = new Color(0.72f, 0.79f, 0.78f);
+            cameraTransformInitialized = true;
+        }
+    }
+
+    private void UpdateCameraTransform()
+    {
+        var mainCamera = Camera.main;
+        if (mainCamera == null || !hasCameraTarget)
+        {
+            return;
+        }
+
+        if (!Application.isPlaying || !cameraTransformInitialized)
+        {
+            mainCamera.transform.SetPositionAndRotation(cameraTargetPosition, cameraTargetRotation);
+            mainCamera.nearClipPlane = 0.1f;
+            mainCamera.farClipPlane = cameraTargetFarClipPlane;
+            mainCamera.fieldOfView = cameraTargetFieldOfView;
+            mainCamera.backgroundColor = new Color(0.72f, 0.79f, 0.78f);
+            cameraTransformInitialized = true;
+            return;
+        }
+
+        var deltaTime = Mathf.Max(Time.unscaledDeltaTime, 0.0001f);
+        var rotationBlend = 1f - Mathf.Exp(-cameraRotationSmoothness * deltaTime);
+        var position = Vector3.SmoothDamp(
+            mainCamera.transform.position,
+            cameraTargetPosition,
+            ref cameraPositionVelocity,
+            cameraMoveSmoothTime,
+            Mathf.Infinity,
+            deltaTime);
+        var rotation = Quaternion.Slerp(mainCamera.transform.rotation, cameraTargetRotation, rotationBlend);
+        var fieldOfView = Mathf.SmoothDamp(
+            mainCamera.fieldOfView,
+            cameraTargetFieldOfView,
+            ref cameraFovVelocity,
+            cameraZoomSmoothTime,
+            Mathf.Infinity,
+            deltaTime);
+
+        mainCamera.transform.SetPositionAndRotation(position, rotation);
+        mainCamera.nearClipPlane = 0.1f;
+        mainCamera.farClipPlane = Mathf.Lerp(mainCamera.farClipPlane, cameraTargetFarClipPlane, rotationBlend);
+        mainCamera.fieldOfView = fieldOfView;
+        mainCamera.backgroundColor = new Color(0.72f, 0.79f, 0.78f);
     }
 
     private Vector4 GetViewportMargins()
@@ -166,6 +294,7 @@ public sealed partial class HexTacticsPrototype
 
     private void ReturnToNonBattleBoardState()
     {
+        activeCameraFocusOverride = null;
         ClearUnits();
         selectedUnit = null;
         moveCells.Clear();
@@ -188,10 +317,13 @@ public sealed partial class HexTacticsPrototype
 
     private void ClearUnits()
     {
+        activeCameraFocusOverride = null;
         unitLookups.Clear();
         units.Clear();
         nextUnitId = 1;
+        nextHitEffectVariantIndex = 0;
         DestroyChildren(unitsRoot);
+        DestroyChildren(effectsRoot);
 
         foreach (var cell in cells.Values)
         {

@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1c79c0b9f6744bbac1885a8f6a61101, type: 3}
+  m_Name: Skeleton
+  m_EditorClassIdentifier: Assembly-CSharp::HexTacticsCharacterConfig
+  displayName: "\u9AB7\u9AC5\u5175"
+  description: "\u8106\u8EAB\u5FEB\u653B"
+  maxHealth: 8
+  attackPower: 3
+  cost: 3
+  moveRange: 2
+  visualArchetype: 1
+  avatar: {fileID: 0}
+  battleUnitPrefab: {fileID: 6285209290496832306, guid: a604ffbac01747d6b33aff45d9e3dd8a, type: 3}
+  visualHeightScale: 0.95
+  attackImpactFrame: 11
+  attackImpactNormalizedTime: 0.48

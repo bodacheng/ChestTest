@@ -1,0 +1,261 @@
+using System.Collections.Generic;
+using System.IO;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+
+public static class RPGMonsterBundlePolyartValidator
+{
+    private const string BundleRoot = "Assets/RPGMonsterBundlePolyart";
+    private const string CommonStuffsRoot = BundleRoot + "/CommonStuffs";
+    private const string MaterialRoot = CommonStuffsRoot + "/Materials";
+    private const string PrefabRoot = CommonStuffsRoot + "/Prefab";
+    private const string SceneRoot = CommonStuffsRoot + "/Scene";
+    private const string CharacterConfigRoot = HexTacticsAssetPaths.CharacterConfigFolder;
+
+    public static void RunBatchMode()
+    {
+        var exitCode = RunInternal() ? 0 : 1;
+        if (Application.isBatchMode)
+        {
+            EditorApplication.Exit(exitCode);
+        }
+    }
+
+    [MenuItem("Tools/RPG Monster Bundle Polyart/Validate URP Assets")]
+    public static void RunFromMenu()
+    {
+        RunInternal();
+    }
+
+    private static bool RunInternal()
+    {
+        AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+
+        var issues = new List<string>();
+
+        ValidateMaterials(issues);
+        ValidatePrefabs(issues);
+        ValidateScenes(issues);
+        ValidateHexTacticsUi(issues);
+        ValidateHexTacticsCharacterConfigs(issues);
+
+        if (issues.Count == 0)
+        {
+            Debug.Log("[RPGMonsterBundlePolyartValidator] Validation passed.");
+            return true;
+        }
+
+        foreach (var issue in issues)
+        {
+            Debug.LogError("[RPGMonsterBundlePolyartValidator] " + issue);
+        }
+
+        Debug.LogError($"[RPGMonsterBundlePolyartValidator] Validation failed with {issues.Count} issue(s).");
+        return false;
+    }
+
+    private static void ValidateMaterials(List<string> issues)
+    {
+        foreach (var guid in AssetDatabase.FindAssets("t:Material", new[] { MaterialRoot }))
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                issues.Add($"Material could not be loaded: {path}");
+                continue;
+            }
+
+            if (material.shader == null)
+            {
+                issues.Add($"Material shader is missing: {path}");
+                continue;
+            }
+
+            var fileName = Path.GetFileName(path);
+            if ((fileName == "PolyartDefault.mat" || fileName == "Stage.mat") &&
+                material.shader.name != "Universal Render Pipeline/Lit")
+            {
+                issues.Add($"Material is not using URP/Lit: {path} -> {material.shader.name}");
+            }
+
+            if (fileName.StartsWith("PAMaskTint") &&
+                !material.shader.name.Contains("URPMasktTintPA"))
+            {
+                issues.Add($"Mask tint material is not using the URP shader graph: {path} -> {material.shader.name}");
+            }
+        }
+    }
+
+    private static void ValidatePrefabs(List<string> issues)
+    {
+        foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { PrefabRoot }))
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            var root = PrefabUtility.LoadPrefabContents(path);
+
+            try
+            {
+                ValidateHierarchy(path, root, issues);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+    }
+
+    private static void ValidateScenes(List<string> issues)
+    {
+        foreach (var guid in AssetDatabase.FindAssets("t:Scene", new[] { SceneRoot }))
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                ValidateHierarchy(path, root, issues);
+            }
+        }
+    }
+
+    private static void ValidateHierarchy(string assetPath, GameObject root, List<string> issues)
+    {
+        foreach (var transform in root.GetComponentsInChildren<Transform>(true))
+        {
+            var gameObject = transform.gameObject;
+            var missingScriptCount = GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(gameObject);
+            if (missingScriptCount > 0)
+            {
+                issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} has {missingScriptCount} missing script reference(s).");
+            }
+
+            foreach (var renderer in gameObject.GetComponents<Renderer>())
+            {
+                var materials = renderer.sharedMaterials;
+                if (materials == null || materials.Length == 0)
+                {
+                    issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} has no assigned materials.");
+                    continue;
+                }
+
+                for (var i = 0; i < materials.Length; i++)
+                {
+                    if (materials[i] == null)
+                    {
+                        issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} has a missing material at slot {i}.");
+                    }
+                }
+
+                if (renderer is SkinnedMeshRenderer skinnedMeshRenderer && skinnedMeshRenderer.sharedMesh == null)
+                {
+                    issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} is missing its skinned mesh.");
+                }
+            }
+
+            var meshFilter = gameObject.GetComponent<MeshFilter>();
+            var meshRenderer = gameObject.GetComponent<MeshRenderer>();
+            if (meshRenderer != null && meshFilter != null && meshFilter.sharedMesh == null)
+            {
+                issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} is missing its mesh filter mesh.");
+            }
+
+            var animator = gameObject.GetComponent<Animator>();
+            if (animator != null && animator.runtimeAnimatorController == null)
+            {
+                issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} is missing its animator controller.");
+            }
+        }
+    }
+
+    private static void ValidateHexTacticsUi(List<string> issues)
+    {
+        HexTacticsCanvasView view = null;
+        EventSystem eventSystem = null;
+
+        try
+        {
+            view = HexTacticsCanvasBootstrap.EnsureView();
+            if (view == null)
+            {
+                issues.Add("Hex Tactics UI bootstrap did not create a canvas view.");
+                return;
+            }
+
+            view.EnsureBuilt();
+            if (view.GetComponent<Canvas>() == null)
+            {
+                issues.Add("Hex Tactics UI canvas root is missing its Canvas component.");
+            }
+
+            eventSystem = Object.FindFirstObjectByType<EventSystem>();
+            if (eventSystem == null)
+            {
+                issues.Add("Hex Tactics UI bootstrap did not create an EventSystem.");
+            }
+        }
+        finally
+        {
+            if (view != null)
+            {
+                Object.DestroyImmediate(view.gameObject);
+            }
+
+            if (eventSystem != null)
+            {
+                Object.DestroyImmediate(eventSystem.gameObject);
+            }
+        }
+    }
+
+    private static void ValidateHexTacticsCharacterConfigs(List<string> issues)
+    {
+        foreach (var guid in AssetDatabase.FindAssets("t:HexTacticsCharacterConfig", new[] { CharacterConfigRoot }))
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            var config = AssetDatabase.LoadAssetAtPath<HexTacticsCharacterConfig>(path);
+            if (config == null)
+            {
+                issues.Add($"Character config could not be loaded: {path}");
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(config.DisplayName))
+            {
+                issues.Add($"Character config is missing a display name: {path}");
+            }
+
+            if (config.MaxHealth < 1 || config.AttackPower < 1 || config.Cost < 1 || config.MoveRange < 1)
+            {
+                issues.Add($"Character config has invalid combat stats: {path}");
+            }
+
+            if (config.VisualHeightScale < 0.4f)
+            {
+                issues.Add($"Character config has an invalid visual height scale: {path}");
+            }
+
+            var requiresDirectPrefab = path.Contains("/RPGMonsterBundlePolyart/");
+            if (requiresDirectPrefab && config.BattleUnitPrefab == null)
+            {
+                issues.Add($"Imported RPG monster config is missing its battle prefab reference: {path}");
+            }
+        }
+    }
+
+    private static string GetHierarchyPath(GameObject gameObject)
+    {
+        var path = gameObject.name;
+        var current = gameObject.transform.parent;
+        while (current != null)
+        {
+            path = current.name + "/" + path;
+            current = current.parent;
+        }
+
+        return path;
+    }
+}

@@ -36,7 +36,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
     private int draggingRosterIndex = -1;
     private int draggingEntryId = -1;
 
-    protected override int CurrentLayoutVersion => 6;
+    protected override int CurrentLayoutVersion => 10;
 
     protected override bool HasCurrentBindings =>
         summaryPanel != null &&
@@ -47,7 +47,6 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         rosterContentRoot != null &&
         selectedRosterContentRoot != null &&
         costText != null &&
-        cpuHintText != null &&
         emptyText != null &&
         statusText != null &&
         backButton != null &&
@@ -80,12 +79,15 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         placeRosterCharacterHandler = placeRosterCharacterAt;
         movePlacedCharacterHandler = moveSelectionEntryTo;
 
-        budgetText.text = $"玩家总 cost 上限：{snapshot.PlayerCostLimit}    CPU 总 cost 上限：{snapshot.CpuCostLimit}";
-        selectionHintText.text = "把左侧角色头像拖到中间棋盘蓝色高亮格上，直接设置初期站位";
-        costText.text = $"已放置 {snapshot.PlayerSelectionEntries.Count} 名角色  |  已用 cost：{snapshot.PlayerUsedCost} / {snapshot.PlayerCostLimit}";
-        cpuHintText.text = "右侧已放置角色也可以继续拖回棋盘重新摆位；CPU 会自动在红方部署区组队";
+        budgetText.text = $"预算  蓝 {snapshot.PlayerCostLimit}  |  红 {snapshot.CpuCostLimit}";
+        selectionHintText.text = "从左侧选择角色拖到蓝色部署格，已部署角色也可拖回调整";
+        costText.text = $"已部署 {snapshot.PlayerSelectionEntries.Count} 名  |  费用 {snapshot.PlayerUsedCost}/{snapshot.PlayerCostLimit}";
+        if (cpuHintText != null)
+        {
+            cpuHintText.gameObject.SetActive(false);
+        }
         emptyText.gameObject.SetActive(snapshot.PlayerSelectionEntries.Count == 0);
-        emptyText.text = "还没有放置任何角色";
+        emptyText.text = "尚未部署角色";
         statusText.text = snapshot.BuilderStatus;
         statusText.gameObject.SetActive(!string.IsNullOrWhiteSpace(snapshot.BuilderStatus));
         startButton.interactable = snapshot.CanStartBattle;
@@ -146,16 +148,16 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         HexTacticsUiFactory.SetOffsets(root, 0f, 0f, 0f, 0f);
 
         summaryPanel = HexTacticsUiFactory.CreateRect("SummaryPanel", root);
-        var summaryPanelImage = HexTacticsUiFactory.AddImage(summaryPanel.gameObject, new Color(0.05f, 0.08f, 0.10f, 0.86f));
-        HexTacticsUiFactory.StylePanel(summaryPanelImage, new Color(1f, 1f, 1f, 0.08f));
+        var summaryPanelImage = HexTacticsUiFactory.AddImage(summaryPanel.gameObject, new Color(0.04f, 0.07f, 0.08f, 0.78f));
+        HexTacticsUiFactory.StylePanel(summaryPanelImage, new Color(1f, 1f, 1f, 0.05f));
 
         rosterPanel = HexTacticsUiFactory.CreateRect("RosterPanel", root);
-        var leftPanelImage = HexTacticsUiFactory.AddImage(rosterPanel.gameObject, new Color(0.05f, 0.08f, 0.10f, 0.86f));
-        HexTacticsUiFactory.StylePanel(leftPanelImage, new Color(1f, 1f, 1f, 0.08f));
+        var leftPanelImage = HexTacticsUiFactory.AddImage(rosterPanel.gameObject, new Color(0.04f, 0.07f, 0.08f, 0.78f));
+        HexTacticsUiFactory.StylePanel(leftPanelImage, new Color(1f, 1f, 1f, 0.05f));
 
         selectionPanel = HexTacticsUiFactory.CreateRect("SelectionPanel", root);
-        var rightPanelImage = HexTacticsUiFactory.AddImage(selectionPanel.gameObject, new Color(0.05f, 0.08f, 0.10f, 0.86f));
-        HexTacticsUiFactory.StylePanel(rightPanelImage, new Color(1f, 1f, 1f, 0.08f));
+        var rightPanelImage = HexTacticsUiFactory.AddImage(selectionPanel.gameObject, new Color(0.04f, 0.07f, 0.08f, 0.78f));
+        HexTacticsUiFactory.StylePanel(rightPanelImage, new Color(1f, 1f, 1f, 0.05f));
 
         BuildSummaryPanel(summaryPanel);
         BuildLeftPanel(rosterPanel);
@@ -174,19 +176,21 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
     private void BuildSummaryPanel(RectTransform panel)
     {
         var layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(20, 20, 16, 16);
-        layout.spacing = 6f;
+        layout.padding = new RectOffset(22, 22, 18, 18);
+        layout.spacing = 8f;
         layout.childAlignment = TextAnchor.UpperLeft;
         layout.childControlHeight = false;
         layout.childControlWidth = true;
         layout.childForceExpandHeight = false;
         layout.childForceExpandWidth = true;
 
-        var title = HexTacticsUiFactory.CreateText(panel, "Title", "战前布阵", 24, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 30f);
-        budgetText = HexTacticsUiFactory.CreateText(panel, "BudgetText", string.Empty, 15, TextAnchor.MiddleLeft, new Color(0.82f, 0.90f, 0.92f));
-        HexTacticsUiFactory.AddLayoutElement(budgetText.gameObject, preferredHeight: 22f);
-        selectionHintText = HexTacticsUiFactory.CreateText(panel, "SelectionHintText", string.Empty, 14, TextAnchor.MiddleLeft, new Color(0.66f, 0.80f, 0.79f));
+        var title = HexTacticsUiFactory.CreateText(panel, "Title", "战前布阵", 28, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 34f);
+        budgetText = HexTacticsUiFactory.CreateText(panel, "BudgetText", string.Empty, 18, TextAnchor.MiddleLeft, new Color(0.82f, 0.88f, 0.90f));
+        HexTacticsUiFactory.AddLayoutElement(budgetText.gameObject, preferredHeight: 24f);
+        costText = HexTacticsUiFactory.CreateText(panel, "CostText", string.Empty, 18, TextAnchor.MiddleLeft, new Color(0.82f, 0.88f, 0.90f));
+        HexTacticsUiFactory.AddLayoutElement(costText.gameObject, preferredHeight: 24f);
+        selectionHintText = HexTacticsUiFactory.CreateText(panel, "SelectionHintText", string.Empty, 15, TextAnchor.UpperLeft, new Color(0.62f, 0.72f, 0.76f));
         HexTacticsUiFactory.AddLayoutElement(selectionHintText.gameObject, preferredHeight: 40f);
     }
 
@@ -196,27 +200,25 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         header.anchorMin = new Vector2(0f, 1f);
         header.anchorMax = new Vector2(1f, 1f);
         header.pivot = new Vector2(0.5f, 1f);
-        header.sizeDelta = new Vector2(0f, 88f);
+        header.sizeDelta = new Vector2(0f, 68f);
         header.anchoredPosition = Vector2.zero;
         var headerLayout = header.gameObject.AddComponent<VerticalLayoutGroup>();
-        headerLayout.padding = new RectOffset(16, 16, 14, 8);
-        headerLayout.spacing = 4f;
+        headerLayout.padding = new RectOffset(18, 18, 18, 10);
+        headerLayout.spacing = 0f;
         headerLayout.childAlignment = TextAnchor.UpperLeft;
         headerLayout.childControlHeight = false;
         headerLayout.childControlWidth = true;
         headerLayout.childForceExpandHeight = false;
         headerLayout.childForceExpandWidth = true;
 
-        var title = HexTacticsUiFactory.CreateText(header, "Title", "角色仓库", 22, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+        var title = HexTacticsUiFactory.CreateText(header, "Title", "角色仓库", 24, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
         HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 28f);
-        var subtitle = HexTacticsUiFactory.CreateText(header, "Subtitle", "拖到棋盘蓝色部署格即可上阵", 13, TextAnchor.MiddleLeft, new Color(0.72f, 0.84f, 0.86f));
-        HexTacticsUiFactory.AddLayoutElement(subtitle.gameObject, preferredHeight: 18f);
 
         var leftScroll = HexTacticsUiFactory.CreateRect("RosterScroll", leftPanel);
         leftScroll.anchorMin = new Vector2(0f, 0f);
         leftScroll.anchorMax = new Vector2(1f, 1f);
         leftScroll.pivot = new Vector2(0.5f, 0.5f);
-        HexTacticsUiFactory.SetOffsets(leftScroll, 16f, 16f, 16f, 96f);
+        HexTacticsUiFactory.SetOffsets(leftScroll, 16f, 16f, 16f, 76f);
         var leftScrollRoot = HexTacticsUiFactory.CreateScrollView(leftScroll, "ScrollRoot", out _, out rosterContentRoot);
         HexTacticsUiFactory.Stretch(leftScrollRoot, Vector2.zero, Vector2.one);
         HexTacticsUiFactory.SetOffsets(leftScrollRoot, 0f, 0f, 0f, 0f);
@@ -228,48 +230,47 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         header.anchorMin = new Vector2(0f, 1f);
         header.anchorMax = new Vector2(1f, 1f);
         header.pivot = new Vector2(0.5f, 1f);
-        header.sizeDelta = new Vector2(0f, 108f);
+        header.sizeDelta = new Vector2(0f, 60f);
         header.anchoredPosition = Vector2.zero;
         var headerLayout = header.gameObject.AddComponent<VerticalLayoutGroup>();
-        headerLayout.padding = new RectOffset(16, 16, 14, 8);
-        headerLayout.spacing = 4f;
+        headerLayout.padding = new RectOffset(18, 18, 16, 12);
+        headerLayout.spacing = 0f;
         headerLayout.childAlignment = TextAnchor.UpperLeft;
         headerLayout.childControlHeight = false;
         headerLayout.childControlWidth = true;
         headerLayout.childForceExpandHeight = false;
         headerLayout.childForceExpandWidth = true;
 
-        var title = HexTacticsUiFactory.CreateText(header, "Title", "蓝方部署", 22, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+        var title = HexTacticsUiFactory.CreateText(header, "Title", "蓝方部署", 24, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
         HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 28f);
-        costText = HexTacticsUiFactory.CreateText(header, "CostText", string.Empty, 15, TextAnchor.MiddleLeft, new Color(0.82f, 0.90f, 0.92f));
-        HexTacticsUiFactory.AddLayoutElement(costText.gameObject, preferredHeight: 22f);
-        cpuHintText = HexTacticsUiFactory.CreateText(header, "CpuHintText", string.Empty, 14, TextAnchor.MiddleLeft, new Color(0.66f, 0.80f, 0.79f));
-        HexTacticsUiFactory.AddLayoutElement(cpuHintText.gameObject, preferredHeight: 34f);
+        cpuHintText = HexTacticsUiFactory.CreateText(header, "CpuHintText", string.Empty, 15, TextAnchor.MiddleLeft, new Color(0.62f, 0.72f, 0.76f));
+        cpuHintText.gameObject.SetActive(false);
+        HexTacticsUiFactory.AddLayoutElement(cpuHintText.gameObject, preferredHeight: 0f);
 
         var selectedScroll = HexTacticsUiFactory.CreateRect("SelectedScroll", rightPanel);
         selectedScroll.anchorMin = new Vector2(0f, 0f);
         selectedScroll.anchorMax = new Vector2(1f, 1f);
         selectedScroll.pivot = new Vector2(0.5f, 0.5f);
-        HexTacticsUiFactory.SetOffsets(selectedScroll, 16f, 112f, 16f, 116f);
+        HexTacticsUiFactory.SetOffsets(selectedScroll, 16f, 108f, 16f, 72f);
         var selectedScrollRoot = HexTacticsUiFactory.CreateScrollView(selectedScroll, "ScrollRoot", out _, out selectedRosterContentRoot);
         HexTacticsUiFactory.Stretch(selectedScrollRoot, Vector2.zero, Vector2.one);
         HexTacticsUiFactory.SetOffsets(selectedScrollRoot, 0f, 0f, 0f, 0f);
 
-        emptyText = HexTacticsUiFactory.CreateText(rightPanel, "EmptyText", "还没有放置任何角色", 16, TextAnchor.UpperLeft, new Color(0.78f, 0.84f, 0.88f));
+        emptyText = HexTacticsUiFactory.CreateText(rightPanel, "EmptyText", "尚未部署角色", 18, TextAnchor.UpperLeft, new Color(0.74f, 0.80f, 0.84f));
         emptyText.rectTransform.anchorMin = new Vector2(0f, 1f);
         emptyText.rectTransform.anchorMax = new Vector2(1f, 1f);
         emptyText.rectTransform.pivot = new Vector2(0.5f, 1f);
-        emptyText.rectTransform.offsetMin = new Vector2(16f, -138f);
-        emptyText.rectTransform.offsetMax = new Vector2(-16f, -110f);
+        emptyText.rectTransform.offsetMin = new Vector2(18f, -74f);
+        emptyText.rectTransform.offsetMax = new Vector2(-18f, -40f);
 
         var footer = HexTacticsUiFactory.CreateRect("Footer", rightPanel);
         footer.anchorMin = new Vector2(0f, 0f);
         footer.anchorMax = new Vector2(1f, 0f);
         footer.pivot = new Vector2(0.5f, 0f);
-        footer.sizeDelta = new Vector2(0f, 98f);
+        footer.sizeDelta = new Vector2(0f, 100f);
         footer.anchoredPosition = Vector2.zero;
         var footerLayout = footer.gameObject.AddComponent<VerticalLayoutGroup>();
-        footerLayout.padding = new RectOffset(16, 16, 10, 12);
+        footerLayout.padding = new RectOffset(18, 18, 10, 12);
         footerLayout.spacing = 8f;
         footerLayout.childAlignment = TextAnchor.UpperLeft;
         footerLayout.childControlHeight = false;
@@ -277,11 +278,11 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         footerLayout.childForceExpandHeight = false;
         footerLayout.childForceExpandWidth = true;
 
-        statusText = HexTacticsUiFactory.CreateText(footer, "BuilderStatus", string.Empty, 15, TextAnchor.MiddleLeft, new Color(1.0f, 0.90f, 0.72f));
-        HexTacticsUiFactory.AddLayoutElement(statusText.gameObject, preferredHeight: 28f);
+        statusText = HexTacticsUiFactory.CreateText(footer, "BuilderStatus", string.Empty, 16, TextAnchor.MiddleLeft, new Color(0.96f, 0.87f, 0.70f));
+        HexTacticsUiFactory.AddLayoutElement(statusText.gameObject, preferredHeight: 24f);
 
         var footerButtons = HexTacticsUiFactory.CreateRect("Buttons", footer);
-        HexTacticsUiFactory.AddLayoutElement(footerButtons.gameObject, preferredHeight: 42f);
+        HexTacticsUiFactory.AddLayoutElement(footerButtons.gameObject, preferredHeight: 46f);
         var footerButtonsLayout = footerButtons.gameObject.AddComponent<HorizontalLayoutGroup>();
         footerButtonsLayout.spacing = 12f;
         footerButtonsLayout.childAlignment = TextAnchor.MiddleCenter;
@@ -290,11 +291,11 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         footerButtonsLayout.childForceExpandHeight = false;
         footerButtonsLayout.childForceExpandWidth = true;
 
-        backButton = HexTacticsUiFactory.CreateButton(footerButtons, "BackButton", "返回模式", new Color(0.25f, 0.31f, 0.36f, 0.96f), Color.white, out _);
-        HexTacticsUiFactory.AddLayoutElement(backButton.gameObject, preferredHeight: 42f);
+        backButton = HexTacticsUiFactory.CreateButton(footerButtons, "BackButton", "返回", new Color(0.23f, 0.28f, 0.32f, 0.94f), Color.white, out _);
+        HexTacticsUiFactory.AddLayoutElement(backButton.gameObject, preferredHeight: 46f);
 
-        startButton = HexTacticsUiFactory.CreateButton(footerButtons, "StartButton", "开始对战", new Color(0.22f, 0.56f, 0.55f, 0.96f), Color.white, out _);
-        HexTacticsUiFactory.AddLayoutElement(startButton.gameObject, preferredHeight: 42f);
+        startButton = HexTacticsUiFactory.CreateButton(footerButtons, "StartButton", "开始", new Color(0.19f, 0.46f, 0.46f, 0.94f), Color.white, out _);
+        HexTacticsUiFactory.AddLayoutElement(startButton.gameObject, preferredHeight: 46f);
     }
 
     private void BuildDragPreview(RectTransform root)
@@ -303,14 +304,14 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         dragPreviewRoot.anchorMin = new Vector2(0.5f, 0.5f);
         dragPreviewRoot.anchorMax = new Vector2(0.5f, 0.5f);
         dragPreviewRoot.pivot = new Vector2(0.5f, 0.5f);
-        dragPreviewRoot.sizeDelta = new Vector2(188f, 72f);
+        dragPreviewRoot.sizeDelta = new Vector2(168f, 60f);
         dragPreviewRoot.gameObject.SetActive(false);
 
-        dragPreviewBackground = HexTacticsUiFactory.AddImage(dragPreviewRoot.gameObject, new Color(0.05f, 0.08f, 0.10f, 0.92f), false);
-        HexTacticsUiFactory.StylePanel(dragPreviewBackground, new Color(1f, 1f, 1f, 0.10f), 0.16f);
+        dragPreviewBackground = HexTacticsUiFactory.AddImage(dragPreviewRoot.gameObject, new Color(0.04f, 0.07f, 0.08f, 0.88f), false);
+        HexTacticsUiFactory.StylePanel(dragPreviewBackground, new Color(1f, 1f, 1f, 0.05f), 0f);
 
         var layout = dragPreviewRoot.gameObject.AddComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(10, 10, 10, 10);
+        layout.padding = new RectOffset(8, 8, 8, 8);
         layout.spacing = 8f;
         layout.childAlignment = TextAnchor.MiddleLeft;
         layout.childControlHeight = true;
@@ -319,9 +320,9 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         layout.childForceExpandHeight = false;
 
         var avatarRoot = HexTacticsUiFactory.CreateRect("Avatar", dragPreviewRoot);
-        HexTacticsUiFactory.AddLayoutElement(avatarRoot.gameObject, preferredWidth: 44f, preferredHeight: 44f);
+        HexTacticsUiFactory.AddLayoutElement(avatarRoot.gameObject, preferredWidth: 40f, preferredHeight: 40f);
         dragPreviewAvatarBackground = HexTacticsUiFactory.AddImage(avatarRoot.gameObject, new Color(0.25f, 0.34f, 0.40f, 1f), false);
-        HexTacticsUiFactory.StylePanel(dragPreviewAvatarBackground, new Color(1f, 1f, 1f, 0.10f), 0.10f);
+        HexTacticsUiFactory.StylePanel(dragPreviewAvatarBackground, new Color(1f, 1f, 1f, 0.05f), 0f);
         var avatarIconRoot = HexTacticsUiFactory.CreateRect("Icon", avatarRoot);
         HexTacticsUiFactory.Stretch(avatarIconRoot, Vector2.zero, Vector2.one);
         HexTacticsUiFactory.SetOffsets(avatarIconRoot, 3f, 3f, 3f, 3f);
@@ -330,8 +331,8 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         dragPreviewFallbackText = HexTacticsUiFactory.CreateText(avatarRoot, "Fallback", string.Empty, 16, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
         HexTacticsUiFactory.Stretch(dragPreviewFallbackText.rectTransform, Vector2.zero, Vector2.one);
 
-        dragPreviewLabel = HexTacticsUiFactory.CreateText(dragPreviewRoot, "Label", string.Empty, 16, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.AddLayoutElement(dragPreviewLabel.gameObject, flexibleWidth: 1f, preferredHeight: 26f);
+        dragPreviewLabel = HexTacticsUiFactory.CreateText(dragPreviewRoot, "Label", string.Empty, 15, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+        HexTacticsUiFactory.AddLayoutElement(dragPreviewLabel.gameObject, flexibleWidth: 1f, preferredHeight: 22f);
     }
 
     private void BeginRosterDrag(HexTacticsRosterEntryUiData data, Vector2 screenPosition)
@@ -405,18 +406,18 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         var width = Mathf.Max(1f, Root.rect.width);
         var height = Mathf.Max(1f, Root.rect.height);
         var isPortrait = height > width * 1.05f;
-        var margin = Mathf.Clamp(width * 0.02f, 12f, 22f);
+        var margin = Mathf.Clamp(width * 0.016f, 10f, 20f);
 
         if (isPortrait)
         {
             summaryPanel.anchorMin = new Vector2(0f, 1f);
             summaryPanel.anchorMax = new Vector2(1f, 1f);
             summaryPanel.pivot = new Vector2(0.5f, 1f);
-            summaryPanel.sizeDelta = new Vector2(0f, 116f);
-            summaryPanel.offsetMin = new Vector2(margin, -116f - margin);
+            summaryPanel.sizeDelta = new Vector2(0f, 186f);
+            summaryPanel.offsetMin = new Vector2(margin, -186f - margin);
             summaryPanel.offsetMax = new Vector2(-margin, -margin);
 
-            var panelHeight = Mathf.Clamp(height * 0.34f, 280f, 420f);
+            var panelHeight = Mathf.Clamp(height * 0.33f, 300f, 430f);
 
             rosterPanel.anchorMin = new Vector2(0f, 0f);
             rosterPanel.anchorMax = new Vector2(0.5f, 0f);
@@ -437,19 +438,19 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         summaryPanel.anchorMin = new Vector2(0.5f, 1f);
         summaryPanel.anchorMax = new Vector2(0.5f, 1f);
         summaryPanel.pivot = new Vector2(0.5f, 1f);
-        summaryPanel.sizeDelta = new Vector2(Mathf.Clamp(width * 0.32f, 420f, 620f), 112f);
+        summaryPanel.sizeDelta = new Vector2(Mathf.Clamp(width * 0.34f, 460f, 680f), 186f);
         summaryPanel.anchoredPosition = new Vector2(0f, -margin);
 
         rosterPanel.anchorMin = new Vector2(0f, 0f);
         rosterPanel.anchorMax = new Vector2(0f, 1f);
         rosterPanel.pivot = new Vector2(0f, 0.5f);
-        rosterPanel.sizeDelta = new Vector2(Mathf.Clamp(width * 0.24f, 320f, 400f), 0f);
+        rosterPanel.sizeDelta = new Vector2(Mathf.Clamp(width * 0.25f, 320f, 420f), 0f);
         rosterPanel.anchoredPosition = new Vector2(margin, 0f);
 
         selectionPanel.anchorMin = new Vector2(1f, 0f);
         selectionPanel.anchorMax = new Vector2(1f, 1f);
         selectionPanel.pivot = new Vector2(1f, 0.5f);
-        selectionPanel.sizeDelta = new Vector2(Mathf.Clamp(width * 0.28f, 360f, 440f), 0f);
+        selectionPanel.sizeDelta = new Vector2(Mathf.Clamp(width * 0.27f, 340f, 440f), 0f);
         selectionPanel.anchoredPosition = new Vector2(-margin, 0f);
     }
 }

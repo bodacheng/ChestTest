@@ -17,7 +17,7 @@ public sealed partial class HexTacticsPrototype
         var hits = Physics.RaycastAll(ray, 200f);
         if (hits.Length == 0)
         {
-            SelectUnit(null);
+            RefreshVisuals();
             return;
         }
 
@@ -41,7 +41,7 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        SelectUnit(null);
+        RefreshVisuals();
     }
 
     private bool TryResolvePlanningUnitHit(RaycastHit[] hits, out HexUnit clickedUnit)
@@ -127,8 +127,6 @@ public sealed partial class HexTacticsPrototype
             SetUnitAttackCommand(selectedUnit, clickedUnit.Coord);
             return;
         }
-
-        SelectUnit(null);
     }
 
     private void HandlePlanningCellClick(HexCell clickedCell)
@@ -136,10 +134,7 @@ public sealed partial class HexTacticsPrototype
         if (selectedUnit != null && IsMoveOption(clickedCell.Coord))
         {
             SetUnitMoveCommand(selectedUnit, clickedCell.Coord);
-            return;
         }
-
-        SelectUnit(null);
     }
 
     private void AssignDirectionalCommand(HexUnit unit, HexCoord direction)
@@ -219,13 +214,13 @@ public sealed partial class HexTacticsPrototype
         if (IsMoveCommand(unit) && unit.PlannedMoveTarget == target)
         {
             AssignWaitCommand(unit);
-            HandleAfterPlayerCommandChanged();
+            HandleAfterPlayerCommandChanged(unit);
             return;
         }
 
         if (TryAssignMoveCommand(unit, target))
         {
-            HandleAfterPlayerCommandChanged();
+            HandleAfterPlayerCommandChanged(unit);
         }
     }
 
@@ -239,12 +234,12 @@ public sealed partial class HexTacticsPrototype
         if (IsEnemyCommand(unit) && unit.PlannedEnemyTargetUnit != null && unit.PlannedEnemyTargetUnit.Coord == target)
         {
             AssignWaitCommand(unit);
-            HandleAfterPlayerCommandChanged();
+            HandleAfterPlayerCommandChanged(unit);
             return;
         }
 
         TryAssignAttackCommand(unit, target);
-        HandleAfterPlayerCommandChanged();
+        HandleAfterPlayerCommandChanged(unit);
     }
 
     private void SetUnitWaitCommand(HexUnit unit)
@@ -255,7 +250,7 @@ public sealed partial class HexTacticsPrototype
         }
 
         AssignWaitCommand(unit);
-        HandleAfterPlayerCommandChanged();
+        HandleAfterPlayerCommandChanged(unit);
     }
 
     private void AutoPlanCpuCommands()
@@ -286,7 +281,7 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
-    private void HandleAfterPlayerCommandChanged()
+    private void HandleAfterPlayerCommandChanged(HexUnit commandingUnit)
     {
         if (currentFlowState != FlowState.Planning || isResolving || isAnimating)
         {
@@ -301,7 +296,7 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        SelectUnit(FindFirstBlueUnitWithoutCommand());
+        SelectUnit(FindNextBlueUnitWithoutCommand(commandingUnit) ?? FindFirstBlueUnitWithoutCommand());
     }
 
     private HexUnit ChooseCpuAttackTarget(HexUnit unit)
@@ -401,6 +396,45 @@ public sealed partial class HexTacticsPrototype
         }
 
         return bestDistance == int.MaxValue ? 0 : bestDistance;
+    }
+
+    private HexUnit FindNextBlueUnitWithoutCommand(HexUnit currentUnit)
+    {
+        if (currentUnit == null)
+        {
+            return FindFirstBlueUnitWithoutCommand();
+        }
+
+        var blueUnits = new List<HexUnit>();
+        foreach (var unit in units)
+        {
+            if (unit.Team == Team.Blue)
+            {
+                blueUnits.Add(unit);
+            }
+        }
+
+        if (blueUnits.Count == 0)
+        {
+            return null;
+        }
+
+        var currentIndex = blueUnits.IndexOf(currentUnit);
+        if (currentIndex < 0)
+        {
+            return FindFirstBlueUnitWithoutCommand();
+        }
+
+        for (var offset = 1; offset <= blueUnits.Count; offset++)
+        {
+            var candidate = blueUnits[(currentIndex + offset) % blueUnits.Count];
+            if (!candidate.HasAssignedCommand)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
 }

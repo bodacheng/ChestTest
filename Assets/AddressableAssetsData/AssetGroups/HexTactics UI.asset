@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: HexTactics UI
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: HexTactics UI
+  m_GUID: 69f544d52c3bb43cf81782c93ac292b4
+  m_SerializeEntries:
+  - m_GUID: 16e306ca003484c2697d1960b6ef91a5
+    m_Address: UI/Elements/HexTacticsRosterRow
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2b335df1e226b40968fb08f4f4caf7f1
+    m_Address: UI/Screens/HexTacticsModeSelectScreen
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4893e513ae6d442129a233db602b91b9
+    m_Address: UI/Screens/HexTacticsResolvingScreen
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4baabd013d0994b59ad350a5025fd5ec
+    m_Address: UI/Elements/HexTacticsWorldLabel
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 55f42c26eff7c41178b12294dc0cf438
+    m_Address: UI/Screens/HexTacticsVictoryOverlay
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 565b845c6685f489ebfece515bbbe686
+    m_Address: UI/Screens/HexTacticsTeamBuilderScreen
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8eeefd06d2815442eb17fa6503771612
+    m_Address: UI/Screens/HexTacticsPlanningScreen
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: afa9bcd8c11504af1b3e9c3df3fce2a2
+    m_Address: UI/Elements/HexTacticsCommandRow
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b3765a4fb5cf94a44ac0d6cd080f46aa
+    m_Address: UI/Elements/HexTacticsSelectedRosterRow
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d406e3254a8674ac3b87f687c3a03ba7
+    m_Address: UI/HexTacticsCanvasRoot
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.UI
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: a956aae4fdb314ec3a2a0dbf016cec7f, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 2889093377a01440d9be30e14c1f269a, type: 2}
+    - {fileID: 11400000, guid: ec73af6be9a034d5c8bbf801a85628a1, type: 2}

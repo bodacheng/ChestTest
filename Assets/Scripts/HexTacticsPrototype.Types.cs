@@ -81,10 +81,66 @@ public sealed partial class HexTacticsPrototype
         public bool MovementLocked { get; set; }
         public Transform VisualRoot { get; set; }
         public Animator Animator { get; set; }
+        public HexTacticsAnimationEventRelay AnimationEventRelay { get; set; }
         public float VisualHeight { get; set; }
         public float LabelHeight { get; set; }
         public float SelectionRadius { get; set; }
+        public int DamagedAnimationRevision { get; set; }
+        public UnitAnimationBinding AnimationBinding { get; set; }
         public List<HexCoord> PlannedPath { get; } = new();
+    }
+
+    private sealed class UnitAnimationBinding
+    {
+        public UnitAnimationBinding(
+            bool usesParameterDriver,
+            string idleStatePath,
+            string moveStatePath,
+            string attackStatePath,
+            string damagedStatePath,
+            string deathStatePath,
+            AnimationClip idleClip,
+            AnimationClip moveClip,
+            AnimationClip attackClip,
+            AnimationClip damagedClip,
+            AnimationClip deathClip)
+        {
+            UsesParameterDriver = usesParameterDriver;
+            IdleStatePath = idleStatePath;
+            MoveStatePath = moveStatePath;
+            AttackStatePath = attackStatePath;
+            DamagedStatePath = damagedStatePath;
+            DeathStatePath = deathStatePath;
+            IdleClip = idleClip;
+            MoveClip = moveClip;
+            AttackClip = attackClip;
+            DamagedClip = damagedClip;
+            DeathClip = deathClip;
+        }
+
+        public bool UsesParameterDriver { get; }
+        public string IdleStatePath { get; }
+        public string MoveStatePath { get; }
+        public string AttackStatePath { get; }
+        public string DamagedStatePath { get; }
+        public string DeathStatePath { get; }
+        public AnimationClip IdleClip { get; }
+        public AnimationClip MoveClip { get; }
+        public AnimationClip AttackClip { get; }
+        public AnimationClip DamagedClip { get; }
+        public AnimationClip DeathClip { get; }
+    }
+
+    private sealed class CameraFocusOverride
+    {
+        public CameraFocusOverride(HexUnit attacker, HexUnit defender)
+        {
+            Attacker = attacker;
+            Defender = defender;
+        }
+
+        public HexUnit Attacker { get; }
+        public HexUnit Defender { get; }
     }
 
     private sealed class PlayerDeploymentEntry

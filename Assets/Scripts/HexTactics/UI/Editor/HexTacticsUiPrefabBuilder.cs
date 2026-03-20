@@ -4,10 +4,10 @@ using UnityEngine;
 
 public static class HexTacticsUiPrefabBuilder
 {
-    private const string ResourcesFolder = "Assets/Resources";
-    private const string UiFolder = "Assets/Resources/UI";
-    private const string ScreensFolder = UiFolder + "/Screens";
-    private const string ElementsFolder = UiFolder + "/Elements";
+    private const string AddressablesFolder = HexTacticsAssetPaths.AddressablesRoot;
+    private const string UiFolder = HexTacticsAssetPaths.UiFolder;
+    private const string ScreensFolder = HexTacticsAssetPaths.UiScreensFolder;
+    private const string ElementsFolder = HexTacticsAssetPaths.UiElementsFolder;
 
     private const string CanvasPrefabPath = UiFolder + "/HexTacticsCanvasRoot.prefab";
     private const string ModeSelectScreenPrefabPath = ScreensFolder + "/HexTacticsModeSelectScreen.prefab";
@@ -82,6 +82,7 @@ public static class HexTacticsUiPrefabBuilder
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
+        HexTacticsAddressablesSync.Sync();
     }
 
     public static void GeneratePrefabFromBatchmode()
@@ -114,14 +115,14 @@ public static class HexTacticsUiPrefabBuilder
 
     private static void EnsureFolders()
     {
-        if (!AssetDatabase.IsValidFolder(ResourcesFolder))
+        if (!AssetDatabase.IsValidFolder(AddressablesFolder))
         {
-            AssetDatabase.CreateFolder("Assets", "Resources");
+            AssetDatabase.CreateFolder("Assets", "AddressableAssets");
         }
 
         if (!AssetDatabase.IsValidFolder(UiFolder))
         {
-            AssetDatabase.CreateFolder(ResourcesFolder, "UI");
+            AssetDatabase.CreateFolder(AddressablesFolder, "UI");
         }
 
         if (!AssetDatabase.IsValidFolder(ScreensFolder))

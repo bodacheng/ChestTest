@@ -1,0 +1,11 @@
+RPGMonsterBundlePolyart is already organized for URP in this project.
+
+1. Use "Assets/RPGMonsterBundlePolyart/CommonStuffs" as the active material,
+   prefab, and demo-scene root.
+
+2. The original extracted SRP reference bundle was moved to
+   "ThirdPartyImportBackup/RPGMonsterBundlePolyart_HDRP_URP_Source".
+
+3. There is no need to delete "CommonStuffs" or unzip any extra URP files.
+   Open the demo scenes under "Assets/RPGMonsterBundlePolyart/CommonStuffs/Scene"
+   to preview the assets in URP.

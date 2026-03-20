@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: HexTactics Battle Units
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: HexTactics Battle Units
+  m_GUID: 536b3fa6ddfc546e0981cd363def7787
+  m_SerializeEntries:
+  - m_GUID: 439bab1ee11443bd987075b635abeb5c
+    m_Address: BattleUnits/WhiteTiger
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.BattleUnits
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6737e1a490bf4bbeb39fc711820b4533
+    m_Address: BattleUnits/Stag
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.BattleUnits
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7a066ff79b77455a90fa5a1500777685
+    m_Address: BattleUnits/Fawn
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.BattleUnits
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a1c7a75972d546779a07681b3b979903
+    m_Address: BattleUnits/Tiger
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.BattleUnits
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b231d0df88cb431f8de9918ab599018a
+    m_Address: BattleUnits/Elk
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.BattleUnits
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e430e30c98dd43bbb41eb17c5fbefca7
+    m_Address: BattleUnits/Doe
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.BattleUnits
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: a956aae4fdb314ec3a2a0dbf016cec7f, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 5a8f9d08245b8452ea765428af0341cf, type: 2}
+    - {fileID: 11400000, guid: d86ae934b211c463c84c48f8e218a30a, type: 2}

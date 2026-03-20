@@ -5,6 +5,8 @@ public sealed partial class HexTacticsPrototype
     public HexTacticsUiSnapshot BuildUiSnapshot()
     {
         var playerUsedCost = GetPlayerTeamCost();
+        var blueAssignedCommandCount = CountBlueAssignedCommands();
+        var bluePendingCommandCount = CountBluePendingCommands();
         var snapshot = new HexTacticsUiSnapshot
         {
             FlowState = ConvertFlowState(currentFlowState),
@@ -12,9 +14,13 @@ public sealed partial class HexTacticsPrototype
             ResolvedTurnCount = resolvedTurnCount,
             BlueAliveCount = CountAliveUnits(Team.Blue),
             RedAliveCount = CountAliveUnits(Team.Red),
+            BlueAssignedCommandCount = blueAssignedCommandCount,
+            BluePendingCommandCount = bluePendingCommandCount,
             PlayerCostLimit = playerTeamCostLimit,
             CpuCostLimit = cpuTeamCostLimit,
             PlayerUsedCost = playerUsedCost,
+            CurrentCommandSummary = BuildCurrentCommandSummary(bluePendingCommandCount),
+            CommandProgressSummary = BuildCommandProgressSummary(blueAssignedCommandCount, bluePendingCommandCount),
             BuilderStatus = builderStatus ?? string.Empty,
             ResolutionStatus = resolutionStatus ?? string.Empty,
             TurnTypeLabel = GetTurnTypeLabel(),
@@ -183,20 +189,53 @@ public sealed partial class HexTacticsPrototype
 
     private string BuildSelectedUnitSummary()
     {
-        var pendingCount = 0;
-        foreach (var unit in units)
+        if (selectedUnit == null)
         {
-            if (unit.Team == Team.Blue && !unit.HasAssignedCommand)
-            {
-                pendingCount++;
-            }
+            return currentFlowState == FlowState.Planning
+                ? "点击左侧列表中的定位，或直接点棋盘上的蓝方角色来继续下令。"
+                : string.Empty;
         }
 
-        return selectedUnit == null
-            ? pendingCount > 0
-                ? $"请继续下达命令，剩余 {pendingCount} 名蓝方角色未设置"
-                : "所有蓝方角色已设置命令，正在准备自动结算"
-            : $"当前选择：{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  ATK {selectedUnit.AttackPower}  MOVE {selectedUnit.MoveRange}";
+        var commandSummary = DescribeCommand(selectedUnit, compact: false);
+        var assignmentSummary = selectedUnit.HasAssignedCommand ? "已设置命令" : "等待设置命令";
+        return $"{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  ATK {selectedUnit.AttackPower}  MOVE {selectedUnit.MoveRange}\n{assignmentSummary}  |  {commandSummary}";
+    }
+
+    private string BuildCurrentCommandSummary(int pendingCount)
+    {
+        if (currentFlowState != FlowState.Planning)
+        {
+            return string.Empty;
+        }
+
+        if (selectedUnit != null && selectedUnit.Team == Team.Blue)
+        {
+            return selectedUnit.HasAssignedCommand
+                ? $"当前查看：{selectedUnit.RoleName}"
+                : $"当前下令：{selectedUnit.RoleName}";
+        }
+
+        return pendingCount > 0
+            ? "请选择一名蓝方角色继续下令"
+            : "所有蓝方命令已设置，准备进入自动结算";
+    }
+
+    private string BuildCommandProgressSummary(int assignedCount, int pendingCount)
+    {
+        if (currentFlowState != FlowState.Planning)
+        {
+            return string.Empty;
+        }
+
+        var totalCount = assignedCount + pendingCount;
+        if (totalCount <= 0)
+        {
+            return "当前没有可下令的蓝方角色";
+        }
+
+        return pendingCount > 0
+            ? $"命令进度 {assignedCount}/{totalCount}，剩余 {pendingCount} 名角色待下令"
+            : $"命令进度 {assignedCount}/{totalCount}，全部角色已完成本轮命令";
     }
 
     private string GetTurnTypeLabel()
@@ -258,5 +297,33 @@ public sealed partial class HexTacticsPrototype
             HexTacticsCharacterVisualArchetype.WhiteTiger => new Color(0.42f, 0.56f, 0.70f, 1f),
             _ => new Color(0.25f, 0.34f, 0.40f, 1f)
         };
+    }
+
+    private int CountBlueAssignedCommands()
+    {
+        var count = 0;
+        foreach (var unit in units)
+        {
+            if (unit.Team == Team.Blue && unit.HasAssignedCommand)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private int CountBluePendingCommands()
+    {
+        var count = 0;
+        foreach (var unit in units)
+        {
+            if (unit.Team == Team.Blue && !unit.HasAssignedCommand)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 }

@@ -1,6 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public sealed partial class HexTacticsPrototype
 {
@@ -42,14 +45,27 @@ public sealed partial class HexTacticsPrototype
         unitRoot.transform.SetParent(unitsRoot, false);
         unitRoot.transform.localPosition = CellToUnitPosition(coord);
 
-        var ring = new GameObject("Ring");
+        var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        ring.name = "SelectionMarker";
         ring.transform.SetParent(unitRoot.transform, false);
-        ring.transform.localPosition = new Vector3(0f, -unitHoverHeight * 0.55f, 0f);
-        ring.transform.localScale = new Vector3(0.58f, 0.16f, 0.58f);
-        var ringFilter = ring.AddComponent<MeshFilter>();
-        ringFilter.sharedMesh = cellMesh;
-        var ringRenderer = ring.AddComponent<MeshRenderer>();
+        ring.transform.localPosition = new Vector3(0f, -unitHoverHeight * 0.78f, 0f);
+        ring.transform.localScale = new Vector3(0.34f, 0.02f, 0.34f);
+        var ringCollider = ring.GetComponent<Collider>();
+        if (ringCollider != null)
+        {
+            if (Application.isPlaying)
+            {
+                Destroy(ringCollider);
+            }
+            else
+            {
+                DestroyImmediate(ringCollider);
+            }
+        }
+
+        var ringRenderer = ring.GetComponent<MeshRenderer>();
         ringRenderer.sharedMaterial = team == Team.Blue ? blueRingMaterial : redRingMaterial;
+        ringRenderer.enabled = false;
 
         var unit = new HexUnit(
             nextUnitId++,
@@ -106,14 +122,14 @@ public sealed partial class HexTacticsPrototype
 
     private bool TryAttachAnimatedVisual(HexUnit unit, HexTacticsCharacterConfig definition)
     {
-        var prefab = LoadUnitVisualPrefab(definition.VisualArchetype);
+        var prefab = LoadUnitVisualPrefab(definition);
         if (prefab == null)
         {
             return false;
         }
 
         var visualInstance = Instantiate(prefab);
-        visualInstance.name = $"{definition.VisualArchetype} Visual";
+        visualInstance.name = $"{definition.DisplayName} Visual";
         visualInstance.transform.SetParent(unit.Transform, false);
         visualInstance.transform.localPosition = Vector3.zero;
         visualInstance.transform.localRotation = Quaternion.identity;
@@ -121,7 +137,7 @@ public sealed partial class HexTacticsPrototype
 
         PrepareVisualInstance(visualInstance);
 
-        if (!TryFitVisualToCell(unit, visualInstance.transform, definition.VisualArchetype, out var fittedBounds))
+        if (!TryFitVisualToCell(unit, visualInstance.transform, definition, out var fittedBounds))
         {
             if (Application.isPlaying)
             {
@@ -137,10 +153,274 @@ public sealed partial class HexTacticsPrototype
 
         unit.VisualRoot = visualInstance.transform;
         unit.Animator = visualInstance.GetComponentInChildren<Animator>(true);
-        ConfigureAnimator(unit.Animator);
+        unit.AnimationBinding = ResolveAnimationBinding(unit.Animator);
+        ConfigureAnimator(unit);
+        if (unit.Animator != null)
+        {
+            unit.AnimationEventRelay = unit.Animator.gameObject.GetComponent<HexTacticsAnimationEventRelay>();
+            if (unit.AnimationEventRelay == null)
+            {
+                unit.AnimationEventRelay = unit.Animator.gameObject.AddComponent<HexTacticsAnimationEventRelay>();
+            }
+        }
+
         UpdateUnitPresentationMetrics(unit, fittedBounds);
         ConfigureUnitSelectionCollider(unit, fittedBounds);
         return true;
+    }
+
+    private UnitAnimationBinding ResolveAnimationBinding(Animator animator)
+    {
+        if (animator == null)
+        {
+            return null;
+        }
+
+        var controller = animator.runtimeAnimatorController;
+        if (controller == null)
+        {
+            return null;
+        }
+
+        var usesParameterDriver =
+            AnimatorHasParameter(animator, "Attack1") ||
+            AnimatorHasParameter(animator, "Damaged") ||
+            AnimatorHasParameter(animator, "Vertical");
+
+        var clips = controller.animationClips;
+        var idleClip = ChoosePreferredAnimationClip(clips, GetIdleClipScore);
+        var moveClip = ChoosePreferredAnimationClip(clips, GetMoveClipScore);
+        var attackClip = ChoosePreferredAnimationClip(clips, GetAttackClipScore);
+        var damagedClip = ChoosePreferredAnimationClip(clips, GetDamagedClipScore);
+        var deathClip = ChoosePreferredAnimationClip(clips, GetDeathClipScore);
+
+        return new UnitAnimationBinding(
+            usesParameterDriver,
+            BuildBaseLayerStatePath(idleClip),
+            BuildBaseLayerStatePath(moveClip),
+            BuildBaseLayerStatePath(attackClip),
+            BuildBaseLayerStatePath(damagedClip),
+            BuildBaseLayerStatePath(deathClip),
+            idleClip,
+            moveClip,
+            attackClip,
+            damagedClip,
+            deathClip);
+    }
+
+    private static bool AnimatorHasParameter(Animator animator, string parameterName)
+    {
+        if (animator == null || string.IsNullOrWhiteSpace(parameterName))
+        {
+            return false;
+        }
+
+        foreach (var parameter in animator.parameters)
+        {
+            if (parameter.name == parameterName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string BuildBaseLayerStatePath(AnimationClip clip)
+    {
+        return clip != null ? $"Base Layer.{clip.name}" : string.Empty;
+    }
+
+    private static AnimationClip ChoosePreferredAnimationClip(IEnumerable<AnimationClip> clips, System.Func<string, int> scoreSelector)
+    {
+        AnimationClip bestClip = null;
+        var bestScore = int.MinValue;
+        if (clips == null || scoreSelector == null)
+        {
+            return null;
+        }
+
+        foreach (var clip in clips)
+        {
+            if (clip == null)
+            {
+                continue;
+            }
+
+            var score = scoreSelector(clip.name);
+            if (score <= 0)
+            {
+                continue;
+            }
+
+            if (bestClip == null || score > bestScore)
+            {
+                bestClip = clip;
+                bestScore = score;
+            }
+        }
+
+        return bestClip;
+    }
+
+    private static int GetIdleClipScore(string clipName)
+    {
+        if (string.IsNullOrWhiteSpace(clipName))
+        {
+            return 0;
+        }
+
+        var normalizedName = clipName.Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
+        if (normalizedName.Contains("idlebattle"))
+        {
+            return 320;
+        }
+
+        if (normalizedName.Contains("idlenormal"))
+        {
+            return 280;
+        }
+
+        if (normalizedName.Contains("idle"))
+        {
+            return 220;
+        }
+
+        return 0;
+    }
+
+    private static int GetMoveClipScore(string clipName)
+    {
+        if (string.IsNullOrWhiteSpace(clipName))
+        {
+            return 0;
+        }
+
+        var normalizedName = clipName.Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
+        if (normalizedName.Contains("runfwd"))
+        {
+            return 320;
+        }
+
+        if (normalizedName.Contains("run"))
+        {
+            return 280;
+        }
+
+        if (normalizedName.Contains("walkfwd"))
+        {
+            return 240;
+        }
+
+        if (normalizedName.Contains("walk"))
+        {
+            return 200;
+        }
+
+        return 0;
+    }
+
+    private static int GetAttackClipScore(string clipName)
+    {
+        if (string.IsNullOrWhiteSpace(clipName))
+        {
+            return 0;
+        }
+
+        var normalizedName = clipName.Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
+        if (normalizedName.Contains("attack01"))
+        {
+            return 320;
+        }
+
+        if (normalizedName.Contains("attack1"))
+        {
+            return 300;
+        }
+
+        if (normalizedName.Contains("attack02"))
+        {
+            return 240;
+        }
+
+        if (normalizedName.Contains("attack2"))
+        {
+            return 220;
+        }
+
+        if (normalizedName.Contains("attack"))
+        {
+            return 160;
+        }
+
+        return 0;
+    }
+
+    private static int GetDamagedClipScore(string clipName)
+    {
+        if (string.IsNullOrWhiteSpace(clipName))
+        {
+            return 0;
+        }
+
+        var normalizedName = clipName.Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
+        if (normalizedName.Contains("gethit"))
+        {
+            return 320;
+        }
+
+        if (normalizedName.Contains("hit"))
+        {
+            return 240;
+        }
+
+        if (normalizedName.Contains("damage"))
+        {
+            return 200;
+        }
+
+        return 0;
+    }
+
+    private static int GetDeathClipScore(string clipName)
+    {
+        if (string.IsNullOrWhiteSpace(clipName))
+        {
+            return 0;
+        }
+
+        var normalizedName = clipName.Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
+        if (normalizedName.Contains("death"))
+        {
+            return 320;
+        }
+
+        if (normalizedName.Contains("die"))
+        {
+            return 300;
+        }
+
+        if (normalizedName.Contains("dead"))
+        {
+            return 260;
+        }
+
+        return 0;
+    }
+
+    private GameObject LoadUnitVisualPrefab(HexTacticsCharacterConfig definition)
+    {
+        if (definition == null)
+        {
+            return null;
+        }
+
+        if (definition.BattleUnitPrefab != null)
+        {
+            return definition.BattleUnitPrefab;
+        }
+
+        return LoadUnitVisualPrefabFromArchetype(definition.VisualArchetype);
     }
 
     private void AttachFallbackUnitVisual(HexUnit unit)
@@ -170,20 +450,34 @@ public sealed partial class HexTacticsPrototype
         RegisterUnitCollider(head.GetComponent<Collider>(), unit);
     }
 
-    private GameObject LoadUnitVisualPrefab(HexTacticsCharacterVisualArchetype archetype)
+    private GameObject LoadUnitVisualPrefabFromArchetype(HexTacticsCharacterVisualArchetype archetype)
     {
         if (unitVisualPrefabCache.TryGetValue(archetype, out var cachedPrefab) && cachedPrefab != null)
         {
             return cachedPrefab;
         }
 
-        var resourcePath = GetVisualResourcePath(archetype);
-        if (string.IsNullOrEmpty(resourcePath))
+#if UNITY_EDITOR
+        if (Application.isEditor)
+        {
+            var editorPrefab = LoadUnitVisualPrefabFromAssetDatabase(archetype);
+            if (editorPrefab != null)
+            {
+                unitVisualPrefabCache[archetype] = editorPrefab;
+                return editorPrefab;
+            }
+
+            return null;
+        }
+#endif
+
+        var address = GetVisualResourcePath(archetype);
+        if (string.IsNullOrEmpty(address))
         {
             return null;
         }
 
-        var prefab = Resources.Load<GameObject>(resourcePath);
+        var prefab = HexTacticsAddressables.LoadAsset<GameObject>(address);
         if (prefab != null)
         {
             unitVisualPrefabCache[archetype] = prefab;
@@ -191,6 +485,14 @@ public sealed partial class HexTacticsPrototype
 
         return prefab;
     }
+
+#if UNITY_EDITOR
+    private static GameObject LoadUnitVisualPrefabFromAssetDatabase(HexTacticsCharacterVisualArchetype archetype)
+    {
+        var assetPath = GetVisualAssetPath(archetype);
+        return string.IsNullOrEmpty(assetPath) ? null : AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+    }
+#endif
 
     private static string GetVisualResourcePath(HexTacticsCharacterVisualArchetype archetype)
     {
@@ -206,7 +508,33 @@ public sealed partial class HexTacticsPrototype
         };
     }
 
-    private float GetTargetVisualHeight(HexTacticsCharacterVisualArchetype archetype)
+    private static string GetVisualAssetPath(HexTacticsCharacterVisualArchetype archetype)
+    {
+        return archetype switch
+        {
+            HexTacticsCharacterVisualArchetype.Stag => HexTacticsAssetPaths.BattleUnitFolder + "/Stag.prefab",
+            HexTacticsCharacterVisualArchetype.Doe => HexTacticsAssetPaths.BattleUnitFolder + "/Doe.prefab",
+            HexTacticsCharacterVisualArchetype.Elk => HexTacticsAssetPaths.BattleUnitFolder + "/Elk.prefab",
+            HexTacticsCharacterVisualArchetype.Fawn => HexTacticsAssetPaths.BattleUnitFolder + "/Fawn.prefab",
+            HexTacticsCharacterVisualArchetype.Tiger => HexTacticsAssetPaths.BattleUnitFolder + "/Tiger.prefab",
+            HexTacticsCharacterVisualArchetype.WhiteTiger => HexTacticsAssetPaths.BattleUnitFolder + "/WhiteTiger.prefab",
+            _ => string.Empty
+        };
+    }
+
+    private float GetTargetVisualHeight(HexTacticsCharacterConfig definition)
+    {
+        if (definition != null && definition.BattleUnitPrefab != null)
+        {
+            return baseUnitVisualHeight * Mathf.Max(0.4f, definition.VisualHeightScale);
+        }
+
+        return GetDefaultTargetVisualHeight(definition != null
+            ? definition.VisualArchetype
+            : HexTacticsCharacterVisualArchetype.Stag);
+    }
+
+    private float GetDefaultTargetVisualHeight(HexTacticsCharacterVisualArchetype archetype)
     {
         return archetype switch
         {
@@ -256,7 +584,7 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
-    private bool TryFitVisualToCell(HexUnit unit, Transform visualRoot, HexTacticsCharacterVisualArchetype archetype, out Bounds fittedBounds)
+    private bool TryFitVisualToCell(HexUnit unit, Transform visualRoot, HexTacticsCharacterConfig definition, out Bounds fittedBounds)
     {
         fittedBounds = default;
         if (!TryGetRenderableBounds(visualRoot, out var initialBounds))
@@ -264,7 +592,7 @@ public sealed partial class HexTacticsPrototype
             return false;
         }
 
-        var targetHeight = GetTargetVisualHeight(archetype);
+        var targetHeight = GetTargetVisualHeight(definition);
         var safeHeight = Mathf.Max(0.01f, initialBounds.size.y);
         var scaleFactor = targetHeight / safeHeight;
         visualRoot.localScale *= scaleFactor;
@@ -348,9 +676,14 @@ public sealed partial class HexTacticsPrototype
 
     private void ApplyRingScale(HexUnit unit)
     {
-        var ringScale = Mathf.Clamp((unit.SelectionRadius / hexRadius) * 1.35f, 0.42f, 0.92f);
-        unit.RingRenderer.transform.localPosition = new Vector3(0f, -unitHoverHeight * 0.55f, 0f);
-        unit.RingRenderer.transform.localScale = new Vector3(ringScale, 0.16f, ringScale);
+        if (unit?.RingRenderer == null)
+        {
+            return;
+        }
+
+        var ringScale = Mathf.Clamp((unit.SelectionRadius / hexRadius) * 1.05f, 0.24f, 0.52f);
+        unit.RingRenderer.transform.localPosition = new Vector3(0f, -unitHoverHeight * 0.78f, 0f);
+        unit.RingRenderer.transform.localScale = new Vector3(ringScale, 0.02f, ringScale);
     }
 
     private static Vector3 GetTeamFacingDirection(Team team)

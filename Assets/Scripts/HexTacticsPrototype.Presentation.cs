@@ -36,18 +36,28 @@ public sealed partial class HexTacticsPrototype
 
         foreach (var unit in units)
         {
+            if (unit.RingRenderer == null)
+            {
+                continue;
+            }
+
+            var showMarker = false;
             if (currentFlowState == FlowState.Planning && unit == selectedUnit)
             {
                 unit.RingRenderer.sharedMaterial = selectedRingMaterial;
+                showMarker = true;
             }
             else if (currentFlowState == FlowState.Planning && unit.Team == Team.Blue && unit.HasAssignedCommand)
             {
                 unit.RingRenderer.sharedMaterial = plannedRingMaterial;
+                showMarker = true;
             }
             else
             {
                 unit.RingRenderer.sharedMaterial = unit.DefaultRingMaterial;
             }
+
+            unit.RingRenderer.enabled = showMarker;
         }
 
         if (isAnimating)
@@ -106,19 +116,29 @@ public sealed partial class HexTacticsPrototype
 
         foreach (var unit in units)
         {
-            var center = unit.Transform.position;
-            var height = Mathf.Max(baseUnitVisualHeight, unit.VisualHeight);
-            var radius = Mathf.Max(hexRadius * 0.22f, unit.SelectionRadius);
-            var midHeight = height * 0.55f;
-
-            points.Add(center + Vector3.up * height);
-            points.Add(center + new Vector3(radius, midHeight, 0f));
-            points.Add(center + new Vector3(-radius, midHeight, 0f));
-            points.Add(center + new Vector3(0f, midHeight, radius));
-            points.Add(center + new Vector3(0f, midHeight, -radius));
+            AddUnitCameraFramingPoints(points, unit);
         }
 
         return points;
+    }
+
+    private void AddUnitCameraFramingPoints(List<Vector3> points, HexUnit unit, float radiusScale = 1f, float heightScale = 1f)
+    {
+        if (points == null || unit?.Transform == null)
+        {
+            return;
+        }
+
+        var center = unit.Transform.position;
+        var height = Mathf.Max(baseUnitVisualHeight, unit.VisualHeight) * Mathf.Max(0.1f, heightScale);
+        var radius = Mathf.Max(hexRadius * 0.22f, unit.SelectionRadius * Mathf.Max(0.1f, radiusScale));
+        var midHeight = height * 0.55f;
+
+        points.Add(center + Vector3.up * height);
+        points.Add(center + new Vector3(radius, midHeight, 0f));
+        points.Add(center + new Vector3(-radius, midHeight, 0f));
+        points.Add(center + new Vector3(0f, midHeight, radius));
+        points.Add(center + new Vector3(0f, midHeight, -radius));
     }
 
     private void DestroyChildren(Transform parent)

@@ -15,19 +15,13 @@ public static class HexTacticsCanvasBootstrap
             return existing;
         }
 
-        var prefab = Resources.Load<GameObject>(HexTacticsUiResourcePaths.CanvasRoot);
+        var prefab = HexTacticsUiFactory.LoadViewPrefab<HexTacticsCanvasView>(HexTacticsUiResourcePaths.CanvasRoot);
         if (prefab != null)
         {
             var instance = Object.Instantiate(prefab);
             instance.name = "HexTacticsCanvasRoot";
-            var viewFromPrefab = instance.GetComponent<HexTacticsCanvasView>();
-            if (viewFromPrefab == null)
-            {
-                viewFromPrefab = instance.AddComponent<HexTacticsCanvasView>();
-            }
-
-            viewFromPrefab.EnsureBuilt();
-            return viewFromPrefab;
+            instance.EnsureBuilt();
+            return instance;
         }
 
         var root = new GameObject("HexTacticsCanvasRoot", typeof(RectTransform));

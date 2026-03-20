@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public static class HexTacticsUiFactory
 {
@@ -85,15 +88,15 @@ public static class HexTacticsUiFactory
             return;
         }
 
-        var outline = image.gameObject.AddComponent<Outline>();
-        outline.effectColor = borderColor;
-        outline.effectDistance = new Vector2(1f, -1f);
-        outline.useGraphicAlpha = true;
+        if (borderColor.a <= 0.01f)
+        {
+            return;
+        }
 
-        var shadow = image.gameObject.AddComponent<Shadow>();
-        shadow.effectColor = new Color(0f, 0f, 0f, shadowAlpha);
-        shadow.effectDistance = new Vector2(0f, -3f);
-        shadow.useGraphicAlpha = true;
+        var outline = image.gameObject.AddComponent<Outline>();
+        outline.effectColor = new Color(borderColor.r, borderColor.g, borderColor.b, Mathf.Min(borderColor.a, 0.08f));
+        outline.effectDistance = new Vector2(0.6f, -0.6f);
+        outline.useGraphicAlpha = true;
     }
 
     public static Text CreateText(
@@ -112,18 +115,12 @@ public static class HexTacticsUiFactory
         text.alignment = alignment;
         text.color = color;
         text.fontStyle = fontStyle;
-        text.lineSpacing = 1.04f;
+        text.lineSpacing = 1.0f;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
         text.verticalOverflow = VerticalWrapMode.Overflow;
         text.supportRichText = false;
-        text.alignByGeometry = true;
         text.text = content;
         text.raycastTarget = false;
-
-        var shadow = text.gameObject.AddComponent<Shadow>();
-        shadow.effectColor = new Color(0f, 0f, 0f, fontStyle == FontStyle.Bold ? 0.60f : 0.48f);
-        shadow.effectDistance = new Vector2(0f, -1.35f);
-        shadow.useGraphicAlpha = true;
 
         return text;
     }
@@ -138,21 +135,21 @@ public static class HexTacticsUiFactory
     {
         var rect = CreateRect(name, parent);
         var image = AddImage(rect.gameObject, backgroundColor);
-        StylePanel(image, new Color(1f, 1f, 1f, 0.10f), 0.18f);
+        StylePanel(image, new Color(1f, 1f, 1f, 0.05f), 0f);
 
         var button = rect.gameObject.AddComponent<Button>();
         button.targetGraphic = image;
 
         var colors = button.colors;
         colors.normalColor = backgroundColor;
-        colors.highlightedColor = backgroundColor * 1.08f;
-        colors.pressedColor = backgroundColor * 0.92f;
+        colors.highlightedColor = Color.Lerp(backgroundColor, Color.white, 0.08f);
+        colors.pressedColor = Color.Lerp(backgroundColor, Color.black, 0.12f);
         colors.selectedColor = colors.highlightedColor;
-        colors.disabledColor = new Color(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a * 0.45f);
+        colors.disabledColor = new Color(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a * 0.32f);
         colors.fadeDuration = 0.08f;
         button.colors = colors;
 
-        labelText = CreateText(rect, "Label", label, 19, TextAnchor.MiddleCenter, textColor, FontStyle.Bold);
+        labelText = CreateText(rect, "Label", label, 18, TextAnchor.MiddleCenter, textColor, FontStyle.Bold);
         Stretch(labelText.rectTransform, Vector2.zero, Vector2.one);
         return button;
     }
@@ -160,13 +157,13 @@ public static class HexTacticsUiFactory
     public static RectTransform CreateScrollView(Transform parent, string name, out ScrollRect scrollRect, out RectTransform content)
     {
         var root = CreateRect(name, parent);
-        var background = AddImage(root.gameObject, new Color(0f, 0f, 0f, 0.16f));
+        var background = AddImage(root.gameObject, new Color(0.01f, 0.03f, 0.04f, 0.10f));
         background.raycastTarget = true;
-        StylePanel(background, new Color(1f, 1f, 1f, 0.06f), 0.12f);
+        StylePanel(background, new Color(1f, 1f, 1f, 0.04f), 0f);
 
         var viewport = CreateRect("Viewport", root);
         Stretch(viewport, Vector2.zero, Vector2.one);
-        SetOffsets(viewport, 6f, 6f, 6f, 6f);
+        SetOffsets(viewport, 4f, 4f, 4f, 4f);
         AddImage(viewport.gameObject, new Color(0f, 0f, 0f, 0f), false);
         viewport.gameObject.AddComponent<RectMask2D>();
 
@@ -182,7 +179,7 @@ public static class HexTacticsUiFactory
         verticalLayout.childForceExpandHeight = false;
         verticalLayout.childControlWidth = true;
         verticalLayout.childForceExpandWidth = true;
-        verticalLayout.spacing = 12f;
+        verticalLayout.spacing = 8f;
         verticalLayout.padding = new RectOffset(0, 0, 0, 0);
 
         var fitter = content.gameObject.AddComponent<ContentSizeFitter>();
@@ -270,7 +267,7 @@ public static class HexTacticsUiFactory
         panel.pivot = new Vector2((anchorMin.x + anchorMax.x) * 0.5f, (anchorMin.y + anchorMax.y) * 0.5f);
         panel.sizeDelta = sizeDelta;
         var image = AddImage(panel.gameObject, backgroundColor);
-        StylePanel(image, new Color(1f, 1f, 1f, 0.08f));
+        StylePanel(image, new Color(1f, 1f, 1f, 0.05f));
         return panel;
     }
 
@@ -287,7 +284,7 @@ public static class HexTacticsUiFactory
 
     public static T LoadViewPrefab<T>(string resourcePath) where T : HexTacticsUiGeneratedView
     {
-        var prefab = Resources.Load<GameObject>(resourcePath);
+        var prefab = LoadViewPrefabAsset(resourcePath);
         return prefab != null ? prefab.GetComponent<T>() : null;
     }
 
@@ -375,5 +372,17 @@ public static class HexTacticsUiFactory
         }
 
         UnityEngine.Object.DestroyImmediate(target);
+    }
+
+    private static GameObject LoadViewPrefabAsset(string address)
+    {
+#if UNITY_EDITOR
+        if (Application.isEditor)
+        {
+            return AssetDatabase.LoadAssetAtPath<GameObject>($"{HexTacticsAssetPaths.AddressablesRoot}/{address}.prefab");
+        }
+#endif
+
+        return HexTacticsAddressables.LoadAsset<GameObject>(address);
     }
 }

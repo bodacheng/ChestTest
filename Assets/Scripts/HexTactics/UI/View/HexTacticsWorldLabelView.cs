@@ -14,7 +14,7 @@ public sealed class HexTacticsWorldLabelView : HexTacticsUiGeneratedView
     [SerializeField] private Image healthFillImage;
     [SerializeField] private Text healthText;
 
-    protected override int CurrentLayoutVersion => 4;
+    protected override int CurrentLayoutVersion => 6;
 
     protected override bool HasCurrentBindings =>
         rectTransform != null &&
@@ -35,12 +35,10 @@ public sealed class HexTacticsWorldLabelView : HexTacticsUiGeneratedView
         detailText.text = data.Detail;
         healthText.text = $"HP {data.CurrentHealth}/{data.MaxHealth}";
         titleText.color = data.IsBlueTeam ? new Color(0.72f, 0.88f, 1.00f) : new Color(1.00f, 0.83f, 0.72f);
-        backgroundImage.color = data.IsBlueTeam
-            ? new Color(0.03f, 0.08f, 0.11f, 0.84f)
-            : new Color(0.12f, 0.07f, 0.05f, 0.84f);
+        backgroundImage.color = new Color(0f, 0f, 0f, 0f);
         healthBackgroundImage.color = data.IsBlueTeam
-            ? new Color(0.10f, 0.18f, 0.24f, 0.92f)
-            : new Color(0.24f, 0.12f, 0.08f, 0.92f);
+            ? new Color(0.10f, 0.18f, 0.24f, 0.82f)
+            : new Color(0.24f, 0.12f, 0.08f, 0.82f);
         healthFillRect.localScale = new Vector3(Mathf.Clamp01(data.HealthNormalized), 1f, 1f);
         healthFillImage.color = Color.Lerp(new Color(0.90f, 0.24f, 0.18f), new Color(0.28f, 0.82f, 0.34f), data.HealthNormalized);
     }
@@ -51,28 +49,27 @@ public sealed class HexTacticsWorldLabelView : HexTacticsUiGeneratedView
 
         rectTransform = (RectTransform)transform;
         rectTransform.pivot = new Vector2(0.5f, 0f);
-        rectTransform.sizeDelta = new Vector2(176f, 62f);
+        rectTransform.sizeDelta = new Vector2(156f, 52f);
 
-        backgroundImage = HexTacticsUiFactory.AddImage(rectTransform.gameObject, new Color(0f, 0f, 0f, 0.84f), false);
-        HexTacticsUiFactory.StylePanel(backgroundImage, new Color(1f, 1f, 1f, 0.08f), 0.16f);
+        backgroundImage = HexTacticsUiFactory.AddImage(rectTransform.gameObject, new Color(0f, 0f, 0f, 0f), false);
 
         var layout = rectTransform.gameObject.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(8, 8, 5, 5);
-        layout.spacing = 2f;
+        layout.padding = new RectOffset(7, 7, 4, 4);
+        layout.spacing = 1f;
         layout.childAlignment = TextAnchor.MiddleLeft;
         layout.childControlHeight = false;
         layout.childControlWidth = true;
         layout.childForceExpandHeight = false;
         layout.childForceExpandWidth = true;
 
-        titleText = HexTacticsUiFactory.CreateText(rectTransform, "Title", string.Empty, 13, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.AddLayoutElement(titleText.gameObject, preferredHeight: 15f);
+        titleText = HexTacticsUiFactory.CreateText(rectTransform, "Title", string.Empty, 12, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+        HexTacticsUiFactory.AddLayoutElement(titleText.gameObject, preferredHeight: 14f);
 
-        detailText = HexTacticsUiFactory.CreateText(rectTransform, "Detail", string.Empty, 11, TextAnchor.MiddleLeft, new Color(0.90f, 0.92f, 0.95f));
-        HexTacticsUiFactory.AddLayoutElement(detailText.gameObject, preferredHeight: 14f);
+        detailText = HexTacticsUiFactory.CreateText(rectTransform, "Detail", string.Empty, 10, TextAnchor.MiddleLeft, new Color(0.90f, 0.92f, 0.95f));
+        HexTacticsUiFactory.AddLayoutElement(detailText.gameObject, preferredHeight: 12f);
 
         var hpRow = HexTacticsUiFactory.CreateRect("HpRow", rectTransform);
-        HexTacticsUiFactory.AddLayoutElement(hpRow.gameObject, preferredHeight: 16f);
+        HexTacticsUiFactory.AddLayoutElement(hpRow.gameObject, preferredHeight: 14f);
         var hpRowLayout = hpRow.gameObject.AddComponent<HorizontalLayoutGroup>();
         hpRowLayout.spacing = 6f;
         hpRowLayout.childAlignment = TextAnchor.MiddleLeft;
@@ -82,7 +79,7 @@ public sealed class HexTacticsWorldLabelView : HexTacticsUiGeneratedView
         hpRowLayout.childForceExpandWidth = false;
 
         var barRoot = HexTacticsUiFactory.CreateRect("HealthBar", hpRow);
-        HexTacticsUiFactory.AddLayoutElement(barRoot.gameObject, flexibleWidth: 1f, preferredHeight: 10f);
+        HexTacticsUiFactory.AddLayoutElement(barRoot.gameObject, flexibleWidth: 1f, preferredHeight: 8f);
         healthBackgroundImage = HexTacticsUiFactory.AddImage(barRoot.gameObject, new Color(0.16f, 0.22f, 0.24f, 0.92f), false);
         healthFillRect = HexTacticsUiFactory.CreateRect("Fill", barRoot);
         HexTacticsUiFactory.Stretch(healthFillRect, Vector2.zero, Vector2.one);
@@ -92,8 +89,8 @@ public sealed class HexTacticsWorldLabelView : HexTacticsUiGeneratedView
         healthFillImage = HexTacticsUiFactory.AddImage(healthFillRect.gameObject, new Color(0.28f, 0.82f, 0.34f, 0.95f), false);
         HexTacticsUiFactory.Stretch(healthFillImage.rectTransform, Vector2.zero, Vector2.one);
 
-        healthText = HexTacticsUiFactory.CreateText(hpRow, "HpText", string.Empty, 10, TextAnchor.MiddleRight, new Color(0.95f, 0.97f, 0.98f));
-        HexTacticsUiFactory.AddLayoutElement(healthText.gameObject, preferredWidth: 58f, preferredHeight: 14f);
+        healthText = HexTacticsUiFactory.CreateText(hpRow, "HpText", string.Empty, 9, TextAnchor.MiddleRight, new Color(0.95f, 0.97f, 0.98f));
+        HexTacticsUiFactory.AddLayoutElement(healthText.gameObject, preferredWidth: 52f, preferredHeight: 12f);
     }
 
     public static HexTacticsWorldLabelView CreateStandalone(Transform parent)

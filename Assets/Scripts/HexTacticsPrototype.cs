@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 [DisallowMultipleComponent]
 public sealed partial class HexTacticsPrototype : MonoBehaviour
@@ -18,10 +21,18 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     [SerializeField, Range(-180f, 180f)] private float cameraYaw = 32f;
     [SerializeField, Range(1f, 1.5f)] private float cameraFitPadding = 1.08f;
     [SerializeField, Min(1f)] private float cameraMinDistance = 7f;
+    [SerializeField, Min(0.01f)] private float cameraMoveSmoothTime = 0.24f;
+    [SerializeField, Min(0.01f)] private float cameraZoomSmoothTime = 0.18f;
+    [SerializeField, Range(1f, 20f)] private float cameraRotationSmoothness = 9f;
+    [SerializeField, Range(0.7f, 0.98f)] private float attackCameraDistanceScale = 0.93f;
+    [SerializeField, Range(0.55f, 1f)] private float attackCameraMinDistanceScale = 0.9f;
+    [SerializeField, Range(0f, 1.2f)] private float attackCameraFocusLift = 0.14f;
 
     [Header("Battle")]
     [SerializeField, Min(0.05f)] private float moveDuration = 0.22f;
     [SerializeField, Min(0.05f)] private float attackDuration = 0.26f;
+    [SerializeField, Min(0.02f)] private float damagedReactionDuration = 0.18f;
+    [SerializeField, Min(0f)] private float sequentialAttackGap = 0.05f;
     [SerializeField, Min(0.05f)] private float cpuThinkDelay = 0.35f;
     [SerializeField, Min(1)] private int playerTeamCostLimit = 12;
     [SerializeField, Min(1)] private int cpuTeamCostLimit = 12;
@@ -31,6 +42,11 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     [SerializeField, Min(0.8f)] private float baseUnitVisualHeight = 1.52f;
     [SerializeField, Min(0.15f)] private float worldLabelPadding = 0.34f;
     [SerializeField, Range(0.8f, 1.4f)] private float selectionFootprintPadding = 1.05f;
+
+    [Header("Hit Effects")]
+    [SerializeField] private bool enableHitEffects = true;
+    [SerializeField, Range(0.15f, 1.2f)] private float hitEffectHeightNormalized = 0.58f;
+    [SerializeField, Min(0f)] private float hitEffectForwardOffset = 0.08f;
 
     [Header("Roster")]
     [SerializeField] private List<HexTacticsCharacterConfig> characterRoster = new();
@@ -73,6 +89,7 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
 
     private Transform boardRoot;
     private Transform unitsRoot;
+    private Transform effectsRoot;
     private Mesh cellMesh;
 
     private Material tilePrimaryMaterial;
@@ -103,6 +120,17 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     private int lastScreenWidth;
     private int lastScreenHeight;
     private FlowState lastCameraFlowState;
+    private Vector3 cameraTargetPosition;
+    private Quaternion cameraTargetRotation = Quaternion.identity;
+    private Vector3 cameraPositionVelocity;
+    private float cameraTargetFieldOfView;
+    private float cameraTargetFarClipPlane;
+    private float cameraFovVelocity;
+    private bool hasCameraTarget;
+    private bool cameraTransformInitialized;
+    private CameraFocusOverride activeCameraFocusOverride;
+    private HexTacticsHitEffectCatalog hitEffectCatalog;
+    private int nextHitEffectVariantIndex;
 
     private void Awake()
     {
@@ -165,14 +193,16 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (Screen.width == lastScreenWidth &&
-            Screen.height == lastScreenHeight &&
-            currentFlowState == lastCameraFlowState)
+        if (Screen.width != lastScreenWidth ||
+            Screen.height != lastScreenHeight ||
+            currentFlowState != lastCameraFlowState ||
+            activeCameraFocusOverride != null ||
+            !hasCameraTarget)
         {
-            return;
+            ConfigureCamera();
         }
 
-        ConfigureCamera();
+        UpdateCameraTransform();
     }
 
     private void OnDestroy()
@@ -185,6 +215,7 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         EnsureRoots();
         DestroyChildren(boardRoot);
         DestroyChildren(unitsRoot);
+        DestroyChildren(effectsRoot);
         ReleaseGeneratedAssets();
 
         cells.Clear();
@@ -210,6 +241,12 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         resolutionStatus = string.Empty;
         nextUnitId = 1;
         nextPlayerDeploymentEntryId = 1;
+        cameraPositionVelocity = Vector3.zero;
+        cameraFovVelocity = 0f;
+        hasCameraTarget = false;
+        cameraTransformInitialized = false;
+        activeCameraFocusOverride = null;
+        nextHitEffectVariantIndex = 0;
 
         EnsureCharacterRoster();
         BuildMaterials();
@@ -217,7 +254,7 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
 
         BuildBoard();
         CacheDeploySlots();
-        ConfigureCamera();
+        ConfigureCamera(immediate: true);
         RefreshVisuals();
     }
 
@@ -225,6 +262,7 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     {
         boardRoot = GetOrCreateChild("Board").transform;
         unitsRoot = GetOrCreateChild("Units").transform;
+        effectsRoot = GetOrCreateChild("Effects").transform;
     }
 
     private GameObject GetOrCreateChild(string objectName)
@@ -245,10 +283,10 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         PopulateCharacterRosterIfNeeded();
     }
 
-    [ContextMenu("Reload Character Roster From Resources")]
+    [ContextMenu("Reload Character Roster From Addressables")]
     private void RebuildCharacterRosterFromAvailablePrefabs()
     {
-        characterRoster = LoadCharacterRosterFromResources();
+        characterRoster = LoadCharacterRosterFromCatalog();
     }
 
     private void PopulateCharacterRosterIfNeeded()
@@ -258,14 +296,25 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
             return;
         }
 
-        characterRoster = LoadCharacterRosterFromResources();
+        characterRoster = LoadCharacterRosterFromCatalog();
     }
 
-    private List<HexTacticsCharacterConfig> LoadCharacterRosterFromResources()
+    private List<HexTacticsCharacterConfig> LoadCharacterRosterFromCatalog()
     {
-        var roster = new List<HexTacticsCharacterConfig>(Resources.LoadAll<HexTacticsCharacterConfig>("CharacterConfigs"));
-        roster.RemoveAll(config => config == null);
-        roster.Sort((left, right) => string.CompareOrdinal(left.DisplayName, right.DisplayName));
+#if UNITY_EDITOR
+        if (Application.isEditor)
+        {
+            var editorRoster = LoadCharacterRosterFromAssetDatabase();
+            if (editorRoster.Count > 0)
+            {
+                return editorRoster;
+            }
+
+            return BuildFallbackCharacterRoster();
+        }
+#endif
+
+        var roster = HexTacticsAddressables.LoadCharacterConfigs();
         if (roster.Count > 0)
         {
             return roster;
@@ -296,8 +345,7 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         int cost,
         int moveRange)
     {
-        var resourcePath = GetVisualResourcePath(archetype);
-        if (string.IsNullOrEmpty(resourcePath) || Resources.Load<GameObject>(resourcePath) == null)
+        if (LoadUnitVisualPrefabFromArchetype(archetype) == null)
         {
             return;
         }
@@ -307,6 +355,25 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         config.ConfigureRuntime(displayName, description, maxHealth, attackPower, cost, moveRange, archetype);
         roster.Add(config);
     }
+
+#if UNITY_EDITOR
+    private static List<HexTacticsCharacterConfig> LoadCharacterRosterFromAssetDatabase()
+    {
+        var roster = new List<HexTacticsCharacterConfig>();
+        foreach (var guid in AssetDatabase.FindAssets("t:HexTacticsCharacterConfig", new[] { HexTacticsAssetPaths.CharacterConfigFolder }))
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            var config = AssetDatabase.LoadAssetAtPath<HexTacticsCharacterConfig>(path);
+            if (config != null)
+            {
+                roster.Add(config);
+            }
+        }
+
+        roster.Sort((left, right) => string.CompareOrdinal(left.DisplayName, right.DisplayName));
+        return roster;
+    }
+#endif
 
     private void BuildMaterials()
     {

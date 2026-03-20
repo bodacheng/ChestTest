@@ -10,7 +10,7 @@ public sealed class HexTacticsVictoryOverlayView : HexTacticsUiGeneratedView
     [SerializeField] private Button returnButton;
     [SerializeField] private Button retryButton;
 
-    protected override int CurrentLayoutVersion => 2;
+    protected override int CurrentLayoutVersion => 3;
 
     protected override bool HasCurrentBindings =>
         summaryText != null &&
@@ -34,47 +34,41 @@ public sealed class HexTacticsVictoryOverlayView : HexTacticsUiGeneratedView
         var root = Root;
         HexTacticsUiFactory.Stretch(root, Vector2.zero, Vector2.one);
         HexTacticsUiFactory.SetOffsets(root, 0f, 0f, 0f, 0f);
-        HexTacticsUiFactory.AddImage(root.gameObject, new Color(0f, 0f, 0f, 0.48f));
+        HexTacticsUiFactory.AddImage(root.gameObject, new Color(0f, 0f, 0f, 0.34f));
 
-        var panel = HexTacticsUiFactory.CreatePanel(root, "VictoryPanel", new Color(0.05f, 0.08f, 0.10f, 0.88f), new Vector2(540f, 244f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
-        panel.anchoredPosition = new Vector2(0f, 4f);
+        var panel = HexTacticsUiFactory.CreatePanel(root, "VictoryPanel", new Color(0.04f, 0.07f, 0.08f, 0.84f), new Vector2(436f, 188f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+        panel.anchoredPosition = Vector2.zero;
 
         var layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(26, 26, 24, 22);
-        layout.spacing = 12f;
+        layout.padding = new RectOffset(24, 24, 22, 20);
+        layout.spacing = 10f;
         layout.childAlignment = TextAnchor.UpperCenter;
         layout.childControlHeight = false;
         layout.childControlWidth = true;
         layout.childForceExpandHeight = false;
         layout.childForceExpandWidth = true;
 
-        var badge = HexTacticsUiFactory.CreateText(panel, "Badge", "RESULT", 13, TextAnchor.MiddleCenter, new Color(0.63f, 0.82f, 0.80f), FontStyle.Bold);
-        HexTacticsUiFactory.AddLayoutElement(badge.gameObject, preferredHeight: 18f);
+        var title = HexTacticsUiFactory.CreateText(panel, "Title", "战斗结束", 26, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
+        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 32f);
 
-        var title = HexTacticsUiFactory.CreateText(panel, "Title", "战斗结束", 29, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 36f);
-
-        summaryText = HexTacticsUiFactory.CreateText(panel, "Summary", string.Empty, 20, TextAnchor.MiddleCenter, new Color(0.90f, 0.94f, 0.96f));
-        HexTacticsUiFactory.AddLayoutElement(summaryText.gameObject, preferredHeight: 30f);
-
-        var condition = HexTacticsUiFactory.CreateText(panel, "Condition", "胜利条件：一方所有棋子被击败", 16, TextAnchor.MiddleCenter, new Color(0.70f, 0.82f, 0.82f));
-        HexTacticsUiFactory.AddLayoutElement(condition.gameObject, preferredHeight: 22f);
+        summaryText = HexTacticsUiFactory.CreateText(panel, "Summary", string.Empty, 18, TextAnchor.MiddleCenter, new Color(0.90f, 0.94f, 0.96f));
+        HexTacticsUiFactory.AddLayoutElement(summaryText.gameObject, preferredHeight: 26f);
 
         var buttons = HexTacticsUiFactory.CreateRect("Buttons", panel);
-        HexTacticsUiFactory.AddLayoutElement(buttons.gameObject, preferredHeight: 42f);
+        HexTacticsUiFactory.AddLayoutElement(buttons.gameObject, preferredHeight: 38f);
         var buttonsLayout = buttons.gameObject.AddComponent<HorizontalLayoutGroup>();
-        buttonsLayout.spacing = 14f;
+        buttonsLayout.spacing = 10f;
         buttonsLayout.childAlignment = TextAnchor.MiddleCenter;
         buttonsLayout.childControlHeight = true;
         buttonsLayout.childControlWidth = true;
         buttonsLayout.childForceExpandHeight = false;
         buttonsLayout.childForceExpandWidth = true;
 
-        returnButton = HexTacticsUiFactory.CreateButton(buttons, "ReturnButton", "返回编队", new Color(0.25f, 0.31f, 0.36f, 0.96f), Color.white, out _);
-        HexTacticsUiFactory.AddLayoutElement(returnButton.gameObject, preferredHeight: 42f);
+        returnButton = HexTacticsUiFactory.CreateButton(buttons, "ReturnButton", "回到编队", new Color(0.23f, 0.28f, 0.32f, 0.94f), Color.white, out _);
+        HexTacticsUiFactory.AddLayoutElement(returnButton.gameObject, preferredHeight: 38f);
 
-        retryButton = HexTacticsUiFactory.CreateButton(buttons, "RetryButton", "再次挑战", new Color(0.22f, 0.56f, 0.55f, 0.96f), Color.white, out _);
-        HexTacticsUiFactory.AddLayoutElement(retryButton.gameObject, preferredHeight: 42f);
+        retryButton = HexTacticsUiFactory.CreateButton(buttons, "RetryButton", "再来一局", new Color(0.19f, 0.46f, 0.46f, 0.94f), Color.white, out _);
+        HexTacticsUiFactory.AddLayoutElement(retryButton.gameObject, preferredHeight: 38f);
     }
 
     public static HexTacticsVictoryOverlayView CreateStandalone(Transform parent)

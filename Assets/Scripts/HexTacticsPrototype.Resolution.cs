@@ -39,7 +39,7 @@ public sealed partial class HexTacticsPrototype
         if (openingAttacks.Count > 0)
         {
             lastResolutionKind = ResolutionKind.Attack;
-            resolutionStatus = $"第 {planningRoundNumber} 轮进入攻击回合：{openingAttacks.Count} 次攻击同时结算，之后继续执行移动命令";
+            resolutionStatus = $"第 {planningRoundNumber} 轮进入攻击回合：{openingAttacks.Count} 次攻击依次结算，之后继续执行移动命令";
             MarkAttackUsage(openingMoveAttacks, lockMovementAfterAttack: false);
             MarkAttackUsage(openingEnemyAttacks, lockMovementAfterAttack: true);
             yield return ResolveAttackTurn(openingAttacks);
@@ -83,11 +83,11 @@ public sealed partial class HexTacticsPrototype
                 yield break;
             }
 
-            var followUpAttacks = CollectReadyEnemyCommandAttacks();
+            var followUpAttacks = CollectReadyFollowUpAttacks();
             if (followUpAttacks.Count > 0)
             {
                 lastResolutionKind = ResolutionKind.Attack;
-                resolutionStatus = $"第 {planningRoundNumber} 轮移动第 {moveTurnIndex} 回合后，{followUpAttacks.Count} 名棋子到达目标并完成攻击";
+                resolutionStatus = $"第 {planningRoundNumber} 轮移动第 {moveTurnIndex} 回合后，{followUpAttacks.Count} 名棋子在接敌后发起攻击";
                 MarkAttackUsage(followUpAttacks, lockMovementAfterAttack: true);
                 yield return ResolveAttackTurn(followUpAttacks);
                 resolvedTurnCount++;
@@ -180,6 +180,47 @@ public sealed partial class HexTacticsPrototype
         return events;
     }
 
+    private List<AttackEvent> CollectReadyFollowUpAttacks()
+    {
+        var events = new List<AttackEvent>();
+        foreach (var unit in units)
+        {
+            if (unit.AttackConsumed || !unit.HasPlannedMove)
+            {
+                continue;
+            }
+
+            HexUnit target = null;
+            if (IsEnemyCommand(unit))
+            {
+                if (!IsUnitAlive(unit.PlannedEnemyTargetUnit))
+                {
+                    unit.MovementLocked = true;
+                    continue;
+                }
+
+                if (AreAdjacent(unit.Coord, unit.PlannedEnemyTargetUnit.Coord))
+                {
+                    target = unit.PlannedEnemyTargetUnit;
+                }
+            }
+            else if (IsMoveCommand(unit))
+            {
+                target = ChooseCpuAttackTargetFromOrigin(unit, unit.Coord, unit.Team == Team.Blue ? Team.Red : Team.Blue);
+            }
+
+            if (target == null)
+            {
+                continue;
+            }
+
+            unit.PlannedAttackTarget = target.Coord;
+            events.Add(new AttackEvent(unit, target));
+        }
+
+        return events;
+    }
+
     private void MarkAttackUsage(List<AttackEvent> attacks, bool lockMovementAfterAttack)
     {
         foreach (var attack in attacks)
@@ -192,8 +233,9 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
-    private void ConfigureAnimator(Animator animator)
+    private void ConfigureAnimator(HexUnit unit)
     {
+        var animator = unit != null ? unit.Animator : null;
         if (animator == null)
         {
             return;
@@ -204,6 +246,12 @@ public sealed partial class HexTacticsPrototype
         animator.updateMode = AnimatorUpdateMode.Normal;
         animator.Rebind();
         animator.Update(0f);
+        if (UsesDirectStatePlayback(unit))
+        {
+            PlayBoundState(unit, unit.AnimationBinding.IdleStatePath, restart: true);
+            return;
+        }
+
         SetAnimatorLocomotion(animator, 0f, false);
         animator.SetBool(Attack1Hash, false);
         animator.SetBool(DamagedHash, false);
@@ -226,10 +274,37 @@ public sealed partial class HexTacticsPrototype
         animator.SetBool(ShiftHash, shift);
     }
 
+    private static bool UsesDirectStatePlayback(HexUnit unit)
+    {
+        return unit?.Animator != null &&
+               unit.AnimationBinding != null &&
+               !unit.AnimationBinding.UsesParameterDriver;
+    }
+
+    private static void PlayBoundState(HexUnit unit, string statePath, bool restart)
+    {
+        if (unit?.Animator == null || string.IsNullOrWhiteSpace(statePath))
+        {
+            return;
+        }
+
+        unit.Animator.Play(statePath, 0, restart ? 0f : float.NegativeInfinity);
+        unit.Animator.Update(0f);
+    }
+
     private void SetUnitIdle(HexUnit unit)
     {
         if (unit == null || unit.Animator == null)
         {
+            return;
+        }
+
+        if (UsesDirectStatePlayback(unit))
+        {
+            var idleState = !string.IsNullOrWhiteSpace(unit.AnimationBinding.IdleStatePath)
+                ? unit.AnimationBinding.IdleStatePath
+                : unit.AnimationBinding.MoveStatePath;
+            PlayBoundState(unit, idleState, restart: true);
             return;
         }
 
@@ -255,6 +330,15 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
+        if (UsesDirectStatePlayback(unit))
+        {
+            var moveState = !string.IsNullOrWhiteSpace(unit.AnimationBinding.MoveStatePath)
+                ? unit.AnimationBinding.MoveStatePath
+                : unit.AnimationBinding.IdleStatePath;
+            PlayBoundState(unit, moveState, restart: true);
+            return;
+        }
+
         var usesFastStride = unit.MoveRange >= 3;
         SetAnimatorLocomotion(unit.Animator, usesFastStride ? 1.15f : 0.82f, usesFastStride);
     }
@@ -272,9 +356,32 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
+        if (UsesDirectStatePlayback(unit))
+        {
+            PlayBoundState(unit, unit.AnimationBinding.AttackStatePath, restart: true);
+            return;
+        }
+
         SetAnimatorLocomotion(unit.Animator, 0f, false);
+        unit.DamagedAnimationRevision++;
+        unit.Animator.SetBool(DamagedHash, false);
+        unit.Animator.SetBool(Attack1Hash, false);
         unit.Animator.SetBool(Attack1Hash, true);
-        StartCoroutine(ResetAnimatorBoolAfterDelay(unit.Animator, Attack1Hash, attackDuration * 0.45f));
+    }
+
+    private void StopUnitAttack(HexUnit unit)
+    {
+        if (unit?.Animator == null)
+        {
+            return;
+        }
+
+        if (UsesDirectStatePlayback(unit))
+        {
+            return;
+        }
+
+        unit.Animator.SetBool(Attack1Hash, false);
     }
 
     private void PlayUnitDamaged(HexUnit unit)
@@ -284,8 +391,36 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
+        unit.DamagedAnimationRevision++;
+        var revision = unit.DamagedAnimationRevision;
+        if (UsesDirectStatePlayback(unit))
+        {
+            PlayBoundState(unit, unit.AnimationBinding.DamagedStatePath, restart: true);
+            StartCoroutine(ResetUnitDamagedAfterDelay(unit, revision, ResolveDamagedAnimationDuration(unit)));
+            return;
+        }
+
+        unit.Animator.SetBool(DamagedHash, false);
         unit.Animator.SetBool(DamagedHash, true);
-        StartCoroutine(ResetAnimatorBoolAfterDelay(unit.Animator, DamagedHash, 0.16f));
+        StartCoroutine(ResetUnitDamagedAfterDelay(unit, revision, damagedReactionDuration));
+    }
+
+    private IEnumerator ResetUnitDamagedAfterDelay(HexUnit unit, int revision, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (unit != null &&
+            unit.Animator != null &&
+            unit.DamagedAnimationRevision == revision)
+        {
+            if (UsesDirectStatePlayback(unit))
+            {
+                SetUnitIdle(unit);
+            }
+            else
+            {
+                unit.Animator.SetBool(DamagedHash, false);
+            }
+        }
     }
 
     private void PlayUnitDeath(HexUnit unit)
@@ -298,6 +433,12 @@ public sealed partial class HexTacticsPrototype
         SetSelectionColliderEnabled(unit, false);
         if (unit.Animator == null)
         {
+            return;
+        }
+
+        if (UsesDirectStatePlayback(unit))
+        {
+            PlayBoundState(unit, unit.AnimationBinding.DeathStatePath, restart: true);
             return;
         }
 
@@ -330,6 +471,28 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
+    private void SetAttackCameraFocus(HexUnit attacker, HexUnit defender)
+    {
+        if (attacker?.Transform == null || defender?.Transform == null)
+        {
+            return;
+        }
+
+        activeCameraFocusOverride = new CameraFocusOverride(attacker, defender);
+        ConfigureCamera();
+    }
+
+    private void ClearAttackCameraFocus()
+    {
+        if (activeCameraFocusOverride == null)
+        {
+            return;
+        }
+
+        activeCameraFocusOverride = null;
+        ConfigureCamera();
+    }
+
     private void FaceUnitTowards(HexUnit unit, Vector3 worldTarget, bool immediate)
     {
         if (unit?.Transform == null)
@@ -352,114 +515,320 @@ public sealed partial class HexTacticsPrototype
 
     private IEnumerator ResolveAttackTurn(List<AttackEvent> attacks)
     {
-        var attackerStarts = new Dictionary<HexUnit, Vector3>();
-        var animatedAttackers = new HashSet<HexUnit>();
-        foreach (var attack in attacks)
+        if (attacks == null || attacks.Count == 0)
         {
-            if (!attackerStarts.ContainsKey(attack.Attacker))
+            RefreshVisuals();
+            yield break;
+        }
+
+        var resolvedCount = CountResolvableAttacks(attacks, 0);
+
+        if (resolvedCount == 0)
+        {
+            RefreshVisuals();
+            yield break;
+        }
+
+        for (var i = 0; i < attacks.Count; i++)
+        {
+            var attack = attacks[i];
+            if (!CanResolveAttackEvent(attack))
             {
-                attackerStarts.Add(attack.Attacker, attack.Attacker.Transform.localPosition);
+                continue;
             }
 
-            if (animatedAttackers.Add(attack.Attacker))
+            resolvedCount = CountResolvableAttacks(attacks, i);
+            resolutionStatus = resolvedCount == 1
+                ? $"{attack.Attacker.RoleName} 攻击 {attack.Defender.RoleName}"
+                : $"依次结算：{attack.Attacker.RoleName} 攻击 {attack.Defender.RoleName}";
+
+            SetAttackCameraFocus(attack.Attacker, attack.Defender);
+            yield return ResolveSingleAttack(attack);
+
+            if (TryFocusNextResolvableAttack(attacks, i + 1))
             {
-                PlayUnitAttack(attack.Attacker, attack.Defender.Transform.position);
+                if (sequentialAttackGap > 0f)
+                {
+                    yield return new WaitForSeconds(sequentialAttackGap);
+                }
+            }
+            else
+            {
+                resolvedCount = 0;
             }
         }
 
+        ClearAttackCameraFocus();
+        RefreshVisuals();
+    }
+
+    private IEnumerator ResolveSingleAttack(AttackEvent attack)
+    {
+        if (!CanResolveAttackEvent(attack))
+        {
+            yield break;
+        }
+
+        var attacker = attack.Attacker;
+        var defender = attack.Defender;
+        var attackerStart = attacker.Transform.localPosition;
+        var impactToken = attacker.AnimationEventRelay != null ? attacker.AnimationEventRelay.AttackImpactCount : -1;
+
+        PlayUnitAttack(attacker, defender.Transform.position);
+        yield return null;
+
+        var attackClip = ResolveAttackClip(attacker);
+        var impactDelay = ResolveAttackImpactDelay(attacker, attackClip);
+        var swingDuration = ResolveAttackSwingDuration(attacker, impactDelay, attackClip);
         var elapsed = 0f;
         var hitApplied = false;
-        while (elapsed < attackDuration)
+
+        while (elapsed < swingDuration)
         {
             elapsed += Time.deltaTime;
-            var t = Mathf.Clamp01(elapsed / attackDuration);
-            var lungeT = t < 0.5f ? t / 0.5f : 1f - ((t - 0.5f) / 0.5f);
-            var smoothed = Mathf.SmoothStep(0f, 1f, lungeT);
+            var normalizedTime = swingDuration > 0.001f ? Mathf.Clamp01(elapsed / swingDuration) : 1f;
+            attacker.Transform.localPosition = CalculateAttackLungePosition(attackerStart, defender, normalizedTime);
 
-            foreach (var attack in attacks)
-            {
-                if (!attackerStarts.TryGetValue(attack.Attacker, out var start))
-                {
-                    continue;
-                }
-
-                var direction = attack.Defender.Transform.localPosition - start;
-                direction.y = 0f;
-                if (direction.sqrMagnitude < 0.0001f)
-                {
-                    direction = Vector3.forward;
-                }
-
-                FaceUnitTowards(attack.Attacker, attack.Defender.Transform.position, immediate: false);
-                direction.Normalize();
-                var target = start + direction * (hexRadius * 0.48f);
-                attack.Attacker.Transform.localPosition = Vector3.Lerp(start, target, smoothed);
-            }
-
-            if (!hitApplied && t >= 0.5f)
+            if (!hitApplied && ShouldApplyAttackImpact(attacker, impactToken, elapsed, impactDelay))
             {
                 hitApplied = true;
-
-                var damageMap = new Dictionary<HexUnit, int>();
-                foreach (var attack in attacks)
-                {
-                    if (!damageMap.ContainsKey(attack.Defender))
-                    {
-                        damageMap.Add(attack.Defender, 0);
-                    }
-
-                    damageMap[attack.Defender] += attack.Attacker.AttackPower;
-                }
-
-                foreach (var pair in damageMap)
-                {
-                    pair.Key.CurrentHealth = Mathf.Max(0, pair.Key.CurrentHealth - pair.Value);
-                    if (pair.Key.CurrentHealth > 0)
-                    {
-                        PlayUnitDamaged(pair.Key);
-                    }
-                }
+                ApplyAttackImpact(attacker, defender);
             }
 
             yield return null;
         }
 
-        foreach (var pair in attackerStarts)
+        if (!hitApplied)
         {
-            pair.Key.Transform.localPosition = pair.Value;
-            if (pair.Key.CurrentHealth > 0)
-            {
-                SetUnitIdle(pair.Key);
-            }
+            ApplyAttackImpact(attacker, defender);
         }
 
-        var defeated = new List<HexUnit>();
-        foreach (var unit in units)
+        attacker.Transform.localPosition = attackerStart;
+        StopUnitAttack(attacker);
+
+        if (attacker.CurrentHealth > 0)
         {
-            if (unit.CurrentHealth <= 0)
-            {
-                defeated.Add(unit);
-            }
+            SetUnitIdle(attacker);
         }
 
-        foreach (var attack in attacks)
+        if (defender.CurrentHealth > 0)
         {
-            if (attack.Defender.CurrentHealth > 0)
-            {
-                SetUnitIdle(attack.Defender);
-            }
+            SetUnitIdle(defender);
         }
-
-        if (defeated.Count > 0)
+        else if (units.Contains(defender))
         {
-            yield return AnimateUnitDefeat(defeated);
-            foreach (var unit in defeated)
-            {
-                RemoveUnit(unit);
-            }
+            yield return AnimateUnitDefeat(new List<HexUnit> { defender });
+            RemoveUnit(defender);
         }
 
         RefreshVisuals();
+    }
+
+    private bool CanResolveAttackEvent(AttackEvent attack)
+    {
+        return IsUnitAlive(attack.Attacker) &&
+               IsUnitAlive(attack.Defender) &&
+               attack.Attacker.Transform != null &&
+               attack.Defender.Transform != null &&
+               AreAdjacent(attack.Attacker.Coord, attack.Defender.Coord);
+    }
+
+    private int CountResolvableAttacks(List<AttackEvent> attacks, int startIndex)
+    {
+        var count = 0;
+        if (attacks == null)
+        {
+            return count;
+        }
+
+        for (var i = Mathf.Max(0, startIndex); i < attacks.Count; i++)
+        {
+            if (CanResolveAttackEvent(attacks[i]))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private bool TryFocusNextResolvableAttack(List<AttackEvent> attacks, int startIndex)
+    {
+        if (attacks == null)
+        {
+            return false;
+        }
+
+        for (var i = Mathf.Max(0, startIndex); i < attacks.Count; i++)
+        {
+            var nextAttack = attacks[i];
+            if (!CanResolveAttackEvent(nextAttack))
+            {
+                continue;
+            }
+
+            SetAttackCameraFocus(nextAttack.Attacker, nextAttack.Defender);
+            return true;
+        }
+
+        return false;
+    }
+
+    private Vector3 CalculateAttackLungePosition(Vector3 attackerStart, HexUnit defender, float normalizedTime)
+    {
+        if (defender?.Transform == null)
+        {
+            return attackerStart;
+        }
+
+        var lungeT = normalizedTime < 0.5f
+            ? normalizedTime / 0.5f
+            : 1f - ((normalizedTime - 0.5f) / 0.5f);
+        var smoothed = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(lungeT));
+        var direction = defender.Transform.localPosition - attackerStart;
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 0.0001f)
+        {
+            direction = Vector3.forward;
+        }
+
+        direction.Normalize();
+        var target = attackerStart + direction * (hexRadius * 0.48f);
+        return Vector3.Lerp(attackerStart, target, smoothed);
+    }
+
+    private static bool ShouldApplyAttackImpact(HexUnit attacker, int impactToken, float elapsed, float impactDelay)
+    {
+        return (attacker.AnimationEventRelay != null && attacker.AnimationEventRelay.AttackImpactCount > impactToken) ||
+               elapsed >= impactDelay;
+    }
+
+    private void ApplyAttackImpact(HexUnit attacker, HexUnit defender)
+    {
+        if (!IsUnitAlive(attacker) || !IsUnitAlive(defender))
+        {
+            return;
+        }
+
+        FaceUnitTowards(defender, attacker.Transform.position, immediate: false);
+        defender.CurrentHealth = Mathf.Max(0, defender.CurrentHealth - attacker.AttackPower);
+        SpawnHitEffect(attacker, defender);
+        if (defender.CurrentHealth > 0)
+        {
+            PlayUnitDamaged(defender);
+        }
+    }
+
+    private AnimationClip ResolveAttackClip(HexUnit attacker)
+    {
+        if (attacker?.Animator == null)
+        {
+            return null;
+        }
+
+        if (UsesDirectStatePlayback(attacker) && attacker.AnimationBinding?.AttackClip != null)
+        {
+            return attacker.AnimationBinding.AttackClip;
+        }
+
+        var attackClip = FindAttackClip(attacker.Animator.GetNextAnimatorClipInfo(0));
+        if (attackClip != null)
+        {
+            return attackClip;
+        }
+
+        attackClip = FindAttackClip(attacker.Animator.GetCurrentAnimatorClipInfo(0));
+        if (attackClip != null)
+        {
+            return attackClip;
+        }
+
+        var controller = attacker.Animator.runtimeAnimatorController;
+        if (controller == null)
+        {
+            return null;
+        }
+
+        AnimationClip fallback = null;
+        foreach (var clip in controller.animationClips)
+        {
+            if (!IsAttackClip(clip))
+            {
+                continue;
+            }
+
+            if (fallback == null ||
+                clip.name.IndexOf("attack01", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                fallback = clip;
+            }
+        }
+
+        return fallback;
+    }
+
+    private static AnimationClip FindAttackClip(AnimatorClipInfo[] clipInfos)
+    {
+        if (clipInfos == null)
+        {
+            return null;
+        }
+
+        foreach (var clipInfo in clipInfos)
+        {
+            if (IsAttackClip(clipInfo.clip))
+            {
+                return clipInfo.clip;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsAttackClip(AnimationClip clip)
+    {
+        return clip != null &&
+               clip.name.IndexOf("attack", System.StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private float ResolveDamagedAnimationDuration(HexUnit unit)
+    {
+        var clipLength = unit?.AnimationBinding?.DamagedClip != null && unit.AnimationBinding.DamagedClip.length > 0.01f
+            ? unit.AnimationBinding.DamagedClip.length
+            : damagedReactionDuration;
+        if (UsesDirectStatePlayback(unit) && clipLength > 0.01f)
+        {
+            return Mathf.Clamp(clipLength * 0.92f, 0.03f, clipLength * 0.98f);
+        }
+
+        return Mathf.Clamp(clipLength, damagedReactionDuration, 0.9f);
+    }
+
+    private float ResolveAttackImpactDelay(HexUnit attacker, AnimationClip attackClip)
+    {
+        var clipLength = attackClip != null && attackClip.length > 0.01f
+            ? attackClip.length
+            : attackDuration;
+        var normalizedTime = attacker?.CharacterConfig != null
+            ? attacker.CharacterConfig.ResolveAttackImpactNormalizedTime(attackClip)
+            : 0.45f;
+        return Mathf.Clamp(clipLength * normalizedTime, 0.03f, clipLength);
+    }
+
+    private float ResolveAttackSwingDuration(HexUnit attacker, float impactDelay, AnimationClip attackClip)
+    {
+        var clipLength = attackClip != null && attackClip.length > 0.01f
+            ? attackClip.length
+            : attackDuration;
+        if (UsesDirectStatePlayback(attacker) && clipLength > 0.01f)
+        {
+            var postImpactSettle = Mathf.Min(0.14f, clipLength * 0.2f);
+            var directPlaybackDuration = Mathf.Max(impactDelay + postImpactSettle, clipLength * 0.82f);
+            return Mathf.Clamp(directPlaybackDuration, 0.08f, clipLength * 0.98f);
+        }
+
+        var settleDuration = Mathf.Max(damagedReactionDuration, 0.1f);
+        return Mathf.Max(attackDuration, Mathf.Min(clipLength, impactDelay + settleDuration));
     }
 
     private IEnumerator ResolveMoveTurn(bool followsAttackPhase, int moveTurnIndex, MoveStepResolution stepResult = default)
