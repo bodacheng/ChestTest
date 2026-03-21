@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7033fc0862404bee8b688b52356e0703, type: 3}
+  m_Name: Snipe_Ranged_P5_R2_C2
+  m_EditorClassIdentifier: Assembly-CSharp::HexTacticsSkillConfig
+  displayName: "\u72D9\u730E\u8FDC\u5C04"
+  description: "\u6D88\u8017 2 \u70B9\u80FD\u91CF\u8FDB\u884C\u66F4\u8FDC\u8DDD\u79BB\u7684\u72D9\u51FB\uFF0C\u662F\u8FDC\u7A0B\u5355\u4F4D\u7684\u91CD\u8981\u6218\u672F\u9009\u62E9\u3002"
+  power: 5
+  attackRange: 2
+  energyCost: 2
+  energyGainOnHit: 0
+  projectileEffectPrefab: {fileID: 2763477782707023762, guid: c868d637a2fff4b28bfcb4936311eb49, type: 3}
+  projectileEffectScale: 1
+  impactEffectPrefab: {fileID: 1666791193596681458, guid: db3a9ed0c38cd4a8ab493a7b8f6ab47e, type: 3}
+  impactEffectScale: 1.08
+  impactHeightNormalized: 0.64
+  impactForwardOffset: 0.08

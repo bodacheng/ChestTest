@@ -23,17 +23,21 @@ public sealed class HexTacticsUiSnapshot
     public int CpuCostLimit;
     public int PlayerUsedCost;
     public bool HasSelectedUnit;
+    public bool IsSkillPopupOpen;
     public bool CanStartBattle;
     public string CurrentCommandSummary = string.Empty;
     public string CommandProgressSummary = string.Empty;
     public string BuilderStatus = string.Empty;
     public string ResolutionStatus = string.Empty;
+    public string SkillPopupTitle = string.Empty;
     public string TurnTypeLabel = string.Empty;
     public string SelectedUnitSummary = string.Empty;
     public string VictorySummary = string.Empty;
+    public Vector2 SkillPopupScreenPosition;
     public readonly List<HexTacticsRosterEntryUiData> RosterEntries = new();
     public readonly List<HexTacticsSelectionEntryUiData> PlayerSelectionEntries = new();
     public readonly List<HexTacticsCommandEntryUiData> PlayerCommandEntries = new();
+    public readonly List<HexTacticsSkillChoiceUiData> SelectedUnitSkillEntries = new();
     public readonly List<HexTacticsWorldLabelUiData> WorldLabels = new();
 }
 
@@ -178,6 +182,35 @@ public readonly struct HexTacticsCommandEntryUiData
     public bool IsSelected { get; }
     public bool HasAssignedCommand { get; }
     public HexTacticsAvatarUiData Avatar { get; }
+}
+
+public readonly struct HexTacticsSkillChoiceUiData
+{
+    public HexTacticsSkillChoiceUiData(
+        int skillIndex,
+        string title,
+        string detail,
+        bool isSelected,
+        bool isHovered,
+        bool isAvailable,
+        bool isPlannedSkill)
+    {
+        SkillIndex = skillIndex;
+        Title = title;
+        Detail = detail;
+        IsSelected = isSelected;
+        IsHovered = isHovered;
+        IsAvailable = isAvailable;
+        IsPlannedSkill = isPlannedSkill;
+    }
+
+    public int SkillIndex { get; }
+    public string Title { get; }
+    public string Detail { get; }
+    public bool IsSelected { get; }
+    public bool IsHovered { get; }
+    public bool IsAvailable { get; }
+    public bool IsPlannedSkill { get; }
 }
 
 public readonly struct HexTacticsWorldLabelUiData

@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7033fc0862404bee8b688b52356e0703, type: 3}
+  m_Name: CrushingBlow_Melee_P7_R0_C2
+  m_EditorClassIdentifier: Assembly-CSharp::HexTacticsSkillConfig
+  displayName: "\u7C89\u788E\u91CD\u51FB"
+  description: "\u6D88\u8017 2 \u70B9\u80FD\u91CF\u91CA\u653E\u91CD\u578B\u7206\u53D1\uFF0C\u9002\u5408\u9AD8\u4F53\u578B\u8FD1\u6218\u7684\u7EC8\u7ED3\u4E00\u51FB\u3002"
+  power: 7
+  attackRange: 0
+  energyCost: 2
+  energyGainOnHit: 0
+  projectileEffectPrefab: {fileID: 0}
+  projectileEffectScale: 1
+  impactEffectPrefab: {fileID: 7069495237875253993, guid: 75caeaad2ff9c46898f2e2cb7be524a1, type: 3}
+  impactEffectScale: 1.18
+  impactHeightNormalized: 0.62
+  impactForwardOffset: 0.09

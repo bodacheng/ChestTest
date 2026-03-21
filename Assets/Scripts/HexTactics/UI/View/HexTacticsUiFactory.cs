@@ -135,6 +135,7 @@ public static class HexTacticsUiFactory
     {
         var rect = CreateRect(name, parent);
         var image = AddImage(rect.gameObject, backgroundColor);
+        HexTacticsModernUiSkin.ApplyButton(image, backgroundColor);
         StylePanel(image, new Color(1f, 1f, 1f, 0.05f), 0f);
 
         var button = rect.gameObject.AddComponent<Button>();
@@ -150,6 +151,9 @@ public static class HexTacticsUiFactory
         button.colors = colors;
 
         labelText = CreateText(rect, "Label", label, 18, TextAnchor.MiddleCenter, textColor, FontStyle.Bold);
+        labelText.resizeTextForBestFit = true;
+        labelText.resizeTextMinSize = 8;
+        labelText.resizeTextMaxSize = 18;
         Stretch(labelText.rectTransform, Vector2.zero, Vector2.one);
         return button;
     }
@@ -159,6 +163,7 @@ public static class HexTacticsUiFactory
         var root = CreateRect(name, parent);
         var background = AddImage(root.gameObject, new Color(0.01f, 0.03f, 0.04f, 0.10f));
         background.raycastTarget = true;
+        HexTacticsModernUiSkin.ApplyWindowFrame(background, new Color(1f, 1f, 1f, 0.92f));
         StylePanel(background, new Color(1f, 1f, 1f, 0.04f), 0f);
 
         var viewport = CreateRect("Viewport", root);

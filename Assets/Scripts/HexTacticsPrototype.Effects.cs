@@ -28,6 +28,11 @@ public sealed partial class HexTacticsPrototype
             travelEffect = effectInstance.AddComponent<HexTacticsTravelingEffect>();
         }
 
+        if (effectInstance.GetComponent<HexTacticsTransientEffect>() == null)
+        {
+            effectInstance.AddComponent<HexTacticsTransientEffect>();
+        }
+
         travelEffect.Initialize(startPosition, endPosition, Mathf.Max(0.06f, travelDuration));
     }
 

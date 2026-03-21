@@ -11,5 +11,7 @@ public static class HexTacticsUiResourcePaths
     public const string RosterRow = "UI/Elements/HexTacticsRosterRow";
     public const string SelectedRosterRow = "UI/Elements/HexTacticsSelectedRosterRow";
     public const string CommandRow = "UI/Elements/HexTacticsCommandRow";
+    public const string SkillChoiceRow = "UI/Elements/HexTacticsSkillChoiceRow";
+    public const string SkillPopup = "UI/Elements/HexTacticsSkillPopup";
     public const string WorldLabel = "UI/Elements/HexTacticsWorldLabel";
 }

@@ -22,6 +22,7 @@ MonoBehaviour:
   startingEnergy: 0
   skills:
   - {fileID: 11400000, guid: 214bcb007e7644deebc3eccf880b5f09, type: 2}
+  - {fileID: 11400000, guid: 14025822344e144eaa1b0e820fdb0d77, type: 2}
   visualArchetype: 1
   avatar: {fileID: 21300000, guid: c066e8f8fdbd7434fb98fbe9d20af6b4, type: 3}
   battleUnitPrefab: {fileID: 6285209290496832306, guid: a604ffbac01747d6b33aff45d9e3dd8a, type: 3}

@@ -36,6 +36,7 @@ public sealed class HexTacticsCanvasPresenter : MonoBehaviour
             prototype.UiTryStartCpuBattle,
             prototype.UiClearSelection,
             prototype.UiSetSelectedUnitWait,
+            prototype.UiSelectSelectedUnitSkill,
             prototype.UiSelectUnit,
             prototype.UiSetUnitWait,
             prototype.UiCycleUnitSkill,

@@ -18,10 +18,12 @@ MonoBehaviour:
   cost: 6
   moveRange: 1
   speed: 3
-  maxEnergy: 3
-  startingEnergy: 0
+  maxEnergy: 5
+  startingEnergy: 1
   skills:
   - {fileID: 11400000, guid: 2ad38893499854d1184caff41a25459d, type: 2}
+  - {fileID: 11400000, guid: 86ea9d933b14a47b08b4e89902937404, type: 2}
+  - {fileID: 11400000, guid: 2c8c6f5e042c449c1a15673ed2b38060, type: 2}
   visualArchetype: 4
   avatar: {fileID: 21300000, guid: 52ff84a939acc4715920687a39f559d5, type: 3}
   battleUnitPrefab: {fileID: 3347061273194974142, guid: c851df38d05441a6861cb42d0a8a8bab, type: 3}

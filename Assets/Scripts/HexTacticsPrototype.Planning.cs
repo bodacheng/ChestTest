@@ -1,18 +1,120 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 public sealed partial class HexTacticsPrototype
 {
     private void HandlePlanningPointerInput()
     {
-        var mainCamera = Camera.main;
-        if (mainCamera == null)
+        if (Mouse.current == null)
+        {
+            return;
+        }
+
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            BeginPlanningPointerPress();
+        }
+
+        if (Mouse.current.leftButton.isPressed)
+        {
+            UpdatePlanningPointerHold();
+        }
+
+        if (Mouse.current.leftButton.wasReleasedThisFrame)
+        {
+            EndPlanningPointerPress();
+        }
+    }
+
+    private void BeginPlanningPointerPress()
+    {
+        isPlanningPointerPressed = true;
+        planningPointerStartedOverUi = IsPointerOverUi();
+        planningPointerHoldTriggered = false;
+        planningPointerPressPosition = Mouse.current.position.ReadValue();
+        planningPointerPressStartTime = Time.unscaledTime;
+        planningPointerPressUnit = null;
+
+        if (!planningPointerStartedOverUi)
+        {
+            TryResolvePlanningPointerTarget(planningPointerPressPosition, out planningPointerPressUnit, out _);
+        }
+    }
+
+    private void UpdatePlanningPointerHold()
+    {
+        if (!isPlanningPointerPressed || planningPointerStartedOverUi)
         {
             return;
         }
 
         var pointerPosition = Mouse.current.position.ReadValue();
+        if (planningPointerHoldTriggered)
+        {
+            UpdateSkillPopupHover(pointerPosition);
+            return;
+        }
+
+        if (planningPointerPressUnit == null ||
+            planningPointerPressUnit.Team != Team.Blue ||
+            !planningPointerPressUnit.HasMultipleSkills)
+        {
+            return;
+        }
+
+        if ((pointerPosition - planningPointerPressPosition).sqrMagnitude > SkillPopupMoveTolerance * SkillPopupMoveTolerance)
+        {
+            return;
+        }
+
+        if (Time.unscaledTime - planningPointerPressStartTime < SkillPopupHoldDuration)
+        {
+            return;
+        }
+
+        OpenSkillPopup(planningPointerPressUnit, planningPointerPressPosition);
+        planningPointerHoldTriggered = true;
+        UpdateSkillPopupHover(pointerPosition);
+    }
+
+    private void EndPlanningPointerPress()
+    {
+        if (!isPlanningPointerPressed)
+        {
+            return;
+        }
+
+        var startedOverUi = planningPointerStartedOverUi;
+        var holdTriggered = planningPointerHoldTriggered;
+        var mainCamera = Camera.main;
+        var pointerPosition = Mouse.current != null ? Mouse.current.position.ReadValue() : planningPointerPressPosition;
+        ResetPlanningPointerTracking();
+
+        if (startedOverUi)
+        {
+            return;
+        }
+
+        if (holdTriggered)
+        {
+            CommitSkillPopupSelection(pointerPosition);
+            return;
+        }
+
+        if (isSkillPopupOpen)
+        {
+            CloseSkillPopup();
+            RefreshVisuals();
+            return;
+        }
+
+        if (mainCamera == null)
+        {
+            return;
+        }
+
         var ray = mainCamera.ScreenPointToRay(pointerPosition);
         var hits = Physics.RaycastAll(ray, 200f);
         if (hits.Length == 0)
@@ -41,6 +143,119 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
+        RefreshVisuals();
+    }
+
+    private bool TryResolvePlanningPointerTarget(Vector2 pointerPosition, out HexUnit clickedUnit, out HexCell clickedCell)
+    {
+        clickedUnit = null;
+        clickedCell = null;
+
+        var mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            return false;
+        }
+
+        var ray = mainCamera.ScreenPointToRay(pointerPosition);
+        var hits = Physics.RaycastAll(ray, 200f);
+        if (hits.Length == 0)
+        {
+            return false;
+        }
+
+        System.Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+        if (TryResolvePlanningUnitHit(hits, out clickedUnit))
+        {
+            return true;
+        }
+
+        return TryResolvePlanningCellHit(hits, out clickedCell);
+    }
+
+    private static bool IsPointerOverUi()
+    {
+        return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+    }
+
+    private void ResetPlanningPointerTracking()
+    {
+        isPlanningPointerPressed = false;
+        planningPointerStartedOverUi = false;
+        planningPointerHoldTriggered = false;
+        planningPointerPressPosition = Vector2.zero;
+        planningPointerPressStartTime = 0f;
+        planningPointerPressUnit = null;
+    }
+
+    private void OpenSkillPopup(HexUnit unit, Vector2 screenPosition)
+    {
+        if (unit == null || unit.Team != Team.Blue || !unit.HasMultipleSkills || currentFlowState != FlowState.Planning)
+        {
+            return;
+        }
+
+        SelectUnit(unit);
+        if (selectedUnit == null || selectedUnit != unit || !selectedUnit.HasMultipleSkills)
+        {
+            return;
+        }
+
+        isSkillPopupOpen = true;
+        skillPopupScreenPosition = HexTacticsSkillPopupView.CalculatePopupScreenPosition(
+            screenPosition,
+            selectedUnit.SkillCount,
+            new Vector2(Screen.width, Screen.height));
+        skillPopupHoveredSkillIndex = -1;
+        RefreshVisuals();
+    }
+
+    private void CloseSkillPopup()
+    {
+        isSkillPopupOpen = false;
+        skillPopupHoveredSkillIndex = -1;
+        skillPopupScreenPosition = Vector2.zero;
+    }
+
+    private void UpdateSkillPopupHover(Vector2 pointerPosition)
+    {
+        if (!isSkillPopupOpen || selectedUnit == null)
+        {
+            return;
+        }
+
+        var hoveredSkillIndex = HexTacticsSkillPopupView.ResolveSkillIndexAtScreenPosition(
+            pointerPosition,
+            skillPopupScreenPosition,
+            selectedUnit.SkillCount);
+        if (hoveredSkillIndex == skillPopupHoveredSkillIndex)
+        {
+            return;
+        }
+
+        skillPopupHoveredSkillIndex = hoveredSkillIndex;
+        RefreshVisuals();
+    }
+
+    private void CommitSkillPopupSelection(Vector2 pointerPosition)
+    {
+        if (!isSkillPopupOpen || selectedUnit == null)
+        {
+            RefreshVisuals();
+            return;
+        }
+
+        var hoveredSkillIndex = HexTacticsSkillPopupView.ResolveSkillIndexAtScreenPosition(
+            pointerPosition,
+            skillPopupScreenPosition,
+            selectedUnit.SkillCount);
+        if (CanSelectSkill(selectedUnit, hoveredSkillIndex) && hoveredSkillIndex != selectedUnit.SelectedSkillIndex)
+        {
+            SetUnitSelectedSkill(selectedUnit, hoveredSkillIndex);
+            return;
+        }
+
+        CloseSkillPopup();
         RefreshVisuals();
     }
 
@@ -157,14 +372,20 @@ public sealed partial class HexTacticsPrototype
 
     private void SelectUnit(HexUnit unit)
     {
+        var previousSelectedUnit = selectedUnit;
         selectedUnit = null;
         moveCells.Clear();
         attackCells.Clear();
 
         unit = ResolvePlanningSelectionTarget(unit);
+        if (unit != previousSelectedUnit)
+        {
+            CloseSkillPopup();
+        }
 
         if (unit != null && unit.Team == Team.Blue && currentFlowState == FlowState.Planning)
         {
+            EnsureUnitSelectedSkillUsable(unit);
             selectedUnit = unit;
             foreach (var cell in GetMoveOptions(unit))
             {
@@ -253,6 +474,7 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
+        EnsureUnitSelectedSkillUsable(unit);
         if (IsEnemyCommand(unit) &&
             unit.PlannedEnemyTargetUnit != null &&
             unit.PlannedEnemyTargetUnit.Coord == target &&
@@ -308,6 +530,8 @@ public sealed partial class HexTacticsPrototype
 
     private void HandleAfterPlayerCommandChanged(HexUnit commandingUnit)
     {
+        CloseSkillPopup();
+
         if (currentFlowState != FlowState.Planning || isResolving || isAnimating)
         {
             RefreshVisuals();

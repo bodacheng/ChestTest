@@ -81,6 +81,7 @@ public sealed partial class HexTacticsPrototype
         public int MaxEnergy { get; }
         public int CurrentEnergy { get; set; }
         public int SelectedSkillIndex { get; set; }
+        public bool HasManualSkillOverride { get; set; }
         public bool HasAssignedCommand { get; set; }
         public bool HasPlannedMove { get; set; }
         public HexCoord PlannedMoveTarget { get; set; }

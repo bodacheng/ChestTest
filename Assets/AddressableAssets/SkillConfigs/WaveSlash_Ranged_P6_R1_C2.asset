@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7033fc0862404bee8b688b52356e0703, type: 3}
+  m_Name: WaveSlash_Ranged_P6_R1_C2
+  m_EditorClassIdentifier: Assembly-CSharp::HexTacticsSkillConfig
+  displayName: "\u9707\u8361\u65A9\u6CE2"
+  description: "\u6D88\u8017 2 \u70B9\u80FD\u91CF\u6325\u51FA\u4E2D\u8DDD\u79BB\u51B2\u51FB\uFF0C\u662F\u5927\u578B\u602A\u7269\u548C\u9996\u9886\u7684\u8303\u56F4\u538B\u5236\u624B\u6BB5\u3002"
+  power: 6
+  attackRange: 1
+  energyCost: 2
+  energyGainOnHit: 0
+  projectileEffectPrefab: {fileID: 6448594173215879760, guid: 21187664e919848e7ac03e126b438bf2, type: 3}
+  projectileEffectScale: 1.04
+  impactEffectPrefab: {fileID: 4072849075598179965, guid: cc55e510521b14b0cad9ed5fc3fc60c2, type: 3}
+  impactEffectScale: 1.14
+  impactHeightNormalized: 0.62
+  impactForwardOffset: 0.08

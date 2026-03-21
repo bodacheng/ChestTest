@@ -32,13 +32,17 @@ public sealed class HexTacticsWorldLabelView : HexTacticsUiGeneratedView
     {
         EnsureBuilt();
         backgroundImage.color = new Color(0f, 0f, 0f, 0f);
+        HexTacticsModernUiSkin.ApplyHealthBarBackground(healthBackgroundImage);
         healthBackgroundImage.color = data.IsBlueTeam
-            ? new Color(0.10f, 0.18f, 0.24f, 0.82f)
-            : new Color(0.24f, 0.12f, 0.08f, 0.82f);
+            ? new Color(1f, 1f, 1f, 0.92f)
+            : new Color(1f, 0.92f, 0.92f, 0.92f);
 
         var normalized = Mathf.Clamp01(data.HealthNormalized);
         healthFillRect.sizeDelta = new Vector2((BarWidth - FillInset * 2f) * normalized, BarHeight - FillInset * 2f);
-        healthFillImage.color = new Color(0.28f, 0.82f, 0.34f, 0.95f);
+        HexTacticsModernUiSkin.ApplyHealthBarFill(healthFillImage);
+        healthFillImage.color = data.IsBlueTeam
+            ? new Color(0.54f, 0.98f, 0.86f, 0.98f)
+            : new Color(1f, 0.48f, 0.40f, 0.98f);
     }
 
     public override void BuildDefaultHierarchy()
@@ -58,6 +62,7 @@ public sealed class HexTacticsWorldLabelView : HexTacticsUiGeneratedView
         healthBarRect.sizeDelta = new Vector2(BarWidth, BarHeight);
 
         healthBackgroundImage = HexTacticsUiFactory.AddImage(healthBarRect.gameObject, new Color(0.16f, 0.22f, 0.24f, 0.92f), false);
+        HexTacticsModernUiSkin.ApplyHealthBarBackground(healthBackgroundImage);
 
         healthFillRect = HexTacticsUiFactory.CreateRect("Fill", healthBarRect);
         healthFillRect.anchorMin = new Vector2(0f, 0.5f);
@@ -67,6 +72,7 @@ public sealed class HexTacticsWorldLabelView : HexTacticsUiGeneratedView
         healthFillRect.sizeDelta = new Vector2(BarWidth - FillInset * 2f, BarHeight - FillInset * 2f);
 
         healthFillImage = HexTacticsUiFactory.AddImage(healthFillRect.gameObject, new Color(0.28f, 0.82f, 0.34f, 0.95f), false);
+        HexTacticsModernUiSkin.ApplyHealthBarFill(healthFillImage);
     }
 
     public static HexTacticsWorldLabelView CreateStandalone(Transform parent)

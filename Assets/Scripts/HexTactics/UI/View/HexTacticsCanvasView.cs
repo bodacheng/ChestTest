@@ -14,20 +14,23 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
     [SerializeField] private RectTransform rootLayer;
     [SerializeField] private RectTransform safeAreaLayer;
     [SerializeField] private RectTransform worldLabelLayer;
+    [SerializeField] private RectTransform floatingHudLayer;
     [SerializeField] private HexTacticsModeSelectScreenView modeSelectScreenPrefab;
     [SerializeField] private HexTacticsTeamBuilderScreenView teamBuilderScreenPrefab;
     [SerializeField] private HexTacticsPlanningScreenView planningScreenPrefab;
     [SerializeField] private HexTacticsResolvingScreenView resolvingScreenPrefab;
     [SerializeField] private HexTacticsVictoryOverlayView victoryOverlayPrefab;
     [SerializeField] private HexTacticsWorldLabelView worldLabelPrefab;
+    [SerializeField] private HexTacticsSkillPopupView skillPopupPrefab;
 
     private HexTacticsModeSelectScreenView modeSelectScreen;
     private HexTacticsTeamBuilderScreenView teamBuilderScreen;
     private HexTacticsPlanningScreenView planningScreen;
     private HexTacticsResolvingScreenView resolvingScreen;
     private HexTacticsVictoryOverlayView victoryOverlay;
+    private HexTacticsSkillPopupView skillPopup;
 
-    protected override int CurrentLayoutVersion => 7;
+    protected override int CurrentLayoutVersion => 8;
 
     protected override bool HasCurrentBindings =>
         canvas != null &&
@@ -36,11 +39,13 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         rootLayer != null &&
         safeAreaLayer != null &&
         worldLabelLayer != null &&
+        floatingHudLayer != null &&
         modeSelectScreen != null &&
         teamBuilderScreen != null &&
         planningScreen != null &&
         resolvingScreen != null &&
-        victoryOverlay != null;
+        victoryOverlay != null &&
+        skillPopup != null;
 
     public readonly struct Actions
     {
@@ -54,6 +59,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             Action startBattle,
             Action clearSelection,
             Action waitSelectedUnit,
+            Action<int> selectSelectedUnitSkill,
             Action<int> selectCommandUnit,
             Action<int> waitCommandUnit,
             Action<int> cycleCommandUnitSkill,
@@ -69,6 +75,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             StartBattle = startBattle;
             ClearSelection = clearSelection;
             WaitSelectedUnit = waitSelectedUnit;
+            SelectSelectedUnitSkill = selectSelectedUnitSkill;
             SelectCommandUnit = selectCommandUnit;
             WaitCommandUnit = waitCommandUnit;
             CycleCommandUnitSkill = cycleCommandUnitSkill;
@@ -85,6 +92,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         public Action StartBattle { get; }
         public Action ClearSelection { get; }
         public Action WaitSelectedUnit { get; }
+        public Action<int> SelectSelectedUnitSkill { get; }
         public Action<int> SelectCommandUnit { get; }
         public Action<int> WaitCommandUnit { get; }
         public Action<int> CycleCommandUnitSkill { get; }
@@ -116,11 +124,12 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
 
         modeSelectScreen.Bind(actions.StartCpuMode);
         teamBuilderScreen.Bind(snapshot, actions.ReturnToModeSelect, actions.AddRosterEntry, actions.PlaceRosterEntryAt, actions.RemoveSelectionEntry, actions.MoveSelectionEntryAt, actions.StartBattle);
-        planningScreen.Bind(snapshot, actions.ClearSelection, actions.WaitSelectedUnit, actions.SelectCommandUnit, actions.WaitCommandUnit, actions.CycleCommandUnitSkill);
+        planningScreen.Bind(snapshot, actions.ClearSelection, actions.WaitSelectedUnit, actions.SelectSelectedUnitSkill, actions.SelectCommandUnit, actions.WaitCommandUnit, actions.CycleCommandUnitSkill);
         resolvingScreen.Bind(snapshot);
         victoryOverlay.Bind(snapshot, actions.ReturnToTeamBuilder, actions.RetryBattle);
 
         RenderWorldLabels(snapshot);
+        RenderSkillPopup(snapshot, actions.SelectSelectedUnitSkill);
     }
 
     public override void BuildDefaultHierarchy()
@@ -131,6 +140,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         planningScreen = null;
         resolvingScreen = null;
         victoryOverlay = null;
+        skillPopup = null;
 
         HexTacticsUiFactory.ResetViewRoot(this);
 
@@ -163,6 +173,10 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         HexTacticsUiFactory.Stretch(worldLabelLayer, Vector2.zero, Vector2.one);
         HexTacticsUiFactory.SetOffsets(worldLabelLayer, 0f, 0f, 0f, 0f);
 
+        floatingHudLayer = HexTacticsUiFactory.CreateRect("FloatingHud", rootLayer);
+        HexTacticsUiFactory.Stretch(floatingHudLayer, Vector2.zero, Vector2.one);
+        HexTacticsUiFactory.SetOffsets(floatingHudLayer, 0f, 0f, 0f, 0f);
+
         modeSelectScreen = HexTacticsUiFactory.InstantiateView(
             modeSelectScreenPrefab,
             HexTacticsUiResourcePaths.ModeSelectScreen,
@@ -192,6 +206,12 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             HexTacticsUiResourcePaths.VictoryOverlay,
             rootLayer,
             HexTacticsVictoryOverlayView.CreateStandalone);
+
+        skillPopup = HexTacticsUiFactory.InstantiateView(
+            skillPopupPrefab,
+            HexTacticsUiResourcePaths.SkillPopup,
+            floatingHudLayer,
+            HexTacticsSkillPopupView.CreateStandalone);
     }
 
     private void RenderPanels(HexTacticsUiSnapshot snapshot)
@@ -205,6 +225,11 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             snapshot.FlowState == HexTacticsUiFlowState.Planning ||
             snapshot.FlowState == HexTacticsUiFlowState.Resolving ||
             snapshot.FlowState == HexTacticsUiFlowState.Victory);
+        floatingHudLayer.gameObject.SetActive(snapshot.FlowState == HexTacticsUiFlowState.Planning);
+        skillPopup.gameObject.SetActive(
+            snapshot.FlowState == HexTacticsUiFlowState.Planning &&
+            snapshot.IsSkillPopupOpen &&
+            snapshot.SelectedUnitSkillEntries.Count > 0);
     }
 
     private void ApplyResponsiveLayout()
@@ -274,7 +299,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             ConfigureBottomCenteredCard(
                 planningScreen.Root,
                 safeWidth - screenMargin * 2f,
-                Mathf.Clamp(safeHeight * 0.44f, 360f, 520f),
+                Mathf.Clamp(safeHeight * 0.20f, 180f, 250f),
                 screenMargin);
 
             ConfigureTopCenteredCard(
@@ -288,7 +313,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             ConfigureTopLeftCard(
                 planningScreen.Root,
                 battlePanelWidth,
-                Mathf.Clamp(safeHeight * 0.54f, 480f, 580f),
+                Mathf.Clamp(safeHeight * 0.26f, 220f, 280f),
                 screenMargin,
                 screenMargin);
 
@@ -355,6 +380,20 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         }
     }
 
+    private void RenderSkillPopup(HexTacticsUiSnapshot snapshot, Action<int> onSelectSkill)
+    {
+        if (skillPopup == null || !skillPopup.gameObject.activeSelf)
+        {
+            return;
+        }
+
+        skillPopup.Bind(snapshot.SkillPopupTitle, snapshot.SelectedUnitSkillEntries, onSelectSkill);
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(floatingHudLayer, snapshot.SkillPopupScreenPosition, null, out var localPoint))
+        {
+            skillPopup.Root.anchoredPosition = ClampFloatingHudPosition(skillPopup.Root, localPoint);
+        }
+    }
+
     private Vector2 ClampWorldLabelPosition(RectTransform label, Vector2 position)
     {
         var layerRect = worldLabelLayer.rect;
@@ -363,6 +402,17 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         var maxX = layerRect.xMax - 10f - labelSize.x * (1f - label.pivot.x);
         var minY = layerRect.yMin + 10f + labelSize.y * label.pivot.y;
         var maxY = layerRect.yMax - 10f - labelSize.y * (1f - label.pivot.y);
+        return new Vector2(Mathf.Clamp(position.x, minX, maxX), Mathf.Clamp(position.y, minY, maxY));
+    }
+
+    private Vector2 ClampFloatingHudPosition(RectTransform panel, Vector2 position)
+    {
+        var layerRect = floatingHudLayer.rect;
+        var panelSize = panel.rect.size;
+        var minX = layerRect.xMin + 12f + panelSize.x * panel.pivot.x;
+        var maxX = layerRect.xMax - 12f - panelSize.x * (1f - panel.pivot.x);
+        var minY = layerRect.yMin + 12f + panelSize.y * panel.pivot.y;
+        var maxY = layerRect.yMax - 12f - panelSize.y * (1f - panel.pivot.y);
         return new Vector2(Mathf.Clamp(position.x, minX, maxX), Mathf.Clamp(position.y, minY, maxY));
     }
 

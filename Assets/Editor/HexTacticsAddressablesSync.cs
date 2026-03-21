@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
@@ -58,6 +59,7 @@ public static class HexTacticsAddressablesSync
         SyncFolder(settings, HexTacticsAssetPaths.HitEffectsFolder, "t:Prefab", effectsGroup, HexTacticsAssetPaths.EffectsLabel);
         SyncFolder(settings, HexTacticsAssetPaths.HitEffectsFolder, "t:HexTacticsHitEffectCatalog", effectsGroup, HexTacticsAssetPaths.EffectsLabel);
         SyncFolder(settings, HexTacticsAssetPaths.UiFolder, "t:Prefab", uiGroup, HexTacticsAssetPaths.UiLabel);
+        SyncAssetList(settings, HexTacticsModernUiSkin.RequiredSpriteAssetPaths, uiGroup, HexTacticsAssetPaths.UiLabel);
 
         if (settings.DefaultGroup == null)
         {
@@ -149,6 +151,43 @@ public static class HexTacticsAddressablesSync
             }
 
             entry.SetAddress(ToAddress(assetPath), false);
+            entry.SetLabel(label, true, true, false);
+            EditorUtility.SetDirty(entry.parentGroup);
+        }
+    }
+
+    private static void SyncAssetList(
+        AddressableAssetSettings settings,
+        IReadOnlyList<string> assetPaths,
+        AddressableAssetGroup group,
+        string label)
+    {
+        if (assetPaths == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < assetPaths.Count; i++)
+        {
+            var assetPath = assetPaths[i];
+            if (string.IsNullOrWhiteSpace(assetPath))
+            {
+                continue;
+            }
+
+            var guid = AssetDatabase.AssetPathToGUID(assetPath);
+            if (string.IsNullOrWhiteSpace(guid))
+            {
+                continue;
+            }
+
+            var entry = settings.CreateOrMoveEntry(guid, group, false, false);
+            if (entry == null)
+            {
+                continue;
+            }
+
+            entry.SetAddress(assetPath, false);
             entry.SetLabel(label, true, true, false);
             EditorUtility.SetDirty(entry.parentGroup);
         }

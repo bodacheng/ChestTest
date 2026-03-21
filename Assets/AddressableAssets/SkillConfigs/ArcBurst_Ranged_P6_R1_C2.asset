@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7033fc0862404bee8b688b52356e0703, type: 3}
+  m_Name: ArcBurst_Ranged_P6_R1_C2
+  m_EditorClassIdentifier: Assembly-CSharp::HexTacticsSkillConfig
+  displayName: "\u5965\u672F\u7206\u88C2"
+  description: "\u6D88\u8017 2 \u70B9\u80FD\u91CF\u5F15\u7206\u5965\u672F\u5F39\uFF0C\u9002\u5408\u4E2D\u8DDD\u79BB\u9AD8\u538B\u6E05\u573A\u3002"
+  power: 6
+  attackRange: 1
+  energyCost: 2
+  energyGainOnHit: 0
+  projectileEffectPrefab: {fileID: 6448594173215879760, guid: 21187664e919848e7ac03e126b438bf2, type: 3}
+  projectileEffectScale: 0.98
+  impactEffectPrefab: {fileID: 1666791193596681458, guid: db3a9ed0c38cd4a8ab493a7b8f6ab47e, type: 3}
+  impactEffectScale: 1.12
+  impactHeightNormalized: 0.64
+  impactForwardOffset: 0.08

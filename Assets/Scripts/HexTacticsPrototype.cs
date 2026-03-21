@@ -72,6 +72,8 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     private static readonly int ActionHash = Animator.StringToHash("Action");
     private static readonly int StunnedHash = Animator.StringToHash("Stunned");
     private static readonly int DeathHash = Animator.StringToHash("Death");
+    private const float SkillPopupHoldDuration = 0.24f;
+    private const float SkillPopupMoveTolerance = 18f;
 
     private readonly Dictionary<HexCoord, HexCell> cells = new();
     private readonly Dictionary<Collider, HexCell> cellLookups = new();
@@ -132,6 +134,15 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     private HexTacticsHitEffectCatalog hitEffectCatalog;
     private GameObject rangedWaveEffectPrefab;
     private int nextHitEffectVariantIndex;
+    private bool isPlanningPointerPressed;
+    private bool planningPointerStartedOverUi;
+    private bool planningPointerHoldTriggered;
+    private Vector2 planningPointerPressPosition;
+    private float planningPointerPressStartTime;
+    private HexUnit planningPointerPressUnit;
+    private bool isSkillPopupOpen;
+    private Vector2 skillPopupScreenPosition;
+    private int skillPopupHoveredSkillIndex = -1;
 
     private void Awake()
     {
@@ -150,7 +161,7 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
             return;
         }
 
-        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        if (Mouse.current != null)
         {
             HandlePlanningPointerInput();
         }
@@ -169,6 +180,30 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         if (Keyboard.current.rKey.wasPressedThisFrame)
         {
             CycleUnitSkill(selectedUnit);
+            return;
+        }
+
+        if (Keyboard.current.digit1Key.wasPressedThisFrame)
+        {
+            UiSelectSelectedUnitSkill(0);
+            return;
+        }
+
+        if (Keyboard.current.digit2Key.wasPressedThisFrame)
+        {
+            UiSelectSelectedUnitSkill(1);
+            return;
+        }
+
+        if (Keyboard.current.digit3Key.wasPressedThisFrame)
+        {
+            UiSelectSelectedUnitSkill(2);
+            return;
+        }
+
+        if (Keyboard.current.digit4Key.wasPressedThisFrame)
+        {
+            UiSelectSelectedUnitSkill(3);
             return;
         }
 

@@ -23,10 +23,13 @@ public sealed partial class HexTacticsPrototype
             CommandProgressSummary = BuildCommandProgressSummary(blueAssignedCommandCount, bluePendingCommandCount),
             BuilderStatus = builderStatus ?? string.Empty,
             ResolutionStatus = resolutionStatus ?? string.Empty,
+            SkillPopupTitle = BuildSkillPopupTitle(),
             TurnTypeLabel = GetTurnTypeLabel(),
             HasSelectedUnit = selectedUnit != null,
+            IsSkillPopupOpen = ShouldShowSkillPopup(),
             CanStartBattle = playerDeploymentEntries.Count > 0 && playerUsedCost <= playerTeamCostLimit,
             SelectedUnitSummary = BuildSelectedUnitSummary(),
+            SkillPopupScreenPosition = skillPopupScreenPosition,
             VictorySummary = winningTeam.HasValue ? $"{TeamDisplayName(winningTeam.Value)}完成歼灭" : string.Empty
         };
 
@@ -88,7 +91,7 @@ public sealed partial class HexTacticsPrototype
                     unit.Id,
                     unit.Name,
                     BuildCommandEntrySummary(unit),
-                    unit.HasMultipleSkills,
+                    CountUsableSkills(unit) > 1,
                     selectedUnit == unit,
                     unit.HasAssignedCommand,
                     BuildAvatarUiData(unit.CharacterConfig)));
@@ -104,6 +107,41 @@ public sealed partial class HexTacticsPrototype
                     unit.Team == Team.Blue,
                     unit.CurrentHealth,
                     unit.MaxHealth));
+            }
+        }
+
+        if (selectedUnit != null && selectedUnit.Team == Team.Blue)
+        {
+            EnsureUnitSelectedSkillUsable(selectedUnit);
+            for (var skillIndex = 0; skillIndex < selectedUnit.SkillCount; skillIndex++)
+            {
+                var skill = selectedUnit.GetSkillAt(skillIndex);
+                if (skill == null)
+                {
+                    continue;
+                }
+
+                var isSelected = skillIndex == selectedUnit.SelectedSkillIndex;
+                var isHovered = ShouldShowSkillPopup() && skillIndex == skillPopupHoveredSkillIndex;
+                var isPlannedSkill = skillIndex == selectedUnit.PlannedSkillIndex && IsEnemyCommand(selectedUnit);
+                var isAvailable = CanUseSkill(selectedUnit, skill);
+                var stateLabel = isSelected
+                    ? string.Empty
+                    : isHovered
+                        ? "  松手"
+                        : isPlannedSkill
+                            ? "  已定"
+                            : isAvailable
+                                ? string.Empty
+                                : "  不足";
+                snapshot.SelectedUnitSkillEntries.Add(new HexTacticsSkillChoiceUiData(
+                    skillIndex,
+                    skill.DisplayName,
+                    $"攻{skill.Power} 射{skill.AttackRange} 消{skill.EnergyCost}{stateLabel}",
+                    isSelected,
+                    isHovered,
+                    isAvailable,
+                    isPlannedSkill));
             }
         }
 
@@ -173,6 +211,11 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
+    public void UiSelectSelectedUnitSkill(int skillIndex)
+    {
+        SetUnitSelectedSkill(selectedUnit, skillIndex);
+    }
+
     public void UiCycleUnitSkill(int unitId)
     {
         var unit = FindUnitById(unitId);
@@ -212,7 +255,37 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        unit.SelectedSkillIndex = (unit.SelectedSkillIndex + 1) % unit.SkillCount;
+        var nextSkillIndex = FindNextUsableSkillIndex(unit, unit.SelectedSkillIndex);
+        if (nextSkillIndex < 0 || nextSkillIndex == unit.SelectedSkillIndex)
+        {
+            RefreshVisuals();
+            return;
+        }
+
+        unit.SelectedSkillIndex = nextSkillIndex;
+        unit.HasManualSkillOverride = true;
+        CloseSkillPopup();
+        SyncSelectedSkillToPlannedCommand(unit);
+        if (selectedUnit == unit && currentFlowState == FlowState.Planning)
+        {
+            SelectUnit(unit);
+            return;
+        }
+
+        RefreshVisuals();
+    }
+
+    private void SetUnitSelectedSkill(HexUnit unit, int skillIndex)
+    {
+        if (!CanSelectSkill(unit, skillIndex))
+        {
+            return;
+        }
+
+        unit.SelectedSkillIndex = skillIndex;
+        unit.HasManualSkillOverride = true;
+        CloseSkillPopup();
+        SyncSelectedSkillToPlannedCommand(unit);
         if (selectedUnit == unit && currentFlowState == FlowState.Planning)
         {
             SelectUnit(unit);
@@ -227,15 +300,29 @@ public sealed partial class HexTacticsPrototype
         if (selectedUnit == null)
         {
             return currentFlowState == FlowState.Planning
-                ? "点击左侧列表中的定位，或直接点棋盘上的蓝方角色来继续下令。"
+                ? "点棋盘上的蓝方角色，或点下方列表继续下令。"
                 : string.Empty;
         }
 
-        var commandSummary = DescribeCommand(selectedUnit, compact: false);
-        var assignmentSummary = selectedUnit.HasAssignedCommand ? "已设置命令" : "等待设置命令";
+        EnsureUnitSelectedSkillUsable(selectedUnit);
+        var assignmentSummary = selectedUnit.HasAssignedCommand ? "已下令" : "待下令";
         var selectedSkill = selectedUnit.SelectedSkill;
-        var skillSummary = BuildSkillSummary(selectedSkill);
-        return $"{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  EN {selectedUnit.CurrentEnergy}/{selectedUnit.MaxEnergy}  速 {selectedUnit.Speed}  移 {selectedUnit.MoveRange}\n当前技 {skillSummary}\n{assignmentSummary}  |  {commandSummary}";
+        var skillSummary = BuildCompactSkillSummary(selectedSkill);
+        return $"{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  EN {selectedUnit.CurrentEnergy}/{selectedUnit.MaxEnergy}  {skillSummary}  {assignmentSummary}";
+    }
+
+    private bool ShouldShowSkillPopup()
+    {
+        return isSkillPopupOpen &&
+               currentFlowState == FlowState.Planning &&
+               selectedUnit != null &&
+               selectedUnit.Team == Team.Blue &&
+               selectedUnit.HasMultipleSkills;
+    }
+
+    private string BuildSkillPopupTitle()
+    {
+        return selectedUnit != null ? selectedUnit.RoleName : string.Empty;
     }
 
     private string BuildCurrentCommandSummary(int pendingCount)
@@ -248,13 +335,13 @@ public sealed partial class HexTacticsPrototype
         if (selectedUnit != null && selectedUnit.Team == Team.Blue)
         {
             return selectedUnit.HasAssignedCommand
-                ? $"当前查看：{selectedUnit.RoleName}  |  技 {selectedUnit.SelectedSkill?.DisplayName ?? "未选技"}"
-                : $"当前下令：{selectedUnit.RoleName}  |  技 {selectedUnit.SelectedSkill?.DisplayName ?? "未选技"}";
+                ? $"{selectedUnit.RoleName} · {selectedUnit.SelectedSkill?.DisplayName ?? "未选技"}"
+                : $"下令 {selectedUnit.RoleName} · {selectedUnit.SelectedSkill?.DisplayName ?? "未选技"}";
         }
 
         return pendingCount > 0
-            ? "请选择一名蓝方角色继续下令"
-            : "所有蓝方命令已设置，准备进入自动结算";
+            ? "请选择蓝方角色继续下令"
+            : "所有蓝方命令已完成";
     }
 
     private string BuildCommandProgressSummary(int assignedCount, int pendingCount)
@@ -267,12 +354,12 @@ public sealed partial class HexTacticsPrototype
         var totalCount = assignedCount + pendingCount;
         if (totalCount <= 0)
         {
-            return "当前没有可下令的蓝方角色";
+            return "当前没有可下令单位";
         }
 
         return pendingCount > 0
-            ? $"命令进度 {assignedCount}/{totalCount}，剩余 {pendingCount} 名角色待下令"
-            : $"命令进度 {assignedCount}/{totalCount}，全部角色已完成本轮命令";
+            ? $"待下令 {pendingCount}/{totalCount}"
+            : $"命令完成 {assignedCount}/{totalCount}";
     }
 
     private string GetTurnTypeLabel()
@@ -338,11 +425,22 @@ public sealed partial class HexTacticsPrototype
 
     private string BuildCommandEntrySummary(HexUnit unit)
     {
+        EnsureUnitSelectedSkillUsable(unit);
         var currentEnergy = unit != null ? unit.CurrentEnergy : 0;
         var maxEnergy = unit != null ? unit.MaxEnergy : 0;
-        var skillSummary = BuildSkillSummary(unit != null ? unit.SelectedSkill : null);
-        var commandSummary = unit != null ? DescribeCommand(unit, compact: false) : "尚未设置命令";
-        return $"EN {currentEnergy}/{maxEnergy}  |  当前技 {skillSummary}\n{commandSummary}";
+        var skillSummary = BuildCompactSkillSummary(unit != null ? unit.SelectedSkill : null);
+        var commandSummary = unit != null ? DescribeCommand(unit, compact: true) : "未设置";
+        return $"EN {currentEnergy}/{maxEnergy}  {skillSummary}\n{commandSummary}";
+    }
+
+    private static string BuildCompactSkillSummary(HexTacticsSkillConfig skill)
+    {
+        if (skill == null)
+        {
+            return "未设置";
+        }
+
+        return $"{skill.DisplayName} 攻{skill.Power}/射{skill.AttackRange}/消{skill.EnergyCost}";
     }
 
     private static string BuildSkillSummary(HexTacticsSkillConfig skill)
@@ -381,5 +479,122 @@ public sealed partial class HexTacticsPrototype
         }
 
         return count;
+    }
+
+    private void EnsureUnitSelectedSkillUsable(HexUnit unit)
+    {
+        if (unit == null || unit.SkillCount <= 0)
+        {
+            return;
+        }
+
+        var preferredSkillIndex = FindPreferredAvailableSkillIndex(unit);
+        if (!unit.HasManualSkillOverride || !CanUseSkill(unit, unit.SelectedSkill))
+        {
+            unit.SelectedSkillIndex = preferredSkillIndex >= 0 ? preferredSkillIndex : 0;
+            SyncSelectedSkillToPlannedCommand(unit);
+            return;
+        }
+
+        if (!CanUseSkill(unit, unit.SelectedSkill))
+        {
+            unit.SelectedSkillIndex = preferredSkillIndex >= 0 ? preferredSkillIndex : 0;
+            SyncSelectedSkillToPlannedCommand(unit);
+        }
+    }
+
+    private int CountUsableSkills(HexUnit unit)
+    {
+        if (unit == null)
+        {
+            return 0;
+        }
+
+        var count = 0;
+        for (var skillIndex = 0; skillIndex < unit.SkillCount; skillIndex++)
+        {
+            if (CanUseSkill(unit, unit.GetSkillAt(skillIndex)))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private bool CanSelectSkill(HexUnit unit, int skillIndex)
+    {
+        if (unit == null || skillIndex < 0 || skillIndex >= unit.SkillCount)
+        {
+            return false;
+        }
+
+        return CanUseSkill(unit, unit.GetSkillAt(skillIndex));
+    }
+
+    private int FindNextUsableSkillIndex(HexUnit unit, int currentIndex)
+    {
+        if (unit == null || unit.SkillCount <= 0)
+        {
+            return -1;
+        }
+
+        for (var offset = 1; offset <= unit.SkillCount; offset++)
+        {
+            var candidateIndex = (Mathf.Max(0, currentIndex) + offset) % unit.SkillCount;
+            if (CanUseSkill(unit, unit.GetSkillAt(candidateIndex)))
+            {
+                return candidateIndex;
+            }
+        }
+
+        return -1;
+    }
+
+    private int FindPreferredAvailableSkillIndex(HexUnit unit)
+    {
+        if (unit == null || unit.SkillCount <= 0)
+        {
+            return -1;
+        }
+
+        var bestSkillIndex = -1;
+        var bestEnergyCost = int.MinValue;
+        var bestPower = int.MinValue;
+        var bestRange = int.MinValue;
+
+        for (var skillIndex = 0; skillIndex < unit.SkillCount; skillIndex++)
+        {
+            var skill = unit.GetSkillAt(skillIndex);
+            if (!CanUseSkill(unit, skill))
+            {
+                continue;
+            }
+
+            if (skill.EnergyCost > bestEnergyCost ||
+                (skill.EnergyCost == bestEnergyCost && skill.Power > bestPower) ||
+                (skill.EnergyCost == bestEnergyCost && skill.Power == bestPower && skill.AttackRange > bestRange))
+            {
+                bestSkillIndex = skillIndex;
+                bestEnergyCost = skill.EnergyCost;
+                bestPower = skill.Power;
+                bestRange = skill.AttackRange;
+            }
+        }
+
+        return bestSkillIndex;
+    }
+
+    private void SyncSelectedSkillToPlannedCommand(HexUnit unit)
+    {
+        if (unit == null || !IsEnemyCommand(unit))
+        {
+            return;
+        }
+
+        if (HasEnemyTargetAt(unit, unit.PlannedAttackTarget) && CanUseSkill(unit, unit.SelectedSkill))
+        {
+            unit.PlannedSkillIndex = unit.SelectedSkillIndex;
+        }
     }
 }

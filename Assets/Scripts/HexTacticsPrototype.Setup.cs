@@ -438,12 +438,17 @@ public sealed partial class HexTacticsPrototype
         isResolving = false;
         isAnimating = false;
         selectedUnit = null;
+        CloseSkillPopup();
+        ResetPlanningPointerTracking();
+        skillPopupHoveredSkillIndex = -1;
         moveCells.Clear();
         attackCells.Clear();
 
         foreach (var unit in units)
         {
             AssignWaitCommand(unit, markAsAssigned: false);
+            unit.HasManualSkillOverride = false;
+            EnsureUnitSelectedSkillUsable(unit);
         }
 
         SelectUnit(FindFirstBlueUnitWithoutCommand());

@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7033fc0862404bee8b688b52356e0703, type: 3}
+  m_Name: RoyalExecution_Melee_P8_R0_C3
+  m_EditorClassIdentifier: Assembly-CSharp::HexTacticsSkillConfig
+  displayName: "\u738B\u8005\u5904\u51B3"
+  description: "\u6D88\u8017 3 \u70B9\u80FD\u91CF\u6253\u51FA\u6781\u9AD8\u7206\u53D1\uFF0C\u53EA\u5728\u5173\u952E\u65A9\u6740\u65F6\u4F7F\u7528\u3002"
+  power: 8
+  attackRange: 0
+  energyCost: 3
+  energyGainOnHit: 0
+  projectileEffectPrefab: {fileID: 0}
+  projectileEffectScale: 1
+  impactEffectPrefab: {fileID: 7069495237875253993, guid: 75caeaad2ff9c46898f2e2cb7be524a1, type: 3}
+  impactEffectScale: 1.28
+  impactHeightNormalized: 0.66
+  impactForwardOffset: 0.1

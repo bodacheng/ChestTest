@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7033fc0862404bee8b688b52356e0703, type: 3}
+  m_Name: VenomStrike_Melee_P4_R0_C1
+  m_EditorClassIdentifier: Assembly-CSharp::HexTacticsSkillConfig
+  displayName: "\u6BD2\u88AD"
+  description: "\u6D88\u8017 1 \u70B9\u80FD\u91CF\u8FFD\u52A0\u6BD2\u6027\u6253\u51FB\uFF0C\u9002\u5408\u6301\u7EED\u8FFD\u51FB\u7684\u538B\u8840\u5355\u4F4D\u3002"
+  power: 4
+  attackRange: 0
+  energyCost: 1
+  energyGainOnHit: 0
+  projectileEffectPrefab: {fileID: 0}
+  projectileEffectScale: 1
+  impactEffectPrefab: {fileID: 6673248520794652214, guid: 636908a24aedd40d0b1ac6d4f880c6ec, type: 3}
+  impactEffectScale: 1
+  impactHeightNormalized: 0.54
+  impactForwardOffset: 0.05

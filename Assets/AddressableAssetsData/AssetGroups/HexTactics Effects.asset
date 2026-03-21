@@ -51,6 +51,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.Effects
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 21187664e919848e7ac03e126b438bf2
+    m_Address: Effects/AttackEffects/Variants/HovlProjectileArcane
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.Effects
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2fb44d914c2e348389b86b2009f65c23
     m_Address: Effects/HitEffects/Variants/ErbHit12
     m_ReadOnly: 0
@@ -65,6 +71,12 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 5609e5065d8644cacb0b0ba6b1deebc1
     m_Address: Effects/HitEffects/Variants/ErbHit15
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.Effects
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 636908a24aedd40d0b1ac6d4f880c6ec
+    m_Address: Effects/HitEffects/Variants/HovlImpactLightVerdant
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.Effects
@@ -87,6 +99,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.Effects
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 75caeaad2ff9c46898f2e2cb7be524a1
+    m_Address: Effects/HitEffects/Variants/HovlImpactHeavyCrimson
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.Effects
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 79e1e21cc6d014cfe98264c98d0f27d5
     m_Address: Effects/HitEffects/Variants/ErbHit07
     m_ReadOnly: 0
@@ -95,6 +113,12 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 7aff8475d24774ec09949575e77a950c
     m_Address: Effects/HitEffects/Variants/ErbHit22
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.Effects
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8f4d06e2a24eb4f9eadad97f2b55edd6
+    m_Address: Effects/HitEffects/Variants/HovlImpactRangedMist
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.Effects
@@ -141,8 +165,20 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.Effects
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c868d637a2fff4b28bfcb4936311eb49
+    m_Address: Effects/AttackEffects/Variants/HovlProjectileFrost
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.Effects
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cac338d71cc4c44f1b66337c079a5a95
     m_Address: Effects/HitEffects/Variants/ErbHit05
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.Effects
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cc55e510521b14b0cad9ed5fc3fc60c2
+    m_Address: Effects/HitEffects/Variants/HovlImpactHeavyEmber
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.Effects
@@ -159,8 +195,26 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.Effects
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d3f54fc6cd8e34c208af80fe0180e0d7
+    m_Address: Effects/HitEffects/Variants/HovlImpactLightRose
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.Effects
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d4e54e45ef7394588b34b3ead2cb8341
+    m_Address: Effects/HitEffects/Variants/HovlImpactMediumAzure
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.Effects
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d4f97088251c74524bd9b77b8211e80c
     m_Address: Effects/HitEffects/Variants/ErbHit03
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.Effects
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: db3a9ed0c38cd4a8ab493a7b8f6ab47e
+    m_Address: Effects/HitEffects/Variants/HovlImpactRangedNova
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.Effects

@@ -15,8 +15,20 @@ MonoBehaviour:
   m_GroupName: HexTactics Skill Configs
   m_GUID: 761ed362bf9ea492a9c5352c74a5e44e
   m_SerializeEntries:
+  - m_GUID: 14025822344e144eaa1b0e820fdb0d77
+    m_Address: SkillConfigs/SkirmishCombo_Melee_P5_R0_C1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 214bcb007e7644deebc3eccf880b5f09
     m_Address: SkillConfigs/BasicAttack_Melee_P3_R0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2373cceeeda30451abce498018373fa3
+    m_Address: SkillConfigs/ArcBurst_Ranged_P6_R1_C2
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.SkillConfigs
@@ -27,8 +39,32 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.SkillConfigs
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2c8c6f5e042c449c1a15673ed2b38060
+    m_Address: SkillConfigs/RoyalExecution_Melee_P8_R0_C3
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 41572c9f0af5d4c3c98d59dd5486ec41
     m_Address: SkillConfigs/BasicAttack_Melee_P4_R0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4b26672e5a93d43df9def28ee8542893
+    m_Address: SkillConfigs/ShadowBolt_Ranged_P5_R2_C2
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 76a2518f4019242649af80461113b8e6
+    m_Address: SkillConfigs/Snipe_Ranged_P5_R2_C2
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7b02b852aab2b4c63a80e58ab1d89127
+    m_Address: SkillConfigs/VenomStrike_Melee_P4_R0_C1
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.SkillConfigs
@@ -45,6 +81,36 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.SkillConfigs
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 86ea9d933b14a47b08b4e89902937404
+    m_Address: SkillConfigs/WaveSlash_Ranged_P6_R1_C2
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8b5dbcffbb67941c8a8a61fdf6cc998f
+    m_Address: SkillConfigs/ThornShot_Ranged_P4_R1_C1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8d4580a8e239d4a35bbff036082550ca
+    m_Address: SkillConfigs/PredatorRush_Melee_P6_R0_C1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 93fa9355c4c684c7ead3892f06de68db
+    m_Address: SkillConfigs/CrushingBlow_Melee_P7_R0_C2
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 95ea9f1f5512e4af39bcee7caabf4b56
+    m_Address: SkillConfigs/ScoutBurst_Melee_P4_R0_C1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a1832f377e1bb464a9bab52617f3361d
     m_Address: SkillConfigs/BasicAttack_Ranged_P4_R1
     m_ReadOnly: 0
@@ -53,6 +119,18 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b7ed21051f6f9400b9a521704165e8ce
     m_Address: SkillConfigs/BasicAttack_Ranged_P3_R1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: db545c255d53d4fe682a95492528203f
+    m_Address: SkillConfigs/BreakArmor_Melee_P6_R0_C2
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ec47e8c55971547fd8b65f48e1df7ecd
+    m_Address: SkillConfigs/PowerShot_Ranged_P5_R1_C1
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.SkillConfigs
