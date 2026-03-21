@@ -5,7 +5,7 @@ using UnityEngine;
 
 public static class HexTacticsRpgMonsterRosterImporter
 {
-    private const string OutputRoot = HexTacticsAssetPaths.CharacterConfigFolder + "/RPGMonsterBundlePolyart";
+    private const string OutputRoot = HexTacticsAssetPaths.CharacterConfigFolder;
     private const string DefaultDescription = "近战压制";
     private const float DefaultAttackImpactNormalizedTime = 0.45f;
     private const string AttackParameterName = "Attack1";
@@ -75,23 +75,44 @@ public static class HexTacticsRpgMonsterRosterImporter
         ReportAttackTimingInternal();
     }
 
+    public static bool IsImportedMonsterAssetName(string assetName)
+    {
+        if (string.IsNullOrWhiteSpace(assetName))
+        {
+            return false;
+        }
+
+        foreach (var spec in Specs)
+        {
+            if (spec.AssetName == assetName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool RunInternal()
     {
         AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
         EnsureFolder(OutputRoot);
 
         var importedCount = 0;
-        var configsToGenerateIconsFor = new List<HexTacticsCharacterConfig>();
         var issues = new List<string>();
         foreach (var spec in Specs)
         {
-            if (CreateOrUpdateCharacterConfig(spec, issues, configsToGenerateIconsFor))
+            if (CreateOrUpdateCharacterConfig(spec, issues))
             {
                 importedCount++;
             }
         }
 
-        var generatedIconCount = HexTacticsCharacterIconGenerator.GenerateIconsForConfigs(configsToGenerateIconsFor, issues);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+
+        var configPathsToGenerateIconsFor = CollectImportedCharacterConfigPaths();
+        var generatedIconCount = HexTacticsCharacterIconGenerator.GenerateIconsForConfigPaths(configPathsToGenerateIconsFor, issues);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
         HexTacticsAddressablesSync.Sync();
@@ -143,8 +164,7 @@ public static class HexTacticsRpgMonsterRosterImporter
 
     private static bool CreateOrUpdateCharacterConfig(
         MonsterImportSpec spec,
-        List<string> issues,
-        List<HexTacticsCharacterConfig> configsToGenerateIconsFor)
+        List<string> issues)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(spec.PrefabPath);
         if (prefab == null)
@@ -161,6 +181,13 @@ public static class HexTacticsRpgMonsterRosterImporter
             AssetDatabase.CreateAsset(config, assetPath);
         }
 
+        var basicSkill = CreateOrUpdateBasicSkill(spec, config);
+        if (basicSkill == null)
+        {
+            issues.Add($"Skill could not be created for {spec.AssetName}.");
+            return false;
+        }
+
         var timing = ResolveAttackTiming(spec, prefab, issues);
         var serializedObject = new SerializedObject(config);
         serializedObject.FindProperty("displayName").stringValue = spec.DisplayName;
@@ -168,9 +195,15 @@ public static class HexTacticsRpgMonsterRosterImporter
             ? DefaultDescription
             : spec.Description;
         serializedObject.FindProperty("maxHealth").intValue = spec.MaxHealth;
+        serializedObject.FindProperty("maxEnergy").intValue = 3;
+        serializedObject.FindProperty("startingEnergy").intValue = 0;
         serializedObject.FindProperty("attackPower").intValue = spec.AttackPower;
+        serializedObject.FindProperty("attackRange").intValue = basicSkill.AttackRange;
         serializedObject.FindProperty("cost").intValue = spec.Cost;
         serializedObject.FindProperty("moveRange").intValue = spec.MoveRange;
+        var skillsProperty = serializedObject.FindProperty("skills");
+        skillsProperty.arraySize = 1;
+        skillsProperty.GetArrayElementAtIndex(0).objectReferenceValue = basicSkill;
         serializedObject.FindProperty("visualArchetype").enumValueIndex = (int)spec.VisualArchetype;
         serializedObject.FindProperty("avatar").objectReferenceValue = config.Avatar;
         serializedObject.FindProperty("battleUnitPrefab").objectReferenceValue = prefab;
@@ -179,8 +212,50 @@ public static class HexTacticsRpgMonsterRosterImporter
         serializedObject.FindProperty("attackImpactNormalizedTime").floatValue = timing.ImpactNormalizedTime;
         serializedObject.ApplyModifiedPropertiesWithoutUndo();
         EditorUtility.SetDirty(config);
-        configsToGenerateIconsFor.Add(config);
         return true;
+    }
+
+    private static List<string> CollectImportedCharacterConfigPaths()
+    {
+        var configPaths = new List<string>();
+        foreach (var guid in AssetDatabase.FindAssets("t:HexTacticsCharacterConfig", new[] { OutputRoot }))
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            var assetName = System.IO.Path.GetFileNameWithoutExtension(path);
+            if (!IsImportedMonsterAssetName(assetName))
+            {
+                continue;
+            }
+
+            configPaths.Add(path);
+        }
+
+        return configPaths;
+    }
+
+    private static HexTacticsSkillConfig CreateOrUpdateBasicSkill(MonsterImportSpec spec, HexTacticsCharacterConfig config)
+    {
+        var attackRange = 0;
+        if (attackRange <= 0 && config != null)
+        {
+            attackRange = config.LegacyAttackRangeForMigration;
+        }
+
+        var defaultProjectile = AssetDatabase.LoadAssetAtPath<GameObject>(HexTacticsAssetPaths.RangedWaveEffectAssetPath);
+        var lightImpact = AssetDatabase.LoadAssetAtPath<GameObject>(HexTacticsAssetPaths.DefaultRangedHitLightAssetPath);
+        var mediumImpact = AssetDatabase.LoadAssetAtPath<GameObject>(HexTacticsAssetPaths.DefaultRangedHitMediumAssetPath);
+        var heavyImpact = AssetDatabase.LoadAssetAtPath<GameObject>(HexTacticsAssetPaths.DefaultRangedHitHeavyAssetPath);
+        var createdSkillCount = 0;
+        var updatedSkillCount = 0;
+        return HexTacticsSharedSkillUtility.GetOrCreateSharedBasicSkill(
+            spec.AttackPower,
+            attackRange,
+            defaultProjectile,
+            lightImpact,
+            mediumImpact,
+            heavyImpact,
+            ref createdSkillCount,
+            ref updatedSkillCount);
     }
 
     private static AttackTimingResolution ResolveAttackTiming(MonsterImportSpec spec, GameObject prefab, List<string> issues)

@@ -21,7 +21,7 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
 
     private readonly List<HexTacticsCommandRowView> commandRows = new();
 
-    protected override int CurrentLayoutVersion => 7;
+    protected override int CurrentLayoutVersion => 8;
 
     protected override bool HasCurrentBindings =>
         roundText != null &&
@@ -47,7 +47,8 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
         Action clearSelection,
         Action waitSelectedUnit,
         Action<int> selectCommandUnit,
-        Action<int> waitCommandUnit)
+        Action<int> waitCommandUnit,
+        Action<int> cycleCommandUnitSkill)
     {
         EnsureBuilt();
 
@@ -80,7 +81,7 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
             commandRows[i].gameObject.SetActive(active);
             if (active)
             {
-                commandRows[i].Bind(snapshot.PlayerCommandEntries[i], selectCommandUnit, waitCommandUnit);
+                commandRows[i].Bind(snapshot.PlayerCommandEntries[i], selectCommandUnit, waitCommandUnit, cycleCommandUnitSkill);
             }
         }
 
@@ -118,7 +119,7 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
         countText = HexTacticsUiFactory.CreateText(root, "CountText", string.Empty, 14, TextAnchor.MiddleLeft, new Color(0.82f, 0.88f, 0.90f));
         HexTacticsUiFactory.AddLayoutElement(countText.gameObject, preferredHeight: 20f);
 
-        var instruction = HexTacticsUiFactory.CreateText(root, "Instruction", "点地格移动，点敌人设为追击；若只下达移动，也会在接敌时自动攻击。", 13, TextAnchor.MiddleLeft, new Color(0.62f, 0.72f, 0.76f));
+        var instruction = HexTacticsUiFactory.CreateText(root, "Instruction", "点地格移动，点敌人设为追击；可用“换技”切换当前技能，移动指令接敌时会优先使用零消耗技。", 13, TextAnchor.MiddleLeft, new Color(0.62f, 0.72f, 0.76f));
         HexTacticsUiFactory.AddLayoutElement(instruction.gameObject, preferredHeight: 34f);
 
         var currentCommandPanel = HexTacticsUiFactory.CreateRect("CurrentCommandPanel", root);
@@ -142,7 +143,7 @@ public sealed class HexTacticsPlanningScreenView : HexTacticsUiGeneratedView
 
         selectedUnitText = HexTacticsUiFactory.CreateText(root, "SelectedUnitText", string.Empty, 15, TextAnchor.MiddleLeft, new Color(0.92f, 0.94f, 0.96f));
         selectedUnitText.verticalOverflow = VerticalWrapMode.Overflow;
-        HexTacticsUiFactory.AddLayoutElement(selectedUnitText.gameObject, preferredHeight: 52f);
+        HexTacticsUiFactory.AddLayoutElement(selectedUnitText.gameObject, preferredHeight: 78f);
 
         var commandScrollContainer = HexTacticsUiFactory.CreateRect("CommandScrollContainer", root);
         HexTacticsUiFactory.AddLayoutElement(commandScrollContainer.gameObject, preferredHeight: 222f);

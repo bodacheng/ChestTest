@@ -12,8 +12,10 @@ public sealed class HexTacticsCommandRowView : HexTacticsUiGeneratedView
     [SerializeField] private Button selectButton;
     [SerializeField] private Text selectButtonText;
     [SerializeField] private Button waitButton;
+    [SerializeField] private Button skillButton;
+    [SerializeField] private Text skillButtonText;
 
-    protected override int CurrentLayoutVersion => 9;
+    protected override int CurrentLayoutVersion => 10;
 
     protected override bool HasCurrentBindings =>
         panelImage != null &&
@@ -21,9 +23,11 @@ public sealed class HexTacticsCommandRowView : HexTacticsUiGeneratedView
         commandText != null &&
         selectButton != null &&
         selectButtonText != null &&
-        waitButton != null;
+        waitButton != null &&
+        skillButton != null &&
+        skillButtonText != null;
 
-    public void Bind(HexTacticsCommandEntryUiData data, Action<int> onSelect, Action<int> onWait)
+    public void Bind(HexTacticsCommandEntryUiData data, Action<int> onSelect, Action<int> onWait, Action<int> onCycleSkill)
     {
         EnsureBuilt();
         ApplyAvatar(data.Avatar);
@@ -43,6 +47,10 @@ public sealed class HexTacticsCommandRowView : HexTacticsUiGeneratedView
         selectButton.onClick.AddListener(() => onSelect?.Invoke(data.UnitId));
         waitButton.onClick.RemoveAllListeners();
         waitButton.onClick.AddListener(() => onWait?.Invoke(data.UnitId));
+        skillButtonText.text = data.CanCycleSkill ? "换技" : "单技";
+        skillButton.interactable = data.CanCycleSkill;
+        skillButton.onClick.RemoveAllListeners();
+        skillButton.onClick.AddListener(() => onCycleSkill?.Invoke(data.UnitId));
     }
 
     public override void BuildDefaultHierarchy()
@@ -53,11 +61,11 @@ public sealed class HexTacticsCommandRowView : HexTacticsUiGeneratedView
         root.anchorMin = new Vector2(0f, 1f);
         root.anchorMax = new Vector2(1f, 1f);
         root.pivot = new Vector2(0.5f, 1f);
-        root.sizeDelta = new Vector2(0f, 60f);
+        root.sizeDelta = new Vector2(0f, 74f);
 
         panelImage = HexTacticsUiFactory.AddImage(root.gameObject, new Color(0.06f, 0.08f, 0.10f, 0.74f));
         HexTacticsUiFactory.StylePanel(panelImage, new Color(1f, 1f, 1f, 0.04f), 0f);
-        HexTacticsUiFactory.AddLayoutElement(root.gameObject, preferredHeight: 60f);
+        HexTacticsUiFactory.AddLayoutElement(root.gameObject, preferredHeight: 74f);
 
         var layout = root.gameObject.AddComponent<HorizontalLayoutGroup>();
         layout.padding = new RectOffset(8, 8, 8, 8);
@@ -74,13 +82,16 @@ public sealed class HexTacticsCommandRowView : HexTacticsUiGeneratedView
 
         commandText = HexTacticsUiFactory.CreateText(root, "CommandText", string.Empty, 14, TextAnchor.MiddleLeft, Color.white);
         commandText.verticalOverflow = VerticalWrapMode.Truncate;
-        HexTacticsUiFactory.AddLayoutElement(commandText.gameObject, flexibleWidth: 1f, preferredHeight: 36f);
+        HexTacticsUiFactory.AddLayoutElement(commandText.gameObject, flexibleWidth: 1f, preferredHeight: 54f);
 
         selectButton = HexTacticsUiFactory.CreateButton(root, "SelectButton", "定位", new Color(0.24f, 0.36f, 0.50f, 0.94f), Color.white, out selectButtonText);
-        HexTacticsUiFactory.AddLayoutElement(selectButton.gameObject, preferredWidth: 72f, preferredHeight: 32f);
+        HexTacticsUiFactory.AddLayoutElement(selectButton.gameObject, preferredWidth: 68f, preferredHeight: 32f);
 
         waitButton = HexTacticsUiFactory.CreateButton(root, "WaitButton", "待机", new Color(0.30f, 0.44f, 0.28f, 0.94f), Color.white, out _);
-        HexTacticsUiFactory.AddLayoutElement(waitButton.gameObject, preferredWidth: 64f, preferredHeight: 32f);
+        HexTacticsUiFactory.AddLayoutElement(waitButton.gameObject, preferredWidth: 60f, preferredHeight: 32f);
+
+        skillButton = HexTacticsUiFactory.CreateButton(root, "SkillButton", "换技", new Color(0.44f, 0.30f, 0.18f, 0.94f), Color.white, out skillButtonText);
+        HexTacticsUiFactory.AddLayoutElement(skillButton.gameObject, preferredWidth: 60f, preferredHeight: 32f);
     }
 
     public static HexTacticsCommandRowView CreateStandalone(Transform parent)

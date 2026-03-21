@@ -8,6 +8,7 @@ using UnityEngine;
 public static class HexTacticsAddressablesSync
 {
     private const string CharacterConfigGroupName = "HexTactics Character Configs";
+    private const string SkillConfigGroupName = "HexTactics Skill Configs";
     private const string BattleUnitGroupName = "HexTactics Battle Units";
     private const string EffectsGroupName = "HexTactics Effects";
     private const string UiGroupName = "HexTactics UI";
@@ -45,11 +46,13 @@ public static class HexTacticsAddressablesSync
         }
 
         var characterConfigsGroup = GetOrCreateLocalGroup(settings, CharacterConfigGroupName);
+        var skillConfigsGroup = GetOrCreateLocalGroup(settings, SkillConfigGroupName);
         var battleUnitsGroup = GetOrCreateLocalGroup(settings, BattleUnitGroupName);
         var effectsGroup = GetOrCreateLocalGroup(settings, EffectsGroupName);
         var uiGroup = GetOrCreateLocalGroup(settings, UiGroupName);
 
         SyncFolder(settings, HexTacticsAssetPaths.CharacterConfigFolder, "t:HexTacticsCharacterConfig", characterConfigsGroup, HexTacticsAssetPaths.CharacterConfigsLabel);
+        SyncFolder(settings, HexTacticsAssetPaths.SkillConfigFolder, "t:HexTacticsSkillConfig", skillConfigsGroup, HexTacticsAssetPaths.SkillConfigsLabel);
         SyncFolder(settings, HexTacticsAssetPaths.BattleUnitFolder, "t:Prefab", battleUnitsGroup, HexTacticsAssetPaths.BattleUnitsLabel);
         SyncFolder(settings, HexTacticsAssetPaths.AttackEffectsFolder, "t:Prefab", effectsGroup, HexTacticsAssetPaths.EffectsLabel);
         SyncFolder(settings, HexTacticsAssetPaths.HitEffectsFolder, "t:Prefab", effectsGroup, HexTacticsAssetPaths.EffectsLabel);

@@ -3,6 +3,7 @@ public static class HexTacticsAssetPaths
     public const string AddressablesRoot = "Assets/AddressableAssets";
 
     public const string CharacterConfigFolder = AddressablesRoot + "/CharacterConfigs";
+    public const string SkillConfigFolder = AddressablesRoot + "/SkillConfigs";
     public const string CharacterIconFolder = AddressablesRoot + "/CharacterIcons";
     public const string BattleUnitFolder = AddressablesRoot + "/BattleUnits";
     public const string EffectsFolder = AddressablesRoot + "/Effects";
@@ -18,11 +19,15 @@ public static class HexTacticsAssetPaths
     public const string UiElementsFolder = UiFolder + "/Elements";
 
     public const string CharacterConfigsLabel = "HexTactics.CharacterConfigs";
+    public const string SkillConfigsLabel = "HexTactics.SkillConfigs";
     public const string BattleUnitsLabel = "HexTactics.BattleUnits";
     public const string EffectsLabel = "HexTactics.Effects";
     public const string UiLabel = "HexTactics.UI";
 
     public const string RangedWaveEffectAssetPath = AttackEffectsVariantFolder + "/ErbAttackWave01.prefab";
     public const string RangedWaveEffectAddress = "Effects/AttackEffects/Variants/ErbAttackWave01";
+    public const string DefaultRangedHitLightAssetPath = HitEffectsVariantFolder + "/ErbHit19.prefab";
+    public const string DefaultRangedHitMediumAssetPath = HitEffectsVariantFolder + "/ErbHit04.prefab";
+    public const string DefaultRangedHitHeavyAssetPath = HitEffectsVariantFolder + "/ErbHit25.prefab";
     public const string HitEffectCatalogAddress = "Effects/HitEffects/HexTacticsHitEffectCatalog";
 }

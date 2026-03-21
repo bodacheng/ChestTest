@@ -210,9 +210,10 @@ public sealed partial class HexTacticsPrototype
             var targetLabel = IsUnitAlive(unit.PlannedEnemyTargetUnit)
                 ? unit.PlannedEnemyTargetUnit.Name
                 : $"({unit.PlannedAttackTarget.Q},{unit.PlannedAttackTarget.R})";
+            var skillName = unit.PlannedSkill != null ? unit.PlannedSkill.DisplayName : "未选技";
             return compact
-                ? $"追击 -> {targetLabel}"
-                : $"追击目标 {targetLabel}";
+                ? $"追击[{skillName}] -> {targetLabel}"
+                : $"追击目标 {targetLabel}  |  技 {skillName}";
         }
 
         return compact
@@ -332,28 +333,23 @@ public sealed partial class HexTacticsPrototype
         return false;
     }
 
-    private static int GetAttackReach(int attackRange)
+    private static int GetAttackReach(HexTacticsSkillConfig skill)
     {
-        return Mathf.Clamp(attackRange, 0, 1) + 1;
+        return skill != null ? Mathf.Max(1, skill.AttackReach) : 1;
     }
 
-    private static int GetAttackReach(HexUnit unit)
-    {
-        return unit != null ? GetAttackReach(unit.AttackRange) : 1;
-    }
-
-    private static bool IsWithinAttackRange(HexCoord origin, HexCoord target, int attackRange)
+    private static bool IsWithinAttackRange(HexCoord origin, HexCoord target, HexTacticsSkillConfig skill)
     {
         // Attack range is evaluated by hex distance, so "corner" directions are
         // counted the same way as straight approaches on the hex board.
-        return origin != target && HexDistance(origin, target) <= GetAttackReach(attackRange);
+        return skill != null && origin != target && HexDistance(origin, target) <= GetAttackReach(skill);
     }
 
-    private static bool IsWithinAttackRange(HexUnit attacker, HexUnit defender)
+    private static bool IsWithinAttackRange(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
     {
         return attacker != null &&
                defender != null &&
-               IsWithinAttackRange(attacker.Coord, defender.Coord, attacker.AttackRange);
+               IsWithinAttackRange(attacker.Coord, defender.Coord, skill);
     }
 
     private static int HexDistance(HexCoord a, HexCoord b)

@@ -23,6 +23,7 @@ public sealed partial class HexTacticsPrototype
         public HexUnit(
             int id,
             HexTacticsCharacterConfig characterConfig,
+            List<HexTacticsSkillConfig> skills,
             string name,
             string roleName,
             Team team,
@@ -31,14 +32,15 @@ public sealed partial class HexTacticsPrototype
             MeshRenderer ringRenderer,
             Material defaultRingMaterial,
             int maxHealth,
-            int attackPower,
             int cost,
             int moveRange,
-            int attackRange,
-            int speed)
+            int speed,
+            int maxEnergy,
+            int startingEnergy)
         {
             Id = id;
             CharacterConfig = characterConfig;
+            Skills = skills ?? new List<HexTacticsSkillConfig>();
             Name = name;
             RoleName = roleName;
             Team = team;
@@ -48,19 +50,22 @@ public sealed partial class HexTacticsPrototype
             DefaultRingMaterial = defaultRingMaterial;
             MaxHealth = maxHealth;
             CurrentHealth = maxHealth;
-            AttackPower = attackPower;
             Cost = cost;
             MoveRange = moveRange;
-            AttackRange = attackRange;
             Speed = speed;
+            MaxEnergy = Mathf.Max(1, maxEnergy);
+            CurrentEnergy = Mathf.Clamp(startingEnergy, 0, MaxEnergy);
+            SelectedSkillIndex = ResolveDefaultSelectedSkillIndex();
             PlannedMoveTarget = coord;
             PlannedAttackTarget = coord;
             PlannedEnemyTargetUnit = null;
+            PlannedSkillIndex = -1;
             PlannedAttackTiming = AttackTiming.BeforeMove;
         }
 
         public int Id { get; }
         public HexTacticsCharacterConfig CharacterConfig { get; }
+        public List<HexTacticsSkillConfig> Skills { get; }
         public string Name { get; }
         public string RoleName { get; }
         public Team Team { get; }
@@ -70,17 +75,19 @@ public sealed partial class HexTacticsPrototype
         public Material DefaultRingMaterial { get; }
         public int MaxHealth { get; }
         public int CurrentHealth { get; set; }
-        public int AttackPower { get; }
         public int Cost { get; }
         public int MoveRange { get; }
-        public int AttackRange { get; }
         public int Speed { get; }
+        public int MaxEnergy { get; }
+        public int CurrentEnergy { get; set; }
+        public int SelectedSkillIndex { get; set; }
         public bool HasAssignedCommand { get; set; }
         public bool HasPlannedMove { get; set; }
         public HexCoord PlannedMoveTarget { get; set; }
         public bool HasPlannedAttack { get; set; }
         public HexCoord PlannedAttackTarget { get; set; }
         public HexUnit PlannedEnemyTargetUnit { get; set; }
+        public int PlannedSkillIndex { get; set; }
         public AttackTiming PlannedAttackTiming { get; set; }
         public int PlannedMoveProgress { get; set; }
         public bool AttackConsumed { get; set; }
@@ -94,6 +101,40 @@ public sealed partial class HexTacticsPrototype
         public int DamagedAnimationRevision { get; set; }
         public UnitAnimationBinding AnimationBinding { get; set; }
         public List<HexCoord> PlannedPath { get; } = new();
+
+        public int SkillCount => Skills.Count;
+        public bool HasMultipleSkills => SkillCount > 1;
+        public HexTacticsSkillConfig SelectedSkill => GetSkillAt(SelectedSkillIndex);
+        public HexTacticsSkillConfig PlannedSkill => GetSkillAt(PlannedSkillIndex);
+
+        public HexTacticsSkillConfig GetSkillAt(int index)
+        {
+            if (Skills == null || Skills.Count == 0)
+            {
+                return null;
+            }
+
+            index = Mathf.Clamp(index, 0, Skills.Count - 1);
+            return Skills[index];
+        }
+
+        private int ResolveDefaultSelectedSkillIndex()
+        {
+            if (Skills == null || Skills.Count == 0)
+            {
+                return 0;
+            }
+
+            for (var i = 0; i < Skills.Count; i++)
+            {
+                if (Skills[i] != null && Skills[i].EnergyCost == 0)
+                {
+                    return i;
+                }
+            }
+
+            return 0;
+        }
     }
 
     private sealed class UnitAnimationBinding
@@ -177,16 +218,32 @@ public sealed partial class HexTacticsPrototype
 
     private readonly struct AttackEvent
     {
-        public AttackEvent(HexUnit attacker, HexUnit defender)
+        public AttackEvent(HexUnit attacker, HexUnit defender, int skillIndex)
         {
             Attacker = attacker;
             Defender = defender;
+            SkillIndex = skillIndex;
             InitiativeTieBreaker = Random.Range(0, int.MaxValue);
         }
 
         public HexUnit Attacker { get; }
         public HexUnit Defender { get; }
+        public int SkillIndex { get; }
+        public HexTacticsSkillConfig Skill => Attacker?.GetSkillAt(SkillIndex);
         public int InitiativeTieBreaker { get; }
+    }
+
+    private readonly struct AttackSelection
+    {
+        public AttackSelection(HexUnit target, int skillIndex)
+        {
+            Target = target;
+            SkillIndex = skillIndex;
+        }
+
+        public HexUnit Target { get; }
+        public int SkillIndex { get; }
+        public bool HasValue => Target != null && SkillIndex >= 0;
     }
 
     private readonly struct MoveStepResolution

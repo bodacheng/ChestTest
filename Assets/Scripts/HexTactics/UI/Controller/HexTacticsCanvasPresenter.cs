@@ -38,6 +38,7 @@ public sealed class HexTacticsCanvasPresenter : MonoBehaviour
             prototype.UiSetSelectedUnitWait,
             prototype.UiSelectUnit,
             prototype.UiSetUnitWait,
+            prototype.UiCycleUnitSkill,
             prototype.UiReturnToTeamBuilder,
             prototype.UiRetryBattle));
     }

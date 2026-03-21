@@ -253,14 +253,17 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        if (IsEnemyCommand(unit) && unit.PlannedEnemyTargetUnit != null && unit.PlannedEnemyTargetUnit.Coord == target)
+        if (IsEnemyCommand(unit) &&
+            unit.PlannedEnemyTargetUnit != null &&
+            unit.PlannedEnemyTargetUnit.Coord == target &&
+            unit.PlannedSkillIndex == unit.SelectedSkillIndex)
         {
             AssignWaitCommand(unit);
             HandleAfterPlayerCommandChanged(unit);
             return;
         }
 
-        TryAssignAttackCommand(unit, target);
+        TryAssignAttackCommand(unit, target, unit.SelectedSkillIndex);
         HandleAfterPlayerCommandChanged(unit);
     }
 
@@ -286,10 +289,10 @@ public sealed partial class HexTacticsPrototype
 
             AssignWaitCommand(unit);
 
-            var attackTarget = ChooseCpuAttackTarget(unit);
-            if (attackTarget != null)
+            var attackSelection = ChooseCpuAttackSelection(unit);
+            if (attackSelection.HasValue)
             {
-                TryAssignAttackCommand(unit, attackTarget.Coord);
+                TryAssignAttackCommand(unit, attackSelection.Target.Coord, attackSelection.SkillIndex);
             }
 
             if (!IsEnemyCommand(unit))
@@ -321,60 +324,181 @@ public sealed partial class HexTacticsPrototype
         SelectUnit(FindNextBlueUnitWithoutCommand(commandingUnit) ?? FindFirstBlueUnitWithoutCommand());
     }
 
-    private HexUnit ChooseCpuAttackTarget(HexUnit unit)
+    private AttackSelection ChooseCpuAttackSelection(HexUnit unit)
     {
-        HexUnit bestTarget = null;
-        var bestScore = int.MinValue;
-
-        foreach (var candidate in units)
-        {
-            if (candidate.Team != Team.Blue || !CanSelectAttackTarget(unit, candidate.Coord))
-            {
-                continue;
-            }
-
-            var score = candidate.AttackPower * 10 - candidate.CurrentHealth - HexDistance(unit.Coord, candidate.Coord) * 2;
-            if (candidate.CurrentHealth <= unit.AttackPower)
-            {
-                score += 50;
-            }
-
-            if (score > bestScore)
-            {
-                bestScore = score;
-                bestTarget = candidate;
-            }
-        }
-
-        return bestTarget;
+        return ChooseAttackSelectionFromOrigin(unit, unit != null ? unit.Coord : default, Team.Blue, requireCurrentRange: false);
     }
 
-    private HexUnit ChooseCpuAttackTargetFromOrigin(HexUnit unit, HexCoord origin, Team enemyTeam)
+    private AttackSelection ChooseAttackSelectionFromOrigin(
+        HexUnit unit,
+        HexCoord origin,
+        Team enemyTeam,
+        int? forcedSkillIndex = null,
+        bool preferNonConsumingSkill = false,
+        bool requireCurrentRange = true)
     {
-        HexUnit bestTarget = null;
+        if (preferNonConsumingSkill)
+        {
+            var freeSelection = ChooseAttackSelectionFromOriginInternal(unit, origin, enemyTeam, forcedSkillIndex, zeroCostOnly: true, requireCurrentRange: requireCurrentRange);
+            if (freeSelection.HasValue)
+            {
+                return freeSelection;
+            }
+        }
+
+        return ChooseAttackSelectionFromOriginInternal(unit, origin, enemyTeam, forcedSkillIndex, zeroCostOnly: false, requireCurrentRange: requireCurrentRange);
+    }
+
+    private AttackSelection ChooseAttackSelectionFromOriginInternal(
+        HexUnit unit,
+        HexCoord origin,
+        Team enemyTeam,
+        int? forcedSkillIndex,
+        bool zeroCostOnly,
+        bool requireCurrentRange)
+    {
+        if (unit == null || unit.SkillCount <= 0)
+        {
+            return default;
+        }
+
+        if (forcedSkillIndex.HasValue && (forcedSkillIndex.Value < 0 || forcedSkillIndex.Value >= unit.SkillCount))
+        {
+            return default;
+        }
+
+        AttackSelection bestSelection = default;
         var bestScore = int.MinValue;
+        var startIndex = forcedSkillIndex.HasValue ? Mathf.Clamp(forcedSkillIndex.Value, 0, unit.SkillCount - 1) : 0;
+        var endIndex = forcedSkillIndex.HasValue ? startIndex + 1 : unit.SkillCount;
 
         foreach (var candidate in units)
         {
-            if (candidate == null || candidate.Team != enemyTeam || !CanSelectAttackTargetFromOrigin(unit, origin, candidate.Coord))
+            if (candidate == null || candidate.Team != enemyTeam)
             {
                 continue;
             }
 
-            var score = candidate.AttackPower * 10 - candidate.CurrentHealth - HexDistance(origin, candidate.Coord) * 2;
-            if (candidate.CurrentHealth <= unit.AttackPower)
+            for (var skillIndex = startIndex; skillIndex < endIndex; skillIndex++)
+            {
+                var skill = unit.GetSkillAt(skillIndex);
+                if (skill == null || (zeroCostOnly && skill.EnergyCost > 0))
+                {
+                    continue;
+                }
+
+                var canUseCandidate = requireCurrentRange
+                    ? CanSelectAttackTargetFromOrigin(unit, origin, candidate.Coord, skill)
+                    : HasEnemyTargetAt(unit, candidate.Coord) && CanUseSkill(unit, skill);
+                if (!canUseCandidate)
+                {
+                    continue;
+                }
+
+                var score = GetUnitThreatPower(candidate) * 10 - candidate.CurrentHealth - HexDistance(origin, candidate.Coord) * 2;
+                score += skill.Power * 4;
+                if (candidate.CurrentHealth <= skill.Power)
+                {
+                    score += 50;
+                }
+
+                if (skill.EnergyCost == 0)
+                {
+                    score += 10;
+                }
+                else
+                {
+                    score -= skill.EnergyCost * 4;
+                }
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestSelection = new AttackSelection(candidate, skillIndex);
+                }
+            }
+        }
+
+        return bestSelection;
+    }
+
+    private int ChooseSkillIndexAgainstTarget(
+        HexUnit unit,
+        HexCoord origin,
+        HexUnit target,
+        int? forcedSkillIndex = null,
+        bool preferNonConsumingSkill = false)
+    {
+        if (preferNonConsumingSkill)
+        {
+            var freeSkillIndex = ChooseSkillIndexAgainstTargetInternal(unit, origin, target, forcedSkillIndex, zeroCostOnly: true);
+            if (freeSkillIndex >= 0)
+            {
+                return freeSkillIndex;
+            }
+        }
+
+        return ChooseSkillIndexAgainstTargetInternal(unit, origin, target, forcedSkillIndex, zeroCostOnly: false);
+    }
+
+    private int ChooseSkillIndexAgainstTargetInternal(
+        HexUnit unit,
+        HexCoord origin,
+        HexUnit target,
+        int? forcedSkillIndex,
+        bool zeroCostOnly)
+    {
+        if (unit == null || target == null || unit.SkillCount <= 0)
+        {
+            return -1;
+        }
+
+        if (forcedSkillIndex.HasValue && (forcedSkillIndex.Value < 0 || forcedSkillIndex.Value >= unit.SkillCount))
+        {
+            return -1;
+        }
+
+        var bestSkillIndex = -1;
+        var bestScore = int.MinValue;
+        var startIndex = forcedSkillIndex.HasValue ? forcedSkillIndex.Value : 0;
+        var endIndex = forcedSkillIndex.HasValue ? startIndex + 1 : unit.SkillCount;
+
+        for (var skillIndex = startIndex; skillIndex < endIndex; skillIndex++)
+        {
+            var skill = unit.GetSkillAt(skillIndex);
+            if (skill == null || (zeroCostOnly && skill.EnergyCost > 0))
+            {
+                continue;
+            }
+
+            if (!CanSelectAttackTargetFromOrigin(unit, origin, target.Coord, skill))
+            {
+                continue;
+            }
+
+            var score = skill.Power * 4;
+            if (target.CurrentHealth <= skill.Power)
             {
                 score += 50;
+            }
+
+            if (skill.EnergyCost == 0)
+            {
+                score += 10;
+            }
+            else
+            {
+                score -= skill.EnergyCost * 4;
             }
 
             if (score > bestScore)
             {
                 bestScore = score;
-                bestTarget = candidate;
+                bestSkillIndex = skillIndex;
             }
         }
 
-        return bestTarget;
+        return bestSkillIndex;
     }
 
     private HexCoord? ChooseCpuMoveTarget(HexUnit unit)

@@ -15,7 +15,7 @@ MonoBehaviour:
   m_DefaultGroup: 53d54879ca5a745568fc81b500d614a9
   m_currentHash:
     serializedVersion: 2
-    Hash: 8b370dc1c9de45ed550521771c8f9238
+    Hash: 53c2ed74509e36cf6b5f8acc5b5dbd85
   m_OptimizeCatalogSize: 0
   m_BuildRemoteCatalog: 0
   m_CatalogRequestsTimeout: 0
@@ -64,6 +64,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 37b0993fc314a4ae5b74a0710e9f675e, type: 2}
   - {fileID: 11400000, guid: 5f35ca6633f404df28e21dc340352cf8, type: 2}
   - {fileID: 11400000, guid: c34217aa27387462f9c7f81bb44842c7, type: 2}
+  - {fileID: 11400000, guid: 2354b1706a97944d2bb524c164042fda, type: 2}
   - {fileID: 11400000, guid: 7ab57676c0f7b4e82bf46038a83729ac, type: 2}
   - {fileID: 11400000, guid: e146120a0487a4a3a8136152268d7111, type: 2}
   m_BuildSettings:
@@ -109,6 +110,7 @@ MonoBehaviour:
     - HexTactics.BattleUnits
     - HexTactics.UI
     - HexTactics.Effects
+    - HexTactics.SkillConfigs
   m_SchemaTemplates: []
   m_GroupTemplateObjects:
   - {fileID: 11400000, guid: 874d39bb88c674e04ba165e2ad469324, type: 2}

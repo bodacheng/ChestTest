@@ -67,9 +67,20 @@ public sealed partial class HexTacticsPrototype
         ringRenderer.sharedMaterial = team == Team.Blue ? blueRingMaterial : redRingMaterial;
         ringRenderer.enabled = false;
 
+        var unitSkills = new List<HexTacticsSkillConfig>();
+        var definitionSkills = definition.Skills;
+        for (var i = 0; i < definitionSkills.Count; i++)
+        {
+            if (definitionSkills[i] != null)
+            {
+                unitSkills.Add(definitionSkills[i]);
+            }
+        }
+
         var unit = new HexUnit(
             nextUnitId++,
             definition,
+            unitSkills,
             unitRoot.name,
             definition.DisplayName,
             team,
@@ -78,11 +89,11 @@ public sealed partial class HexTacticsPrototype
             ringRenderer,
             team == Team.Blue ? blueRingMaterial : redRingMaterial,
             definition.MaxHealth,
-            definition.AttackPower,
             definition.Cost,
             definition.MoveRange,
-            definition.AttackRange,
-            definition.Speed);
+            definition.Speed,
+            definition.MaxEnergy,
+            definition.StartingEnergy);
 
         unit.VisualHeight = baseUnitVisualHeight;
         unit.LabelHeight = baseUnitVisualHeight + worldLabelPadding;

@@ -63,6 +63,9 @@ public readonly struct HexTacticsRosterEntryUiData
         int speed,
         int moveRange,
         int cost,
+        int maxEnergy,
+        int skillCount,
+        string primarySkillName,
         HexTacticsAvatarUiData avatar,
         bool canAdd)
     {
@@ -75,6 +78,9 @@ public readonly struct HexTacticsRosterEntryUiData
         Speed = speed;
         MoveRange = moveRange;
         Cost = cost;
+        MaxEnergy = maxEnergy;
+        SkillCount = skillCount;
+        PrimarySkillName = primarySkillName;
         Avatar = avatar;
         CanAdd = canAdd;
     }
@@ -88,6 +94,9 @@ public readonly struct HexTacticsRosterEntryUiData
     public int Speed { get; }
     public int MoveRange { get; }
     public int Cost { get; }
+    public int MaxEnergy { get; }
+    public int SkillCount { get; }
+    public string PrimarySkillName { get; }
     public HexTacticsAvatarUiData Avatar { get; }
     public bool CanAdd { get; }
 }
@@ -104,6 +113,9 @@ public readonly struct HexTacticsSelectionEntryUiData
         int speed,
         int moveRange,
         int cost,
+        int maxEnergy,
+        int skillCount,
+        string primarySkillName,
         string deploymentText,
         HexTacticsAvatarUiData avatar)
     {
@@ -116,6 +128,9 @@ public readonly struct HexTacticsSelectionEntryUiData
         Speed = speed;
         MoveRange = moveRange;
         Cost = cost;
+        MaxEnergy = maxEnergy;
+        SkillCount = skillCount;
+        PrimarySkillName = primarySkillName;
         DeploymentText = deploymentText;
         Avatar = avatar;
     }
@@ -129,6 +144,9 @@ public readonly struct HexTacticsSelectionEntryUiData
     public int Speed { get; }
     public int MoveRange { get; }
     public int Cost { get; }
+    public int MaxEnergy { get; }
+    public int SkillCount { get; }
+    public string PrimarySkillName { get; }
     public string DeploymentText { get; }
     public HexTacticsAvatarUiData Avatar { get; }
 }
@@ -139,6 +157,7 @@ public readonly struct HexTacticsCommandEntryUiData
         int unitId,
         string unitName,
         string commandText,
+        bool canCycleSkill,
         bool isSelected,
         bool hasAssignedCommand,
         HexTacticsAvatarUiData avatar)
@@ -146,6 +165,7 @@ public readonly struct HexTacticsCommandEntryUiData
         UnitId = unitId;
         UnitName = unitName;
         CommandText = commandText;
+        CanCycleSkill = canCycleSkill;
         IsSelected = isSelected;
         HasAssignedCommand = hasAssignedCommand;
         Avatar = avatar;
@@ -154,6 +174,7 @@ public readonly struct HexTacticsCommandEntryUiData
     public int UnitId { get; }
     public string UnitName { get; }
     public string CommandText { get; }
+    public bool CanCycleSkill { get; }
     public bool IsSelected { get; }
     public bool HasAssignedCommand { get; }
     public HexTacticsAvatarUiData Avatar { get; }

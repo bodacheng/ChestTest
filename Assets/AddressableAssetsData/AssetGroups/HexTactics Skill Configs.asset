@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: HexTactics Skill Configs
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: HexTactics Skill Configs
+  m_GUID: 761ed362bf9ea492a9c5352c74a5e44e
+  m_SerializeEntries:
+  - m_GUID: 214bcb007e7644deebc3eccf880b5f09
+    m_Address: SkillConfigs/BasicAttack_Melee_P3_R0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2ad38893499854d1184caff41a25459d
+    m_Address: SkillConfigs/BasicAttack_Melee_P6_R0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 41572c9f0af5d4c3c98d59dd5486ec41
+    m_Address: SkillConfigs/BasicAttack_Melee_P4_R0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 835fb93e84b1c4fb5a9219fa4255c0e8
+    m_Address: SkillConfigs/BasicAttack_Melee_P2_R0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 83ad0564cbc0843d696d1c1648d2931b
+    m_Address: SkillConfigs/BasicAttack_Melee_P5_R0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a1832f377e1bb464a9bab52617f3361d
+    m_Address: SkillConfigs/BasicAttack_Ranged_P4_R1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b7ed21051f6f9400b9a521704165e8ce
+    m_Address: SkillConfigs/BasicAttack_Ranged_P3_R1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.SkillConfigs
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: a956aae4fdb314ec3a2a0dbf016cec7f, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 2c4ffdc7ae0bc4c82b500b2c492d8c63, type: 2}
+    - {fileID: 11400000, guid: 8a3e94c6bec864220906efe01b3887d1, type: 2}

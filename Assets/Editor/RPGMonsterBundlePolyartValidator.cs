@@ -184,7 +184,17 @@ public static class RPGMonsterBundlePolyartValidator
                 issues.Add($"Character config is missing a display name: {path}");
             }
 
-            if (config.MaxHealth < 1 || config.AttackPower < 1 || config.Cost < 1 || config.MoveRange < 1)
+            if (!config.HasAssignedSkills)
+            {
+                issues.Add($"Character config is missing assigned skill assets: {path}");
+            }
+
+            if (config.MaxHealth < 1 ||
+                config.PreviewAttackPower < 1 ||
+                config.Cost < 1 ||
+                config.MoveRange < 1 ||
+                config.Speed < 1 ||
+                config.MaxEnergy < 1)
             {
                 issues.Add($"Character config has invalid combat stats: {path}");
             }
@@ -203,10 +213,33 @@ public static class RPGMonsterBundlePolyartValidator
                 issues.Add($"Character config avatar icon is not square: {path}");
             }
 
-            var requiresDirectPrefab = path.Contains("/RPGMonsterBundlePolyart/");
+            var assetName = Path.GetFileNameWithoutExtension(path);
+            var requiresDirectPrefab = HexTacticsRpgMonsterRosterImporter.IsImportedMonsterAssetName(assetName);
             if (requiresDirectPrefab && config.BattleUnitPrefab == null)
             {
                 issues.Add($"Imported RPG monster config is missing its battle prefab reference: {path}");
+            }
+
+            var skills = config.Skills;
+            for (var i = 0; i < skills.Count; i++)
+            {
+                var skill = skills[i];
+                if (skill == null)
+                {
+                    issues.Add($"Character config contains a null skill reference: {path}");
+                    continue;
+                }
+
+                if (skill.Power < 1)
+                {
+                    issues.Add($"Skill has invalid power: {path} -> {skill.name}");
+                }
+
+                if (skill.RequiresDedicatedRangedEffects &&
+                    (!skill.HasProjectileEffect || !skill.HasImpactEffect))
+                {
+                    issues.Add($"Ranged skill is missing projectile or impact effect: {path} -> {skill.name}");
+                }
             }
         }
     }

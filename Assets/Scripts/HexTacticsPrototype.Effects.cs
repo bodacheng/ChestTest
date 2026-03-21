@@ -2,14 +2,15 @@ using UnityEngine;
 
 public sealed partial class HexTacticsPrototype
 {
-    private void SpawnAttackReleaseEffect(HexUnit attacker, HexUnit defender, float travelDuration)
+    private void SpawnAttackReleaseEffect(HexUnit attacker, HexUnit defender, float travelDuration, HexTacticsSkillConfig skill)
     {
-        if (!enableHitEffects || !UsesRangedAttackPresentation(attacker) || effectsRoot == null || attacker?.Transform == null || defender?.Transform == null)
+        if (!enableHitEffects || !UsesRangedAttackPresentation(skill) || effectsRoot == null || attacker?.Transform == null || defender?.Transform == null)
         {
             return;
         }
 
-        if (!TryEnsureRangedWaveEffectLoaded() || rangedWaveEffectPrefab == null)
+        var releaseEffectPrefab = ResolveProjectileEffectPrefab(skill);
+        if (releaseEffectPrefab == null)
         {
             return;
         }
@@ -17,9 +18,9 @@ public sealed partial class HexTacticsPrototype
         var startPosition = ResolveRangedWaveStartPosition(attacker, defender);
         var endPosition = ResolveRangedWaveEndPosition(attacker, defender);
         var effectRotation = ResolveHitEffectRotation(attacker, defender);
-        var effectInstance = Instantiate(rangedWaveEffectPrefab, startPosition, effectRotation, effectsRoot);
-        effectInstance.name = rangedWaveEffectPrefab.name;
-        effectInstance.transform.localScale *= ResolveRangedWaveScale(attacker, defender);
+        var effectInstance = Instantiate(releaseEffectPrefab, startPosition, effectRotation, effectsRoot);
+        effectInstance.name = releaseEffectPrefab.name;
+        effectInstance.transform.localScale *= ResolveRangedWaveScale(attacker, defender) * ResolveProjectileEffectScale(skill);
 
         var travelEffect = effectInstance.GetComponent<HexTacticsTravelingEffect>();
         if (travelEffect == null)
@@ -30,10 +31,25 @@ public sealed partial class HexTacticsPrototype
         travelEffect.Initialize(startPosition, endPosition, Mathf.Max(0.06f, travelDuration));
     }
 
-    private void SpawnHitEffect(HexUnit attacker, HexUnit defender)
+    private void SpawnHitEffect(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
     {
-        if (!enableHitEffects || effectsRoot == null || attacker?.Transform == null || defender?.Transform == null)
+        if (!enableHitEffects || skill == null || effectsRoot == null || attacker?.Transform == null || defender?.Transform == null)
         {
+            return;
+        }
+
+        if (skill.ImpactEffectPrefab != null)
+        {
+            var effectPosition = ResolveConfiguredHitEffectPosition(attacker, defender, skill);
+            var effectRotation = ResolveHitEffectRotation(attacker, defender);
+            var effectInstance = Instantiate(skill.ImpactEffectPrefab, effectPosition, effectRotation, effectsRoot);
+            effectInstance.name = skill.ImpactEffectPrefab.name;
+            effectInstance.transform.localScale *= skill.ImpactEffectScale;
+            if (effectInstance.GetComponent<HexTacticsTransientEffect>() == null)
+            {
+                effectInstance.AddComponent<HexTacticsTransientEffect>();
+            }
+
             return;
         }
 
@@ -42,21 +58,21 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        if (!hitEffectCatalog.TryResolveAutoEffect(attacker.AttackPower, nextHitEffectVariantIndex++, out var entry) ||
+        if (!hitEffectCatalog.TryResolveAutoEffect(skill.Power, nextHitEffectVariantIndex++, out var entry) ||
             entry?.Prefab == null)
         {
             return;
         }
 
-        var effectPosition = ResolveHitEffectPosition(attacker, defender, entry);
-        var effectRotation = ResolveHitEffectRotation(attacker, defender);
-        var effectInstance = Instantiate(entry.Prefab, effectPosition, effectRotation, effectsRoot);
-        effectInstance.name = entry.DisplayName;
-        effectInstance.transform.localScale *= Mathf.Max(0.1f, entry.Scale);
+        var autoEffectPosition = ResolveHitEffectPosition(attacker, defender, entry);
+        var autoEffectRotation = ResolveHitEffectRotation(attacker, defender);
+        var autoEffectInstance = Instantiate(entry.Prefab, autoEffectPosition, autoEffectRotation, effectsRoot);
+        autoEffectInstance.name = entry.DisplayName;
+        autoEffectInstance.transform.localScale *= Mathf.Max(0.1f, entry.Scale);
 
-        if (effectInstance.GetComponent<HexTacticsTransientEffect>() == null)
+        if (autoEffectInstance.GetComponent<HexTacticsTransientEffect>() == null)
         {
-            effectInstance.AddComponent<HexTacticsTransientEffect>();
+            autoEffectInstance.AddComponent<HexTacticsTransientEffect>();
         }
     }
 
@@ -82,6 +98,26 @@ public sealed partial class HexTacticsPrototype
         return rangedWaveEffectPrefab != null;
     }
 
+    private GameObject ResolveProjectileEffectPrefab(HexTacticsSkillConfig skill)
+    {
+        if (skill?.ProjectileEffectPrefab != null)
+        {
+            return skill.ProjectileEffectPrefab;
+        }
+
+        if (!TryEnsureRangedWaveEffectLoaded())
+        {
+            return null;
+        }
+
+        return rangedWaveEffectPrefab;
+    }
+
+    private static float ResolveProjectileEffectScale(HexTacticsSkillConfig skill)
+    {
+        return skill != null ? skill.ProjectileEffectScale : 1f;
+    }
+
     private Vector3 ResolveHitEffectPosition(HexUnit attacker, HexUnit defender, HexTacticsHitEffectEntry entry)
     {
         var direction = defender.Transform.position - attacker.Transform.position;
@@ -95,6 +131,21 @@ public sealed partial class HexTacticsPrototype
         var heightFactor = Mathf.Max(0.2f, entry.HeightNormalized);
         var height = Mathf.Max(unitHoverHeight * 0.85f, defender.VisualHeight * Mathf.Lerp(hitEffectHeightNormalized, heightFactor, 0.75f));
         var forwardOffset = defender.SelectionRadius * Mathf.Max(hitEffectForwardOffset, entry.ForwardOffset);
+        return defender.Transform.position + Vector3.up * height + direction * forwardOffset;
+    }
+
+    private Vector3 ResolveConfiguredHitEffectPosition(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
+    {
+        var direction = defender.Transform.position - attacker.Transform.position;
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 0.0001f)
+        {
+            direction = defender.Transform.forward;
+        }
+
+        direction.Normalize();
+        var height = Mathf.Max(unitHoverHeight * 0.85f, defender.VisualHeight * skill.ImpactHeightNormalized);
+        var forwardOffset = defender.SelectionRadius * Mathf.Max(hitEffectForwardOffset, skill.ImpactForwardOffset);
         return defender.Transform.position + Vector3.up * height + direction * forwardOffset;
     }
 
@@ -134,9 +185,9 @@ public sealed partial class HexTacticsPrototype
         return Mathf.Clamp(0.8f + distance * 0.08f, 0.85f, 1.18f);
     }
 
-    private static bool UsesRangedAttackPresentation(HexUnit attacker)
+    private static bool UsesRangedAttackPresentation(HexTacticsSkillConfig skill)
     {
-        return attacker != null && attacker.AttackRange > 0;
+        return skill != null && skill.AttackRange > 0;
     }
 
     private static Quaternion ResolveHitEffectRotation(HexUnit attacker, HexUnit defender)

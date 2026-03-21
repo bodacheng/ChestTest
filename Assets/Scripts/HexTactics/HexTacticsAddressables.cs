@@ -16,7 +16,9 @@ public static class HexTacticsAddressables
 
     private static AsyncOperationHandle<IResourceLocator> initializationHandle;
     private static AsyncOperationHandle<IList<HexTacticsCharacterConfig>> characterConfigsHandle;
+    private static AsyncOperationHandle<IList<HexTacticsSkillConfig>> skillConfigsHandle;
     private static List<HexTacticsCharacterConfig> cachedCharacterConfigs;
+    private static List<HexTacticsSkillConfig> cachedSkillConfigs;
     private static bool isInitialized;
     private static bool initializationFailed;
     private static bool initializationFailureLogged;
@@ -174,6 +176,56 @@ public static class HexTacticsAddressables
         }
     }
 
+    public static List<HexTacticsSkillConfig> LoadSkillConfigs()
+    {
+        if (cachedSkillConfigs != null)
+        {
+            return new List<HexTacticsSkillConfig>(cachedSkillConfigs);
+        }
+
+        cachedSkillConfigs = new List<HexTacticsSkillConfig>();
+#if UNITY_EDITOR
+        if (Application.isEditor)
+        {
+            cachedSkillConfigs.AddRange(LoadSkillConfigsFromEditor());
+            return new List<HexTacticsSkillConfig>(cachedSkillConfigs);
+        }
+#endif
+
+        if (!EnsureInitialized())
+        {
+            return new List<HexTacticsSkillConfig>();
+        }
+
+        try
+        {
+            skillConfigsHandle = Addressables.LoadAssetsAsync<HexTacticsSkillConfig>(HexTacticsAssetPaths.SkillConfigsLabel, null);
+            var assets = skillConfigsHandle.WaitForCompletion();
+            if (skillConfigsHandle.Status != AsyncOperationStatus.Succeeded || assets == null)
+            {
+                if (skillConfigsHandle.IsValid())
+                {
+                    Addressables.Release(skillConfigsHandle);
+                    skillConfigsHandle = default;
+                }
+
+                cachedSkillConfigs.Clear();
+                return new List<HexTacticsSkillConfig>();
+            }
+
+            cachedSkillConfigs.AddRange(assets);
+            cachedSkillConfigs.RemoveAll(config => config == null);
+            cachedSkillConfigs.Sort((left, right) => string.CompareOrdinal(left.name, right.name));
+            return new List<HexTacticsSkillConfig>(cachedSkillConfigs);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning($"[HexTacticsAddressables] Failed to load skill configs: {exception.Message}");
+            cachedSkillConfigs.Clear();
+            return new List<HexTacticsSkillConfig>();
+        }
+    }
+
     public static void ReleaseAll()
     {
         foreach (var handle in AssetHandles.Values)
@@ -194,6 +246,14 @@ public static class HexTacticsAddressables
         }
 
         cachedCharacterConfigs = null;
+
+        if (skillConfigsHandle.IsValid())
+        {
+            Addressables.Release(skillConfigsHandle);
+            skillConfigsHandle = default;
+        }
+
+        cachedSkillConfigs = null;
 
         if (initializationHandle.IsValid())
         {
@@ -249,6 +309,23 @@ public static class HexTacticsAddressables
 
         roster.Sort((left, right) => string.CompareOrdinal(left.DisplayName, right.DisplayName));
         return roster;
+    }
+
+    private static List<HexTacticsSkillConfig> LoadSkillConfigsFromEditor()
+    {
+        var skills = new List<HexTacticsSkillConfig>();
+        foreach (var guid in AssetDatabase.FindAssets("t:HexTacticsSkillConfig", new[] { HexTacticsAssetPaths.SkillConfigFolder }))
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            var config = AssetDatabase.LoadAssetAtPath<HexTacticsSkillConfig>(path);
+            if (config != null)
+            {
+                skills.Add(config);
+            }
+        }
+
+        skills.Sort((left, right) => string.CompareOrdinal(left.name, right.name));
+        return skills;
     }
 #endif
 }

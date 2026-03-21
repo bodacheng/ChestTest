@@ -43,11 +43,14 @@ public sealed partial class HexTacticsPrototype
                 definition.DisplayName,
                 definition.Description,
                 definition.MaxHealth,
-                definition.AttackPower,
-                definition.AttackRange,
+                definition.PreviewAttackPower,
+                definition.PreviewAttackRange,
                 definition.Speed,
                 definition.MoveRange,
                 definition.Cost,
+                definition.MaxEnergy,
+                definition.SkillCount,
+                definition.PrimarySkill != null ? definition.PrimarySkill.DisplayName : "通常攻撃",
                 BuildAvatarUiData(definition),
                 snapshot.PlayerUsedCost + definition.Cost <= playerTeamCostLimit));
         }
@@ -65,11 +68,14 @@ public sealed partial class HexTacticsPrototype
                 i + 1,
                 entry.Definition.DisplayName,
                 entry.Definition.MaxHealth,
-                entry.Definition.AttackPower,
-                entry.Definition.AttackRange,
+                entry.Definition.PreviewAttackPower,
+                entry.Definition.PreviewAttackRange,
                 entry.Definition.Speed,
                 entry.Definition.MoveRange,
                 entry.Definition.Cost,
+                entry.Definition.MaxEnergy,
+                entry.Definition.SkillCount,
+                entry.Definition.PrimarySkill != null ? entry.Definition.PrimarySkill.DisplayName : "通常攻撃",
                 $"部署格 ({entry.Coord.Q},{entry.Coord.R})",
                 BuildAvatarUiData(entry.Definition)));
         }
@@ -81,7 +87,8 @@ public sealed partial class HexTacticsPrototype
                 snapshot.PlayerCommandEntries.Add(new HexTacticsCommandEntryUiData(
                     unit.Id,
                     unit.Name,
-                    DescribeCommand(unit, compact: false),
+                    BuildCommandEntrySummary(unit),
+                    unit.HasMultipleSkills,
                     selectedUnit == unit,
                     unit.HasAssignedCommand,
                     BuildAvatarUiData(unit.CharacterConfig)));
@@ -166,6 +173,15 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
+    public void UiCycleUnitSkill(int unitId)
+    {
+        var unit = FindUnitById(unitId);
+        if (unit != null)
+        {
+            CycleUnitSkill(unit);
+        }
+    }
+
     public void UiReturnToTeamBuilder()
     {
         ReturnToTeamBuilder();
@@ -189,6 +205,23 @@ public sealed partial class HexTacticsPrototype
         return null;
     }
 
+    private void CycleUnitSkill(HexUnit unit)
+    {
+        if (unit == null || unit.SkillCount <= 1)
+        {
+            return;
+        }
+
+        unit.SelectedSkillIndex = (unit.SelectedSkillIndex + 1) % unit.SkillCount;
+        if (selectedUnit == unit && currentFlowState == FlowState.Planning)
+        {
+            SelectUnit(unit);
+            return;
+        }
+
+        RefreshVisuals();
+    }
+
     private string BuildSelectedUnitSummary()
     {
         if (selectedUnit == null)
@@ -200,7 +233,9 @@ public sealed partial class HexTacticsPrototype
 
         var commandSummary = DescribeCommand(selectedUnit, compact: false);
         var assignmentSummary = selectedUnit.HasAssignedCommand ? "已设置命令" : "等待设置命令";
-        return $"{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  攻 {selectedUnit.AttackPower}  射 {selectedUnit.AttackRange}  速 {selectedUnit.Speed}  移 {selectedUnit.MoveRange}\n{assignmentSummary}  |  {commandSummary}";
+        var selectedSkill = selectedUnit.SelectedSkill;
+        var skillSummary = BuildSkillSummary(selectedSkill);
+        return $"{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  EN {selectedUnit.CurrentEnergy}/{selectedUnit.MaxEnergy}  速 {selectedUnit.Speed}  移 {selectedUnit.MoveRange}\n当前技 {skillSummary}\n{assignmentSummary}  |  {commandSummary}";
     }
 
     private string BuildCurrentCommandSummary(int pendingCount)
@@ -213,8 +248,8 @@ public sealed partial class HexTacticsPrototype
         if (selectedUnit != null && selectedUnit.Team == Team.Blue)
         {
             return selectedUnit.HasAssignedCommand
-                ? $"当前查看：{selectedUnit.RoleName}"
-                : $"当前下令：{selectedUnit.RoleName}";
+                ? $"当前查看：{selectedUnit.RoleName}  |  技 {selectedUnit.SelectedSkill?.DisplayName ?? "未选技"}"
+                : $"当前下令：{selectedUnit.RoleName}  |  技 {selectedUnit.SelectedSkill?.DisplayName ?? "未选技"}";
         }
 
         return pendingCount > 0
@@ -299,6 +334,25 @@ public sealed partial class HexTacticsPrototype
             HexTacticsCharacterVisualArchetype.WhiteTiger => new Color(0.42f, 0.56f, 0.70f, 1f),
             _ => new Color(0.25f, 0.34f, 0.40f, 1f)
         };
+    }
+
+    private string BuildCommandEntrySummary(HexUnit unit)
+    {
+        var currentEnergy = unit != null ? unit.CurrentEnergy : 0;
+        var maxEnergy = unit != null ? unit.MaxEnergy : 0;
+        var skillSummary = BuildSkillSummary(unit != null ? unit.SelectedSkill : null);
+        var commandSummary = unit != null ? DescribeCommand(unit, compact: false) : "尚未设置命令";
+        return $"EN {currentEnergy}/{maxEnergy}  |  当前技 {skillSummary}\n{commandSummary}";
+    }
+
+    private static string BuildSkillSummary(HexTacticsSkillConfig skill)
+    {
+        if (skill == null)
+        {
+            return "未设置";
+        }
+
+        return $"{skill.DisplayName}  攻 {skill.Power}  射 {skill.AttackRange}  消 {skill.EnergyCost}  充 {skill.EnergyGainOnHit}";
     }
 
     private int CountBlueAssignedCommands()

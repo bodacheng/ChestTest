@@ -32,15 +32,12 @@ public sealed partial class HexTacticsPrototype
 
         yield return new WaitForSeconds(cpuThinkDelay);
 
-        var openingMoveAttacks = CollectOpeningMoveCommandAttacks();
         var openingEnemyAttacks = CollectReadyEnemyCommandAttacks();
-        var openingAttacks = new List<AttackEvent>(openingMoveAttacks);
-        openingAttacks.AddRange(openingEnemyAttacks);
+        var openingAttacks = new List<AttackEvent>(openingEnemyAttacks);
         if (openingAttacks.Count > 0)
         {
             lastResolutionKind = ResolutionKind.Attack;
             resolutionStatus = $"第 {planningRoundNumber} 轮进入攻击回合：{openingAttacks.Count} 次攻击依次结算，之后继续执行移动命令";
-            MarkAttackUsage(openingMoveAttacks, lockMovementAfterAttack: false);
             MarkAttackUsage(openingEnemyAttacks, lockMovementAfterAttack: true);
             yield return ResolveAttackTurn(openingAttacks);
             resolvedTurnCount++;
@@ -130,29 +127,6 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
-    private List<AttackEvent> CollectOpeningMoveCommandAttacks()
-    {
-        var events = new List<AttackEvent>();
-        foreach (var unit in units)
-        {
-            if (!IsMoveCommand(unit) || unit.AttackConsumed)
-            {
-                continue;
-            }
-
-            var target = ChooseCpuAttackTargetFromOrigin(unit, unit.Coord, unit.Team == Team.Blue ? Team.Red : Team.Blue);
-            if (target == null)
-            {
-                continue;
-            }
-
-            unit.PlannedAttackTarget = target.Coord;
-            events.Add(new AttackEvent(unit, target));
-        }
-
-        return events;
-    }
-
     private List<AttackEvent> CollectReadyEnemyCommandAttacks()
     {
         var events = new List<AttackEvent>();
@@ -174,7 +148,7 @@ public sealed partial class HexTacticsPrototype
             }
 
             unit.PlannedAttackTarget = target.Coord;
-            events.Add(new AttackEvent(unit, target));
+            events.Add(new AttackEvent(unit, target, unit.PlannedSkillIndex));
         }
 
         return events;
@@ -185,27 +159,20 @@ public sealed partial class HexTacticsPrototype
         var events = new List<AttackEvent>();
         foreach (var unit in units)
         {
-            if (unit.AttackConsumed || !unit.HasPlannedMove)
+            if (unit.AttackConsumed || !IsEnemyCommand(unit))
             {
                 continue;
             }
 
             HexUnit target = null;
-            if (IsEnemyCommand(unit))
+            if (!TryResolveTrackedAttackTarget(unit, out target, allowAlternateTarget: true))
             {
-                if (!TryResolveTrackedAttackTarget(unit, out target, allowAlternateTarget: true))
+                if (!IsUnitAlive(unit.PlannedEnemyTargetUnit))
                 {
-                    if (!IsUnitAlive(unit.PlannedEnemyTargetUnit))
-                    {
-                        unit.MovementLocked = true;
-                    }
-
-                    continue;
+                    unit.MovementLocked = true;
                 }
-            }
-            else if (IsMoveCommand(unit))
-            {
-                target = ChooseCpuAttackTargetFromOrigin(unit, unit.Coord, unit.Team == Team.Blue ? Team.Red : Team.Blue);
+
+                continue;
             }
 
             if (target == null)
@@ -214,7 +181,7 @@ public sealed partial class HexTacticsPrototype
             }
 
             unit.PlannedAttackTarget = target.Coord;
-            events.Add(new AttackEvent(unit, target));
+            events.Add(new AttackEvent(unit, target, unit.PlannedSkillIndex));
         }
 
         return events;
@@ -530,9 +497,10 @@ public sealed partial class HexTacticsPrototype
             }
 
             resolvedCount = CountResolvableAttacks(attacks, i);
+            var skillLabel = attack.Skill != null ? $" [{attack.Skill.DisplayName}]" : string.Empty;
             resolutionStatus = resolvedCount == 1
-                ? $"{attack.Attacker.RoleName} 攻击 {attack.Defender.RoleName}"
-                : $"依次结算：{attack.Attacker.RoleName} 攻击 {attack.Defender.RoleName}";
+                ? $"{attack.Attacker.RoleName}{skillLabel} 攻击 {attack.Defender.RoleName}"
+                : $"依次结算：{attack.Attacker.RoleName}{skillLabel} 攻击 {attack.Defender.RoleName}";
 
             SetAttackCameraFocus(attack.Attacker, attack.Defender);
             yield return ResolveSingleAttack(attack);
@@ -563,22 +531,29 @@ public sealed partial class HexTacticsPrototype
 
         var attacker = attack.Attacker;
         var defender = attack.Defender;
+        var skill = attack.Skill;
+        if (skill == null)
+        {
+            yield break;
+        }
+
         var attackerStart = attacker.Transform.localPosition;
         var impactToken = attacker.AnimationEventRelay != null ? attacker.AnimationEventRelay.AttackImpactCount : -1;
 
+        SpendSkillEnergy(attacker, skill);
         PlayUnitAttack(attacker, defender.Transform.position);
         yield return null;
 
         var attackClip = ResolveAttackClip(attacker);
         var impactDelay = ResolveAttackImpactDelay(attacker, attackClip);
         var swingDuration = ResolveAttackSwingDuration(attacker, impactDelay, attackClip);
-        var usesRangedPresentation = UsesRangedAttackPresentation(attacker);
+        var usesRangedPresentation = UsesRangedAttackPresentation(skill);
         var elapsed = 0f;
         var hitApplied = false;
 
         if (usesRangedPresentation)
         {
-            SpawnAttackReleaseEffect(attacker, defender, impactDelay);
+            SpawnAttackReleaseEffect(attacker, defender, impactDelay, skill);
         }
 
         while (elapsed < swingDuration)
@@ -593,7 +568,7 @@ public sealed partial class HexTacticsPrototype
             if (!hitApplied && ShouldApplyAttackImpact(attacker, impactToken, elapsed, impactDelay))
             {
                 hitApplied = true;
-                ApplyAttackImpact(attacker, defender);
+                ApplyAttackImpact(attacker, defender, skill);
             }
 
             yield return null;
@@ -601,7 +576,7 @@ public sealed partial class HexTacticsPrototype
 
         if (!hitApplied)
         {
-            ApplyAttackImpact(attacker, defender);
+            ApplyAttackImpact(attacker, defender, skill);
         }
 
         attacker.Transform.localPosition = attackerStart;
@@ -629,9 +604,12 @@ public sealed partial class HexTacticsPrototype
     {
         return IsUnitAlive(attack.Attacker) &&
                IsUnitAlive(attack.Defender) &&
+               attack.Attacker.Team != attack.Defender.Team &&
+               attack.Skill != null &&
+               CanUseSkill(attack.Attacker, attack.Skill) &&
                attack.Attacker.Transform != null &&
                attack.Defender.Transform != null &&
-               IsWithinAttackRange(attack.Attacker, attack.Defender);
+               IsWithinAttackRange(attack.Attacker, attack.Defender, attack.Skill);
     }
 
     private static int CompareAttackEventsByInitiative(AttackEvent left, AttackEvent right)
@@ -727,16 +705,17 @@ public sealed partial class HexTacticsPrototype
                elapsed >= impactDelay;
     }
 
-    private void ApplyAttackImpact(HexUnit attacker, HexUnit defender)
+    private void ApplyAttackImpact(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
     {
-        if (!IsUnitAlive(attacker) || !IsUnitAlive(defender))
+        if (!IsUnitAlive(attacker) || !IsUnitAlive(defender) || skill == null)
         {
             return;
         }
 
         FaceUnitTowards(defender, attacker.Transform.position, immediate: false);
-        defender.CurrentHealth = Mathf.Max(0, defender.CurrentHealth - attacker.AttackPower);
-        SpawnHitEffect(attacker, defender);
+        defender.CurrentHealth = Mathf.Max(0, defender.CurrentHealth - skill.Power);
+        GainSkillEnergy(attacker, skill);
+        SpawnHitEffect(attacker, defender, skill);
         if (defender.CurrentHealth > 0)
         {
             PlayUnitDamaged(defender);
@@ -957,7 +936,7 @@ public sealed partial class HexTacticsPrototype
             return false;
         }
 
-        var desiredAttackReach = IsEnemyCommand(unit) ? GetAttackReach(unit) : 0;
+        var desiredAttackReach = IsEnemyCommand(unit) ? GetAttackReach(unit.PlannedSkill) : 0;
         var path = FindShortestPath(
             unit,
             unit.Coord,
@@ -983,25 +962,41 @@ public sealed partial class HexTacticsPrototype
             return false;
         }
 
+        var plannedSkill = unit.PlannedSkill;
+        if (plannedSkill == null || !CanUseSkill(unit, plannedSkill))
+        {
+            return false;
+        }
+
         if (IsUnitAlive(unit.PlannedEnemyTargetUnit))
         {
-            if (!IsWithinAttackRange(unit, unit.PlannedEnemyTargetUnit))
+            if (!IsWithinAttackRange(unit, unit.PlannedEnemyTargetUnit, plannedSkill))
             {
                 if (!allowAlternateTarget)
                 {
                     return false;
                 }
 
-                target = ChooseCpuAttackTargetFromOrigin(unit, unit.Coord, unit.Team == Team.Blue ? Team.Red : Team.Blue);
-                return target != null;
+                var alternateSelection = ChooseAttackSelectionFromOrigin(
+                    unit,
+                    unit.Coord,
+                    unit.Team == Team.Blue ? Team.Red : Team.Blue,
+                    forcedSkillIndex: unit.PlannedSkillIndex);
+                target = alternateSelection.Target;
+                return alternateSelection.HasValue;
             }
 
             target = unit.PlannedEnemyTargetUnit;
             return true;
         }
 
-        target = ChooseCpuAttackTargetFromOrigin(unit, unit.Coord, unit.Team == Team.Blue ? Team.Red : Team.Blue);
-        return target != null;
+        var selection = ChooseAttackSelectionFromOrigin(
+            unit,
+            unit.Coord,
+            unit.Team == Team.Blue ? Team.Red : Team.Blue,
+            forcedSkillIndex: unit.PlannedSkillIndex);
+        target = selection.Target;
+        return selection.HasValue;
     }
 
     private int GetMoveStepPriority(HexUnit unit, HexCell candidateCell)
@@ -1359,8 +1354,8 @@ public sealed partial class HexTacticsPrototype
                     continue;
                 }
 
-                var score = candidate.AttackPower * 10 - candidate.CurrentHealth;
-                if (candidate.CurrentHealth <= attacker.AttackPower)
+                var score = GetUnitThreatPower(candidate) * 10 - candidate.CurrentHealth;
+                if (candidate.CurrentHealth <= GetUnitThreatPower(attacker))
                 {
                     score += 50;
                 }
@@ -1374,7 +1369,11 @@ public sealed partial class HexTacticsPrototype
 
             if (bestTarget != null)
             {
-                events.Add(new AttackEvent(attacker, bestTarget));
+                var skillIndex = ChooseSkillIndexAgainstTarget(attacker, attacker.Coord, bestTarget, preferNonConsumingSkill: true);
+                if (skillIndex >= 0)
+                {
+                    events.Add(new AttackEvent(attacker, bestTarget, skillIndex));
+                }
             }
         }
 
@@ -1721,6 +1720,7 @@ public sealed partial class HexTacticsPrototype
         unit.PlannedMoveTarget = target;
         unit.PlannedEnemyTargetUnit = null;
         unit.PlannedAttackTarget = unit.Coord;
+        unit.PlannedSkillIndex = -1;
         unit.PlannedPath.Clear();
         unit.PlannedMoveProgress = 0;
         unit.AttackConsumed = false;
@@ -1729,9 +1729,20 @@ public sealed partial class HexTacticsPrototype
         return true;
     }
 
-    private void TryAssignAttackCommand(HexUnit unit, HexCoord target)
+    private void TryAssignAttackCommand(HexUnit unit, HexCoord target, int skillIndex)
     {
+        if (unit == null)
+        {
+            return;
+        }
+
         if (!cells.TryGetValue(target, out var targetCell) || targetCell.Occupant == null || targetCell.Occupant.Team == unit.Team)
+        {
+            return;
+        }
+
+        var skill = unit.GetSkillAt(skillIndex);
+        if (!HasEnemyTargetAt(unit, target) || !CanUseSkill(unit, skill))
         {
             return;
         }
@@ -1741,6 +1752,7 @@ public sealed partial class HexTacticsPrototype
         unit.PlannedMoveTarget = unit.Coord;
         unit.PlannedEnemyTargetUnit = targetCell.Occupant;
         unit.PlannedAttackTarget = targetCell.Occupant.Coord;
+        unit.PlannedSkillIndex = Mathf.Clamp(skillIndex, 0, Mathf.Max(0, unit.SkillCount - 1));
         unit.PlannedPath.Clear();
         unit.PlannedMoveProgress = 0;
         unit.AttackConsumed = false;
@@ -1755,6 +1767,7 @@ public sealed partial class HexTacticsPrototype
         unit.PlannedMoveTarget = unit.Coord;
         unit.PlannedAttackTarget = unit.Coord;
         unit.PlannedEnemyTargetUnit = null;
+        unit.PlannedSkillIndex = -1;
         unit.PlannedAttackTiming = AttackTiming.BeforeMove;
         unit.PlannedPath.Clear();
         unit.PlannedMoveProgress = 0;
@@ -1826,12 +1839,12 @@ public sealed partial class HexTacticsPrototype
         return true;
     }
 
-    private bool CanSelectAttackTarget(HexUnit unit, HexCoord target)
+    private bool CanAssignEnemyTarget(HexUnit unit, HexCoord target)
     {
-        return CanSelectAttackTargetFromOrigin(unit, unit != null ? unit.Coord : default, target);
+        return HasEnemyTargetAt(unit, target) && CanUseSkill(unit, unit != null ? unit.SelectedSkill : null);
     }
 
-    private bool CanAssignEnemyTarget(HexUnit unit, HexCoord target)
+    private bool HasEnemyTargetAt(HexUnit unit, HexCoord target)
     {
         if (unit == null || !cells.TryGetValue(target, out var targetCell) || targetCell.Occupant == null)
         {
@@ -1841,14 +1854,14 @@ public sealed partial class HexTacticsPrototype
         return targetCell.Occupant.Team != unit.Team;
     }
 
-    private bool CanSelectAttackTargetFromOrigin(HexUnit unit, HexCoord origin, HexCoord target)
+    private bool CanSelectAttackTargetFromOrigin(HexUnit unit, HexCoord origin, HexCoord target, HexTacticsSkillConfig skill)
     {
-        if (!CanAssignEnemyTarget(unit, target))
+        if (!HasEnemyTargetAt(unit, target) || !CanUseSkill(unit, skill))
         {
             return false;
         }
 
-        return IsWithinAttackRange(origin, target, unit.AttackRange);
+        return IsWithinAttackRange(origin, target, skill);
     }
 
     private void ClearMoveCommand(HexUnit unit)
@@ -1884,10 +1897,55 @@ public sealed partial class HexTacticsPrototype
         if (IsEnemyCommand(unit))
         {
             return IsUnitAlive(unit.PlannedEnemyTargetUnit) &&
-                   HexDistance(unit.Coord, unit.PlannedEnemyTargetUnit.Coord) > GetAttackReach(unit);
+                   HexDistance(unit.Coord, unit.PlannedEnemyTargetUnit.Coord) > GetAttackReach(unit.PlannedSkill);
         }
 
         return unit.Coord != unit.PlannedMoveTarget;
+    }
+
+    private static bool CanUseSkill(HexUnit unit, HexTacticsSkillConfig skill)
+    {
+        return unit != null && skill != null && unit.CurrentEnergy >= skill.EnergyCost;
+    }
+
+    private static void SpendSkillEnergy(HexUnit unit, HexTacticsSkillConfig skill)
+    {
+        if (unit == null || skill == null || skill.EnergyCost <= 0)
+        {
+            return;
+        }
+
+        unit.CurrentEnergy = Mathf.Max(0, unit.CurrentEnergy - skill.EnergyCost);
+    }
+
+    private static void GainSkillEnergy(HexUnit unit, HexTacticsSkillConfig skill)
+    {
+        if (unit == null || skill == null || skill.EnergyGainOnHit <= 0)
+        {
+            return;
+        }
+
+        unit.CurrentEnergy = Mathf.Min(unit.MaxEnergy, unit.CurrentEnergy + skill.EnergyGainOnHit);
+    }
+
+    private static int GetUnitThreatPower(HexUnit unit)
+    {
+        if (unit == null || unit.SkillCount <= 0)
+        {
+            return 1;
+        }
+
+        var bestPower = 1;
+        for (var i = 0; i < unit.SkillCount; i++)
+        {
+            var skill = unit.GetSkillAt(i);
+            if (skill != null)
+            {
+                bestPower = Mathf.Max(bestPower, skill.Power);
+            }
+        }
+
+        return bestPower;
     }
 
     private bool HasPendingMoveSteps()

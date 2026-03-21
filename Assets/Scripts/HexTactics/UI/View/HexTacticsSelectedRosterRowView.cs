@@ -43,7 +43,7 @@ public sealed class HexTacticsSelectedRosterRowView : HexTacticsUiGeneratedView,
         ApplyAvatar(data.Avatar);
         titleText.text = $"{data.DisplayIndex}. {data.DisplayName}";
         statsText.text = data.DeploymentText;
-        deploymentText.text = $"HP {data.MaxHealth}  /  攻 {data.AttackPower}  /  射 {data.AttackRange}  /  速 {data.Speed}  /  移 {data.MoveRange}  /  费 {data.Cost}";
+        deploymentText.text = $"HP {data.MaxHealth}  /  技 {data.SkillCount}  /  主技 {data.PrimarySkillName}  /  攻 {data.AttackPower}  /  射 {data.AttackRange}  /  EN {data.MaxEnergy}  /  速 {data.Speed}  /  移 {data.MoveRange}  /  费 {data.Cost}";
         removeButton.onClick.RemoveAllListeners();
         removeButton.onClick.AddListener(() => onRemove?.Invoke(data.EntryId));
     }

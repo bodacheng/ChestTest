@@ -166,6 +166,12 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
             return;
         }
 
+        if (Keyboard.current.rKey.wasPressedThisFrame)
+        {
+            CycleUnitSkill(selectedUnit);
+            return;
+        }
+
         if (Keyboard.current.qKey.wasPressedThisFrame)
         {
             AssignDirectionalCommand(selectedUnit, new HexCoord(-1, 0));

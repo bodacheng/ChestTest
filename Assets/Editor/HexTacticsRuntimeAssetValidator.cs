@@ -24,6 +24,7 @@ public static class HexTacticsRuntimeAssetValidator
         ValidateUiAssets(errors);
         ValidateBattleUnitAssets(errors);
         ValidateCharacterConfigs(errors);
+        ValidateSkillConfigs(errors);
         ValidateAttackEffects(errors);
         ValidateHitEffects(errors);
 
@@ -92,6 +93,37 @@ public static class HexTacticsRuntimeAssetValidator
             else if (!Mathf.Approximately(configs[i].Avatar.rect.width, configs[i].Avatar.rect.height))
             {
                 errors.Add($"Character config '{configs[i].name}' avatar icon is not square.");
+            }
+        }
+    }
+
+    private static void ValidateSkillConfigs(List<string> errors)
+    {
+        var skills = HexTacticsAddressables.LoadSkillConfigs();
+        if (skills.Count == 0)
+        {
+            errors.Add("No skill configs could be loaded.");
+            return;
+        }
+
+        for (var i = 0; i < skills.Count; i++)
+        {
+            var skill = skills[i];
+            if (skill == null)
+            {
+                errors.Add($"Skill config at index {i} is null.");
+                continue;
+            }
+
+            if (skill.Power < 1)
+            {
+                errors.Add($"Skill config '{skill.name}' has invalid power.");
+            }
+
+            if (skill.RequiresDedicatedRangedEffects &&
+                (!skill.HasProjectileEffect || !skill.HasImpactEffect))
+            {
+                errors.Add($"Ranged skill config '{skill.name}' is missing projectile or impact effect.");
             }
         }
     }

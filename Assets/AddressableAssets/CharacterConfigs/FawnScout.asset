@@ -15,14 +15,18 @@ MonoBehaviour:
   displayName: "\u5E7C\u9E7F\u65A5\u5019"
   description: "\u5E7C\u9E7F\uFF0C\u4F4E cost \u9AD8\u673A\u52A8\u4FA6\u5BDF"
   maxHealth: 7
-  attackPower: 2
   cost: 2
   moveRange: 2
-  attackRange: 0
   speed: 6
+  maxEnergy: 3
+  startingEnergy: 0
+  skills:
+  - {fileID: 11400000, guid: 835fb93e84b1c4fb5a9219fa4255c0e8, type: 2}
   visualArchetype: 3
   avatar: {fileID: 21300000, guid: fa47175c91845405990edb99d43713be, type: 3}
   battleUnitPrefab: {fileID: 0}
   visualHeightScale: 1
   attackImpactFrame: 24
   attackImpactNormalizedTime: 0.45
+  attackPower: 2
+  attackRange: 0

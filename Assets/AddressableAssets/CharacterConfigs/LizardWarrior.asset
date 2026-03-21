@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1c79c0b9f6744bbac1885a8f6a61101, type: 3}
+  m_Name: LizardWarrior
+  m_EditorClassIdentifier: Assembly-CSharp::HexTacticsCharacterConfig
+  displayName: "\u8725\u8734\u6218\u58EB"
+  description: "\u8D34\u8EAB\u8089\u640F"
+  maxHealth: 11
+  cost: 4
+  moveRange: 1
+  speed: 3
+  maxEnergy: 3
+  startingEnergy: 0
+  skills:
+  - {fileID: 11400000, guid: 41572c9f0af5d4c3c98d59dd5486ec41, type: 2}
+  visualArchetype: 0
+  avatar: {fileID: 21300000, guid: eb384f1c5bded416bad30ffed17a03f2, type: 3}
+  battleUnitPrefab: {fileID: 5863903103509005198, guid: 6c5faca13f204c80a5d24f8ff53af0cd, type: 3}
+  visualHeightScale: 1
+  attackImpactFrame: 16
+  attackImpactNormalizedTime: 0.48
+  attackPower: 4
+  attackRange: 0

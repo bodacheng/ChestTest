@@ -56,6 +56,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             Action waitSelectedUnit,
             Action<int> selectCommandUnit,
             Action<int> waitCommandUnit,
+            Action<int> cycleCommandUnitSkill,
             Action returnToTeamBuilder,
             Action retryBattle)
         {
@@ -70,6 +71,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             WaitSelectedUnit = waitSelectedUnit;
             SelectCommandUnit = selectCommandUnit;
             WaitCommandUnit = waitCommandUnit;
+            CycleCommandUnitSkill = cycleCommandUnitSkill;
             ReturnToTeamBuilder = returnToTeamBuilder;
             RetryBattle = retryBattle;
         }
@@ -85,6 +87,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         public Action WaitSelectedUnit { get; }
         public Action<int> SelectCommandUnit { get; }
         public Action<int> WaitCommandUnit { get; }
+        public Action<int> CycleCommandUnitSkill { get; }
         public Action ReturnToTeamBuilder { get; }
         public Action RetryBattle { get; }
     }
@@ -113,7 +116,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
 
         modeSelectScreen.Bind(actions.StartCpuMode);
         teamBuilderScreen.Bind(snapshot, actions.ReturnToModeSelect, actions.AddRosterEntry, actions.PlaceRosterEntryAt, actions.RemoveSelectionEntry, actions.MoveSelectionEntryAt, actions.StartBattle);
-        planningScreen.Bind(snapshot, actions.ClearSelection, actions.WaitSelectedUnit, actions.SelectCommandUnit, actions.WaitCommandUnit);
+        planningScreen.Bind(snapshot, actions.ClearSelection, actions.WaitSelectedUnit, actions.SelectCommandUnit, actions.WaitCommandUnit, actions.CycleCommandUnitSkill);
         resolvingScreen.Bind(snapshot);
         victoryOverlay.Bind(snapshot, actions.ReturnToTeamBuilder, actions.RetryBattle);
 
@@ -271,7 +274,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             ConfigureBottomCenteredCard(
                 planningScreen.Root,
                 safeWidth - screenMargin * 2f,
-                Mathf.Clamp(safeHeight * 0.22f, 220f, 300f),
+                Mathf.Clamp(safeHeight * 0.44f, 360f, 520f),
                 screenMargin);
 
             ConfigureTopCenteredCard(
@@ -285,7 +288,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             ConfigureTopLeftCard(
                 planningScreen.Root,
                 battlePanelWidth,
-                Mathf.Clamp(safeHeight * 0.46f, 420f, 500f),
+                Mathf.Clamp(safeHeight * 0.54f, 480f, 580f),
                 screenMargin,
                 screenMargin);
 

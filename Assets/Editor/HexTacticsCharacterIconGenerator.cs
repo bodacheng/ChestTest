@@ -29,13 +29,7 @@ public static class HexTacticsCharacterIconGenerator
 
     public static int GenerateIconsForConfigs(IEnumerable<HexTacticsCharacterConfig> configs, List<string> issues)
     {
-        EnsureFolder(HexTacticsAssetPaths.CharacterIconFolder);
-        HexTacticsCharacterThumbnailStudio.EnsureSceneAsset();
-
-        var generatedCount = 0;
-        var processedAssetPaths = new HashSet<string>();
-        using var studio = new HexTacticsCharacterThumbnailStudio();
-
+        var configPaths = new List<string>();
         foreach (var config in configs)
         {
             if (config == null)
@@ -44,9 +38,39 @@ public static class HexTacticsCharacterIconGenerator
                 continue;
             }
 
-            var assetPath = AssetDatabase.GetAssetPath(config);
-            if (!string.IsNullOrWhiteSpace(assetPath) && !processedAssetPaths.Add(assetPath))
+            configPaths.Add(AssetDatabase.GetAssetPath(config));
+        }
+
+        return GenerateIconsForConfigPaths(configPaths, issues);
+    }
+
+    public static int GenerateIconsForConfigPaths(IEnumerable<string> configPaths, List<string> issues)
+    {
+        EnsureFolder(HexTacticsAssetPaths.CharacterIconFolder);
+        HexTacticsCharacterThumbnailStudio.EnsureSceneAsset();
+
+        var generatedCount = 0;
+        var processedAssetPaths = new HashSet<string>();
+        using var studio = new HexTacticsCharacterThumbnailStudio();
+
+        foreach (var configPath in configPaths)
+        {
+            var normalizedPath = configPath?.Replace('\\', '/');
+            if (string.IsNullOrWhiteSpace(normalizedPath))
             {
+                issues?.Add("Character icon generation received an empty config path in a batch.");
+                continue;
+            }
+
+            if (!processedAssetPaths.Add(normalizedPath))
+            {
+                continue;
+            }
+
+            var config = AssetDatabase.LoadAssetAtPath<HexTacticsCharacterConfig>(normalizedPath);
+            if (config == null)
+            {
+                issues?.Add($"Character icon generation could not reload config: {normalizedPath}");
                 continue;
             }
 

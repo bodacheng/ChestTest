@@ -16,37 +16,37 @@ MonoBehaviour:
   m_GUID: ceb9a88aa137a4d59b95d9c60f849ce3
   m_SerializeEntries:
   - m_GUID: 0b9f2660dda3242568a6b3d172f3cb49
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/RatAssassin
+    m_Address: CharacterConfigs/RatAssassin
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 0d7afc7aaba694b70a9a3f47af0aded8
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Beholder
+    m_Address: CharacterConfigs/Beholder
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 0e841d4482f9644bba777949529a7799
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/BlackKnight
+    m_Address: CharacterConfigs/BlackKnight
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 19df8a15b587d4cecb5f2594ef5f1082
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Skeleton
+    m_Address: CharacterConfigs/Skeleton
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 19e9a6804790f4b7c84d5b7c4e43dd4e
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/EvilMage
+    m_Address: CharacterConfigs/EvilMage
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 24b6e377930324e33973a40f5f5dcdd5
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/FlyingDemon
+    m_Address: CharacterConfigs/FlyingDemon
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
@@ -64,37 +64,37 @@ MonoBehaviour:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2db1ea42323434a9f93e8680de07dfb2
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Cactus
+    m_Address: CharacterConfigs/Cactus
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2efa50ebc253b4be7bd0b21106f39189
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/MonsterPlant
+    m_Address: CharacterConfigs/MonsterPlant
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 358ae2cee0d0242ae9357112958be78b
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/ChestMonster
+    m_Address: CharacterConfigs/ChestMonster
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 3a63c60ce3e164b9488ad2449ba478a9
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/WormMonster
+    m_Address: CharacterConfigs/WormMonster
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 48a2936e29ca749a8ad4bbc7f6577d0d
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/NagaWizard
+    m_Address: CharacterConfigs/NagaWizard
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 551920fe1b14946a1962ab5f0e8faebb
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Specter
+    m_Address: CharacterConfigs/Specter
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
@@ -106,37 +106,37 @@ MonoBehaviour:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 62df7ef7595354759a371f5aba4e2a01
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Fishman
+    m_Address: CharacterConfigs/Fishman
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 64404c5cbcccb4a75b81467fe117c71b
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/DemonKing
+    m_Address: CharacterConfigs/DemonKing
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6b75eca16941b413784cf62f04de0b14
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Bat
+    m_Address: CharacterConfigs/Bat
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6ed2b78b07eb04d108fedad1fd926862
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Golem
+    m_Address: CharacterConfigs/Golem
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 7035f6cea38a448ae86fa6b4b3f75a1e
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/StingRay
+    m_Address: CharacterConfigs/StingRay
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 879189dcc2d5e4bb1ad16412014f9b15
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/MushroomSmile
+    m_Address: CharacterConfigs/MushroomSmile
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
@@ -148,19 +148,19 @@ MonoBehaviour:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8f0c6c96309374147a4cd9c4397c1837
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Spider
+    m_Address: CharacterConfigs/Spider
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 94d37678dec0c46f484bf434ba4a924e
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/BishopKnight
+    m_Address: CharacterConfigs/BishopKnight
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 96e00c18770b94abdb70423b6b956b73
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Dragon
+    m_Address: CharacterConfigs/Dragon
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
@@ -172,61 +172,61 @@ MonoBehaviour:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 9ed62a414608c4cdf9ae39dd9ceb582c
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/MushroomAngry
+    m_Address: CharacterConfigs/MushroomAngry
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a04181e6f79ec4d8c8b217bd834b19e5
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Slime
+    m_Address: CharacterConfigs/Slime
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a5eae1fd3431043d58d1e4bf2d77a285
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/TurtleShell
+    m_Address: CharacterConfigs/TurtleShell
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b007cfec19f014f5ea63ed25a10bb56c
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Werewolf
+    m_Address: CharacterConfigs/Werewolf
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b42b711d161e245c48b36ec0c63be86e
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Orc
+    m_Address: CharacterConfigs/Orc
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c5fba79dbd366431686f94cbf6a05130
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Salamander
+    m_Address: CharacterConfigs/Salamander
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cc73adb35cdbb41f98a2eb0f8323fa16
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/CrabMonster
+    m_Address: CharacterConfigs/CrabMonster
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ce80ba71f220947648b2a33dd1a8e18c
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/BattleBee
+    m_Address: CharacterConfigs/BattleBee
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ec21f03b8d8d94d8db7c2d0df74becdd
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/Cyclops
+    m_Address: CharacterConfigs/Cyclops
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ec570f0bebd464e2091f5aefa4907d11
-    m_Address: CharacterConfigs/RPGMonsterBundlePolyart/LizardWarrior
+    m_Address: CharacterConfigs/LizardWarrior
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
