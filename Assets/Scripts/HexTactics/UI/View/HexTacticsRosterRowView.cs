@@ -47,7 +47,7 @@ public sealed class HexTacticsRosterRowView : HexTacticsUiGeneratedView, IBeginD
         ApplyAvatar(data.Avatar);
         titleText.text = data.DisplayName;
         statsText.text = BuildCompactDescription(data.Description);
-        hintText.text = $"HP {data.MaxHealth}  /  攻 {data.AttackPower}  /  移 {data.MoveRange}  /  费 {data.Cost}";
+        hintText.text = $"HP {data.MaxHealth}  /  攻 {data.AttackPower}  /  射 {data.AttackRange}  /  速 {data.Speed}  /  移 {data.MoveRange}  /  费 {data.Cost}";
         addButton.interactable = data.CanAdd;
         addButton.onClick.RemoveAllListeners();
         addButton.onClick.AddListener(() => onAdd?.Invoke(data.RosterIndex));

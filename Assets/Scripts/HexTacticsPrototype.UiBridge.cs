@@ -44,6 +44,8 @@ public sealed partial class HexTacticsPrototype
                 definition.Description,
                 definition.MaxHealth,
                 definition.AttackPower,
+                definition.AttackRange,
+                definition.Speed,
                 definition.MoveRange,
                 definition.Cost,
                 BuildAvatarUiData(definition),
@@ -64,6 +66,8 @@ public sealed partial class HexTacticsPrototype
                 entry.Definition.DisplayName,
                 entry.Definition.MaxHealth,
                 entry.Definition.AttackPower,
+                entry.Definition.AttackRange,
+                entry.Definition.Speed,
                 entry.Definition.MoveRange,
                 entry.Definition.Cost,
                 $"部署格 ({entry.Coord.Q},{entry.Coord.R})",
@@ -87,11 +91,9 @@ public sealed partial class HexTacticsPrototype
             {
                 snapshot.WorldLabels.Add(new HexTacticsWorldLabelUiData(
                     unit.Id,
-                    unit.Transform.position + new Vector3(0f, unit.LabelHeight, 0f),
-                    unit.Name,
-                    currentFlowState == FlowState.Planning
-                        ? DescribeCommand(unit, compact: true)
-                        : $"ATK {unit.AttackPower}  MOVE {unit.MoveRange}",
+                    unit.Transform.position + new Vector3(0f, Mathf.Max(0.2f, unit.LabelHeight - 0.16f), 0f),
+                    string.Empty,
+                    string.Empty,
                     unit.Team == Team.Blue,
                     unit.CurrentHealth,
                     unit.MaxHealth));
@@ -198,7 +200,7 @@ public sealed partial class HexTacticsPrototype
 
         var commandSummary = DescribeCommand(selectedUnit, compact: false);
         var assignmentSummary = selectedUnit.HasAssignedCommand ? "已设置命令" : "等待设置命令";
-        return $"{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  ATK {selectedUnit.AttackPower}  MOVE {selectedUnit.MoveRange}\n{assignmentSummary}  |  {commandSummary}";
+        return $"{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  攻 {selectedUnit.AttackPower}  射 {selectedUnit.AttackRange}  速 {selectedUnit.Speed}  移 {selectedUnit.MoveRange}\n{assignmentSummary}  |  {commandSummary}";
     }
 
     private string BuildCurrentCommandSummary(int pendingCount)

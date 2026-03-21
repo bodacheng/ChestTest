@@ -346,8 +346,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
 
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(worldLabelLayer, screenPoint, null, out var localPoint))
             {
-                var horizontalOffset = screenPoint.x < Screen.width * 0.5f ? -24f : 24f;
-                var targetPosition = localPoint + new Vector2(horizontalOffset, 32f);
+                var targetPosition = localPoint + new Vector2(0f, 14f);
                 worldLabelViews[i].RectTransform.anchoredPosition = ClampWorldLabelPosition(worldLabelViews[i].RectTransform, targetPosition);
             }
         }

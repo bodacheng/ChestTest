@@ -51,6 +51,7 @@ public static class HexTacticsAddressablesSync
 
         SyncFolder(settings, HexTacticsAssetPaths.CharacterConfigFolder, "t:HexTacticsCharacterConfig", characterConfigsGroup, HexTacticsAssetPaths.CharacterConfigsLabel);
         SyncFolder(settings, HexTacticsAssetPaths.BattleUnitFolder, "t:Prefab", battleUnitsGroup, HexTacticsAssetPaths.BattleUnitsLabel);
+        SyncFolder(settings, HexTacticsAssetPaths.AttackEffectsFolder, "t:Prefab", effectsGroup, HexTacticsAssetPaths.EffectsLabel);
         SyncFolder(settings, HexTacticsAssetPaths.HitEffectsFolder, "t:Prefab", effectsGroup, HexTacticsAssetPaths.EffectsLabel);
         SyncFolder(settings, HexTacticsAssetPaths.HitEffectsFolder, "t:HexTacticsHitEffectCatalog", effectsGroup, HexTacticsAssetPaths.EffectsLabel);
         SyncFolder(settings, HexTacticsAssetPaths.UiFolder, "t:Prefab", uiGroup, HexTacticsAssetPaths.UiLabel);

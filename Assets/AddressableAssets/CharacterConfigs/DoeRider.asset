@@ -18,6 +18,8 @@ MonoBehaviour:
   attackPower: 3
   cost: 3
   moveRange: 3
+  attackRange: 1
+  speed: 5
   visualArchetype: 1
   avatar: {fileID: 0}
   attackImpactFrame: 24

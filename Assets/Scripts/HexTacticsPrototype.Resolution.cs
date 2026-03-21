@@ -66,6 +66,7 @@ public sealed partial class HexTacticsPrototype
             var stepResult = EvaluateMoveTurn();
             lastResolutionKind = ResolutionKind.Move;
             yield return ResolveMoveTurn(resolvedTurnCount > 0, moveTurnIndex, stepResult);
+            ResolveFriendlyOccupiedMoveGoals(stepResult);
             if (stepResult.SuccessfulMoves.Count == 0)
             {
                 break;
@@ -162,19 +163,18 @@ public sealed partial class HexTacticsPrototype
                 continue;
             }
 
-            if (!IsUnitAlive(unit.PlannedEnemyTargetUnit))
+            if (!TryResolveTrackedAttackTarget(unit, out var target, allowAlternateTarget: false))
             {
-                unit.MovementLocked = true;
+                if (!IsUnitAlive(unit.PlannedEnemyTargetUnit))
+                {
+                    unit.MovementLocked = true;
+                }
+
                 continue;
             }
 
-            unit.PlannedAttackTarget = unit.PlannedEnemyTargetUnit.Coord;
-            if (!AreAdjacent(unit.Coord, unit.PlannedEnemyTargetUnit.Coord))
-            {
-                continue;
-            }
-
-            events.Add(new AttackEvent(unit, unit.PlannedEnemyTargetUnit));
+            unit.PlannedAttackTarget = target.Coord;
+            events.Add(new AttackEvent(unit, target));
         }
 
         return events;
@@ -193,15 +193,14 @@ public sealed partial class HexTacticsPrototype
             HexUnit target = null;
             if (IsEnemyCommand(unit))
             {
-                if (!IsUnitAlive(unit.PlannedEnemyTargetUnit))
+                if (!TryResolveTrackedAttackTarget(unit, out target, allowAlternateTarget: true))
                 {
-                    unit.MovementLocked = true;
-                    continue;
-                }
+                    if (!IsUnitAlive(unit.PlannedEnemyTargetUnit))
+                    {
+                        unit.MovementLocked = true;
+                    }
 
-                if (AreAdjacent(unit.Coord, unit.PlannedEnemyTargetUnit.Coord))
-                {
-                    target = unit.PlannedEnemyTargetUnit;
+                    continue;
                 }
             }
             else if (IsMoveCommand(unit))
@@ -339,7 +338,7 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        var usesFastStride = unit.MoveRange >= 3;
+        var usesFastStride = unit.Speed >= 5 || unit.MoveRange >= 3;
         SetAnimatorLocomotion(unit.Animator, usesFastStride ? 1.15f : 0.82f, usesFastStride);
     }
 
@@ -473,24 +472,12 @@ public sealed partial class HexTacticsPrototype
 
     private void SetAttackCameraFocus(HexUnit attacker, HexUnit defender)
     {
-        if (attacker?.Transform == null || defender?.Transform == null)
-        {
-            return;
-        }
-
-        activeCameraFocusOverride = new CameraFocusOverride(attacker, defender);
-        ConfigureCamera();
+        activeCameraFocusOverride = null;
     }
 
     private void ClearAttackCameraFocus()
     {
-        if (activeCameraFocusOverride == null)
-        {
-            return;
-        }
-
         activeCameraFocusOverride = null;
-        ConfigureCamera();
     }
 
     private void FaceUnitTowards(HexUnit unit, Vector3 worldTarget, bool immediate)
@@ -527,6 +514,11 @@ public sealed partial class HexTacticsPrototype
         {
             RefreshVisuals();
             yield break;
+        }
+
+        if (attacks.Count > 1)
+        {
+            attacks.Sort(CompareAttackEventsByInitiative);
         }
 
         for (var i = 0; i < attacks.Count; i++)
@@ -580,14 +572,23 @@ public sealed partial class HexTacticsPrototype
         var attackClip = ResolveAttackClip(attacker);
         var impactDelay = ResolveAttackImpactDelay(attacker, attackClip);
         var swingDuration = ResolveAttackSwingDuration(attacker, impactDelay, attackClip);
+        var usesRangedPresentation = UsesRangedAttackPresentation(attacker);
         var elapsed = 0f;
         var hitApplied = false;
+
+        if (usesRangedPresentation)
+        {
+            SpawnAttackReleaseEffect(attacker, defender, impactDelay);
+        }
 
         while (elapsed < swingDuration)
         {
             elapsed += Time.deltaTime;
-            var normalizedTime = swingDuration > 0.001f ? Mathf.Clamp01(elapsed / swingDuration) : 1f;
-            attacker.Transform.localPosition = CalculateAttackLungePosition(attackerStart, defender, normalizedTime);
+            if (!usesRangedPresentation)
+            {
+                var normalizedTime = swingDuration > 0.001f ? Mathf.Clamp01(elapsed / swingDuration) : 1f;
+                attacker.Transform.localPosition = CalculateAttackLungePosition(attackerStart, defender, normalizedTime);
+            }
 
             if (!hitApplied && ShouldApplyAttackImpact(attacker, impactToken, elapsed, impactDelay))
             {
@@ -630,7 +631,30 @@ public sealed partial class HexTacticsPrototype
                IsUnitAlive(attack.Defender) &&
                attack.Attacker.Transform != null &&
                attack.Defender.Transform != null &&
-               AreAdjacent(attack.Attacker.Coord, attack.Defender.Coord);
+               IsWithinAttackRange(attack.Attacker, attack.Defender);
+    }
+
+    private static int CompareAttackEventsByInitiative(AttackEvent left, AttackEvent right)
+    {
+        var speedComparison = right.Attacker.Speed.CompareTo(left.Attacker.Speed);
+        if (speedComparison != 0)
+        {
+            return speedComparison;
+        }
+
+        var tieBreakerComparison = right.InitiativeTieBreaker.CompareTo(left.InitiativeTieBreaker);
+        if (tieBreakerComparison != 0)
+        {
+            return tieBreakerComparison;
+        }
+
+        var attackerIdComparison = left.Attacker.Id.CompareTo(right.Attacker.Id);
+        if (attackerIdComparison != 0)
+        {
+            return attackerIdComparison;
+        }
+
+        return left.Defender.Id.CompareTo(right.Defender.Id);
     }
 
     private int CountResolvableAttacks(List<AttackEvent> attacks, int startIndex)
@@ -845,7 +869,7 @@ public sealed partial class HexTacticsPrototype
         }
 
         resolutionStatus = effectiveResult.ConflictCount > 0
-            ? $"第 {planningRoundNumber} 轮移动第 {moveTurnIndex} 回合：{effectiveResult.ConflictCount} 处同阵营抢格已随机判定"
+            ? $"第 {planningRoundNumber} 轮移动第 {moveTurnIndex} 回合：{effectiveResult.ConflictCount} 处抢格已按速度优先判定，同速随机"
             : followsAttackPhase
                 ? $"第 {planningRoundNumber} 轮攻击回合结束，{effectiveResult.SuccessfulMoves.Count} 名棋子继续同步前进一格"
                 : $"第 {planningRoundNumber} 轮进入移动第 {moveTurnIndex} 回合：{effectiveResult.SuccessfulMoves.Count} 名棋子同步前进一格";
@@ -933,13 +957,13 @@ public sealed partial class HexTacticsPrototype
             return false;
         }
 
-        var shouldStopAdjacent = IsEnemyCommand(unit);
+        var desiredAttackReach = IsEnemyCommand(unit) ? GetAttackReach(unit) : 0;
         var path = FindShortestPath(
             unit,
             unit.Coord,
             moveGoal.Value,
             remainingSteps,
-            shouldStopAdjacent,
+            desiredAttackReach,
             allowFriendlyWaitingOccupants: false);
 
         if (path.Count <= 1)
@@ -949,6 +973,35 @@ public sealed partial class HexTacticsPrototype
 
         nextStep = path[1];
         return true;
+    }
+
+    private bool TryResolveTrackedAttackTarget(HexUnit unit, out HexUnit target, bool allowAlternateTarget)
+    {
+        target = null;
+        if (unit == null || !IsEnemyCommand(unit))
+        {
+            return false;
+        }
+
+        if (IsUnitAlive(unit.PlannedEnemyTargetUnit))
+        {
+            if (!IsWithinAttackRange(unit, unit.PlannedEnemyTargetUnit))
+            {
+                if (!allowAlternateTarget)
+                {
+                    return false;
+                }
+
+                target = ChooseCpuAttackTargetFromOrigin(unit, unit.Coord, unit.Team == Team.Blue ? Team.Red : Team.Blue);
+                return target != null;
+            }
+
+            target = unit.PlannedEnemyTargetUnit;
+            return true;
+        }
+
+        target = ChooseCpuAttackTargetFromOrigin(unit, unit.Coord, unit.Team == Team.Blue ? Team.Red : Team.Blue);
+        return target != null;
     }
 
     private int GetMoveStepPriority(HexUnit unit, HexCell candidateCell)
@@ -972,7 +1025,7 @@ public sealed partial class HexTacticsPrototype
         HexCoord start,
         HexCoord goal,
         int maxSteps,
-        bool stopAdjacentToGoal,
+        int desiredAttackReach,
         bool allowFriendlyWaitingOccupants)
     {
         var path = new List<HexCoord>();
@@ -981,14 +1034,9 @@ public sealed partial class HexTacticsPrototype
             return path;
         }
 
-        if (stopAdjacentToGoal)
+        if (desiredAttackReach > 0)
         {
-            if (start == goal)
-            {
-                return path;
-            }
-
-            if (AreAdjacent(start, goal))
+            if (HexDistance(start, goal) <= desiredAttackReach)
             {
                 path.Add(start);
                 return path;
@@ -1004,7 +1052,7 @@ public sealed partial class HexTacticsPrototype
         var parents = new Dictionary<HexCoord, HexCoord>();
         var distances = new Dictionary<HexCoord, int>();
         var bestCoord = start;
-        var bestGoalDistance = GetPathGoalDistance(start, goal, stopAdjacentToGoal);
+        var bestGoalDistance = GetPathGoalDistance(start, goal, desiredAttackReach);
         var bestTravelDistance = 0;
 
         frontier.Enqueue(start);
@@ -1019,7 +1067,7 @@ public sealed partial class HexTacticsPrototype
                 continue;
             }
 
-            foreach (var neighbor in GetPathNeighbors(mover, start, current, goal, stopAdjacentToGoal, allowFriendlyWaitingOccupants))
+            foreach (var neighbor in GetPathNeighbors(mover, start, current, goal, desiredAttackReach, allowFriendlyWaitingOccupants))
             {
                 if (distances.ContainsKey(neighbor))
                 {
@@ -1028,12 +1076,12 @@ public sealed partial class HexTacticsPrototype
 
                 distances[neighbor] = distance + 1;
                 parents[neighbor] = current;
-                if (IsPathGoalReached(neighbor, goal, stopAdjacentToGoal))
+                if (IsPathGoalReached(neighbor, goal, desiredAttackReach))
                 {
                     return ReconstructPath(start, neighbor, parents);
                 }
 
-                var goalDistance = GetPathGoalDistance(neighbor, goal, stopAdjacentToGoal);
+                var goalDistance = GetPathGoalDistance(neighbor, goal, desiredAttackReach);
                 var travelDistance = distance + 1;
                 if (goalDistance < bestGoalDistance ||
                     (goalDistance == bestGoalDistance && travelDistance > bestTravelDistance))
@@ -1061,7 +1109,7 @@ public sealed partial class HexTacticsPrototype
         HexCoord start,
         HexCoord origin,
         HexCoord goal,
-        bool stopAdjacentToGoal,
+        int desiredAttackReach,
         bool allowFriendlyWaitingOccupants)
     {
         var candidates = new List<HexCoord>();
@@ -1073,7 +1121,7 @@ public sealed partial class HexTacticsPrototype
                 continue;
             }
 
-            if (!CanTraversePathCell(mover, start, origin, candidateCell, goal, stopAdjacentToGoal, allowFriendlyWaitingOccupants))
+            if (!CanTraversePathCell(mover, start, origin, candidateCell, goal, desiredAttackReach, allowFriendlyWaitingOccupants))
             {
                 continue;
             }
@@ -1121,7 +1169,7 @@ public sealed partial class HexTacticsPrototype
         HexCoord origin,
         HexCell candidateCell,
         HexCoord goal,
-        bool stopAdjacentToGoal,
+        int desiredAttackReach,
         bool allowFriendlyWaitingOccupants)
     {
         if (candidateCell == null)
@@ -1129,7 +1177,7 @@ public sealed partial class HexTacticsPrototype
             return false;
         }
 
-        if (stopAdjacentToGoal && candidateCell.Coord == goal)
+        if (desiredAttackReach > 0 && candidateCell.Coord == goal)
         {
             return false;
         }
@@ -1185,15 +1233,15 @@ public sealed partial class HexTacticsPrototype
         return allowFriendlyWaitingOccupants ? 2 : 3;
     }
 
-    private static bool IsPathGoalReached(HexCoord coord, HexCoord goal, bool stopAdjacentToGoal)
+    private static bool IsPathGoalReached(HexCoord coord, HexCoord goal, int desiredAttackReach)
     {
-        return stopAdjacentToGoal ? AreAdjacent(coord, goal) : coord == goal;
+        return desiredAttackReach > 0 ? HexDistance(coord, goal) <= desiredAttackReach : coord == goal;
     }
 
-    private static int GetPathGoalDistance(HexCoord coord, HexCoord goal, bool stopAdjacentToGoal)
+    private static int GetPathGoalDistance(HexCoord coord, HexCoord goal, int desiredAttackReach)
     {
         var distance = HexDistance(coord, goal);
-        return stopAdjacentToGoal ? Mathf.Max(0, distance - 1) : distance;
+        return desiredAttackReach > 0 ? Mathf.Max(0, distance - desiredAttackReach) : distance;
     }
 
     private static List<HexCoord> ReconstructPath(HexCoord start, HexCoord end, Dictionary<HexCoord, HexCoord> parents)
@@ -1365,7 +1413,23 @@ public sealed partial class HexTacticsPrototype
                 conflictCount++;
             }
 
-            var winner = pair.Value[Random.Range(0, pair.Value.Count)];
+            var highestSpeed = int.MinValue;
+            var fastestContenders = new List<HexUnit>();
+            foreach (var contender in pair.Value)
+            {
+                if (contender.Speed > highestSpeed)
+                {
+                    highestSpeed = contender.Speed;
+                    fastestContenders.Clear();
+                }
+
+                if (contender.Speed == highestSpeed)
+                {
+                    fastestContenders.Add(contender);
+                }
+            }
+
+            var winner = fastestContenders[Random.Range(0, fastestContenders.Count)];
             winners[winner] = pair.Key;
         }
 
@@ -1478,6 +1542,38 @@ public sealed partial class HexTacticsPrototype
         foreach (var pair in moves)
         {
             pair.Key.PlannedMoveProgress = Mathf.Min(pair.Key.PlannedMoveProgress + 1, pair.Key.MoveRange);
+        }
+    }
+
+    private void ResolveFriendlyOccupiedMoveGoals(MoveStepResolution stepResult)
+    {
+        if (!stepResult.HasValue)
+        {
+            return;
+        }
+
+        foreach (var intent in stepResult.Intents)
+        {
+            var unit = intent.Unit;
+            if (!IsMoveCommand(unit) || unit.Coord == unit.PlannedMoveTarget)
+            {
+                continue;
+            }
+
+            if (HexDistance(unit.Coord, unit.PlannedMoveTarget) != 1 ||
+                !cells.TryGetValue(unit.PlannedMoveTarget, out var targetCell))
+            {
+                continue;
+            }
+
+            var occupant = targetCell.Occupant;
+            if (occupant == null || occupant == unit || occupant.Team != unit.Team)
+            {
+                continue;
+            }
+
+            unit.PlannedMoveTarget = unit.Coord;
+            unit.PlannedPath.Clear();
         }
     }
 
@@ -1696,7 +1792,7 @@ public sealed partial class HexTacticsPrototype
 
         foreach (var cell in cells.Values)
         {
-            if (cell.Occupant != null && cell.Occupant.Team != unit.Team && CanSelectAttackTarget(unit, cell.Coord))
+            if (cell.Occupant != null && CanAssignEnemyTarget(unit, cell.Coord))
             {
                 options.Add(cell);
             }
@@ -1732,17 +1828,27 @@ public sealed partial class HexTacticsPrototype
 
     private bool CanSelectAttackTarget(HexUnit unit, HexCoord target)
     {
+        return CanSelectAttackTargetFromOrigin(unit, unit != null ? unit.Coord : default, target);
+    }
+
+    private bool CanAssignEnemyTarget(HexUnit unit, HexCoord target)
+    {
         if (unit == null || !cells.TryGetValue(target, out var targetCell) || targetCell.Occupant == null)
         {
             return false;
         }
 
-        if (targetCell.Occupant.Team == unit.Team)
+        return targetCell.Occupant.Team != unit.Team;
+    }
+
+    private bool CanSelectAttackTargetFromOrigin(HexUnit unit, HexCoord origin, HexCoord target)
+    {
+        if (!CanAssignEnemyTarget(unit, target))
         {
             return false;
         }
 
-        return true;
+        return IsWithinAttackRange(origin, target, unit.AttackRange);
     }
 
     private void ClearMoveCommand(HexUnit unit)
@@ -1777,7 +1883,8 @@ public sealed partial class HexTacticsPrototype
 
         if (IsEnemyCommand(unit))
         {
-            return IsUnitAlive(unit.PlannedEnemyTargetUnit) && HexDistance(unit.Coord, unit.PlannedEnemyTargetUnit.Coord) > 1;
+            return IsUnitAlive(unit.PlannedEnemyTargetUnit) &&
+                   HexDistance(unit.Coord, unit.PlannedEnemyTargetUnit.Coord) > GetAttackReach(unit);
         }
 
         return unit.Coord != unit.PlannedMoveTarget;

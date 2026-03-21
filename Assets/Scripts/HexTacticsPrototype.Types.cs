@@ -33,7 +33,9 @@ public sealed partial class HexTacticsPrototype
             int maxHealth,
             int attackPower,
             int cost,
-            int moveRange)
+            int moveRange,
+            int attackRange,
+            int speed)
         {
             Id = id;
             CharacterConfig = characterConfig;
@@ -49,6 +51,8 @@ public sealed partial class HexTacticsPrototype
             AttackPower = attackPower;
             Cost = cost;
             MoveRange = moveRange;
+            AttackRange = attackRange;
+            Speed = speed;
             PlannedMoveTarget = coord;
             PlannedAttackTarget = coord;
             PlannedEnemyTargetUnit = null;
@@ -69,6 +73,8 @@ public sealed partial class HexTacticsPrototype
         public int AttackPower { get; }
         public int Cost { get; }
         public int MoveRange { get; }
+        public int AttackRange { get; }
+        public int Speed { get; }
         public bool HasAssignedCommand { get; set; }
         public bool HasPlannedMove { get; set; }
         public HexCoord PlannedMoveTarget { get; set; }
@@ -175,10 +181,12 @@ public sealed partial class HexTacticsPrototype
         {
             Attacker = attacker;
             Defender = defender;
+            InitiativeTieBreaker = Random.Range(0, int.MaxValue);
         }
 
         public HexUnit Attacker { get; }
         public HexUnit Defender { get; }
+        public int InitiativeTieBreaker { get; }
     }
 
     private readonly struct MoveStepResolution

@@ -24,6 +24,7 @@ public static class HexTacticsRuntimeAssetValidator
         ValidateUiAssets(errors);
         ValidateBattleUnitAssets(errors);
         ValidateCharacterConfigs(errors);
+        ValidateAttackEffects(errors);
         ValidateHitEffects(errors);
 
         HexTacticsAddressables.ReleaseAll();
@@ -119,6 +120,18 @@ public static class HexTacticsRuntimeAssetValidator
         }
 
         ValidateEffectPrefab(heavyEntry.Prefab, heavyEntry.DisplayName, errors);
+    }
+
+    private static void ValidateAttackEffects(List<string> errors)
+    {
+        var rangedWavePrefab = HexTacticsAddressables.LoadAsset<GameObject>(HexTacticsAssetPaths.RangedWaveEffectAddress);
+        if (rangedWavePrefab == null)
+        {
+            errors.Add("Ranged wave attack effect could not be loaded.");
+            return;
+        }
+
+        ValidateEffectPrefab(rangedWavePrefab, "Ranged Wave", errors);
     }
 
     private static void ValidateEffectPrefab(GameObject prefab, string label, List<string> errors)

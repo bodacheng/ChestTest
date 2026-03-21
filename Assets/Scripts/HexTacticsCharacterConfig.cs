@@ -9,6 +9,8 @@ public sealed class HexTacticsCharacterConfig : ScriptableObject
     [SerializeField, Min(1)] private int attackPower = 3;
     [SerializeField, Min(1)] private int cost = 3;
     [SerializeField, Min(1)] private int moveRange = 2;
+    [SerializeField, Range(0, 1)] private int attackRange = 0;
+    [SerializeField, Min(1)] private int speed = 3;
     [SerializeField] private HexTacticsCharacterVisualArchetype visualArchetype = HexTacticsCharacterVisualArchetype.Stag;
     [SerializeField] private Sprite avatar;
     [Header("Battle Visual")]
@@ -26,6 +28,8 @@ public sealed class HexTacticsCharacterConfig : ScriptableObject
     public int AttackPower => attackPower;
     public int Cost => cost;
     public int MoveRange => moveRange;
+    public int AttackRange => Mathf.Clamp(attackRange, 0, 1);
+    public int Speed => speed;
     public HexTacticsCharacterVisualArchetype VisualArchetype => visualArchetype;
     public Sprite Avatar => avatar;
     public GameObject BattleUnitPrefab => battleUnitPrefab;
@@ -40,6 +44,8 @@ public sealed class HexTacticsCharacterConfig : ScriptableObject
         int newAttackPower,
         int newCost,
         int newMoveRange,
+        int newAttackRange,
+        int newSpeed,
         HexTacticsCharacterVisualArchetype newVisualArchetype)
     {
         displayName = newDisplayName;
@@ -48,6 +54,8 @@ public sealed class HexTacticsCharacterConfig : ScriptableObject
         attackPower = newAttackPower;
         cost = newCost;
         moveRange = newMoveRange;
+        attackRange = Mathf.Clamp(newAttackRange, 0, 1);
+        speed = newSpeed;
         visualArchetype = newVisualArchetype;
         avatar = null;
         battleUnitPrefab = null;

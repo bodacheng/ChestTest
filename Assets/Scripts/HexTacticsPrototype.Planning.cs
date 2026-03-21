@@ -97,7 +97,7 @@ public sealed partial class HexTacticsPrototype
 
         if (unit.Team != Team.Blue)
         {
-            return selectedUnit != null && selectedUnit.Team == Team.Blue && IsAttackOption(unit.Coord) ? 0 : 10;
+            return selectedUnit != null && selectedUnit.Team == Team.Blue && CanAssignEnemyTarget(selectedUnit, unit.Coord) ? 0 : 10;
         }
 
         if (selectedUnit != null && selectedUnit != unit && IsMoveOption(unit.Coord))
@@ -122,7 +122,7 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        if (selectedUnit != null && selectedUnit.Team == Team.Blue && IsAttackOption(clickedUnit.Coord))
+        if (selectedUnit != null && selectedUnit.Team == Team.Blue && CanAssignEnemyTarget(selectedUnit, clickedUnit.Coord))
         {
             SetUnitAttackCommand(selectedUnit, clickedUnit.Coord);
             return;
@@ -161,6 +161,8 @@ public sealed partial class HexTacticsPrototype
         moveCells.Clear();
         attackCells.Clear();
 
+        unit = ResolvePlanningSelectionTarget(unit);
+
         if (unit != null && unit.Team == Team.Blue && currentFlowState == FlowState.Planning)
         {
             selectedUnit = unit;
@@ -176,6 +178,26 @@ public sealed partial class HexTacticsPrototype
         }
 
         RefreshVisuals();
+    }
+
+    private HexUnit ResolvePlanningSelectionTarget(HexUnit requestedUnit)
+    {
+        if (currentFlowState != FlowState.Planning)
+        {
+            return requestedUnit;
+        }
+
+        if (AreAllBlueCommandsAssigned())
+        {
+            return requestedUnit != null && requestedUnit.Team == Team.Blue ? requestedUnit : null;
+        }
+
+        if (requestedUnit != null && requestedUnit.Team == Team.Blue && !requestedUnit.HasAssignedCommand)
+        {
+            return requestedUnit;
+        }
+
+        return FindFirstBlueUnitWithoutCommand();
     }
 
     private bool IsMoveOption(HexCoord coord)
@@ -226,7 +248,7 @@ public sealed partial class HexTacticsPrototype
 
     private void SetUnitAttackCommand(HexUnit unit, HexCoord target)
     {
-        if (unit == null || unit.Team != Team.Blue || !CanSelectAttackTarget(unit, target))
+        if (unit == null || unit.Team != Team.Blue || !CanAssignEnemyTarget(unit, target))
         {
             return;
         }
@@ -332,16 +354,15 @@ public sealed partial class HexTacticsPrototype
         HexUnit bestTarget = null;
         var bestScore = int.MinValue;
 
-        foreach (var direction in NeighborDirections)
+        foreach (var candidate in units)
         {
-            var coord = origin + direction;
-            if (!cells.TryGetValue(coord, out var cell) || cell.Occupant == null || cell.Occupant.Team != enemyTeam)
+            if (candidate == null || candidate.Team != enemyTeam || !CanSelectAttackTargetFromOrigin(unit, origin, candidate.Coord))
             {
                 continue;
             }
 
-            var score = cell.Occupant.AttackPower * 10 - cell.Occupant.CurrentHealth;
-            if (cell.Occupant.CurrentHealth <= unit.AttackPower)
+            var score = candidate.AttackPower * 10 - candidate.CurrentHealth - HexDistance(origin, candidate.Coord) * 2;
+            if (candidate.CurrentHealth <= unit.AttackPower)
             {
                 score += 50;
             }
@@ -349,7 +370,7 @@ public sealed partial class HexTacticsPrototype
             if (score > bestScore)
             {
                 bestScore = score;
-                bestTarget = cell.Occupant;
+                bestTarget = candidate;
             }
         }
 

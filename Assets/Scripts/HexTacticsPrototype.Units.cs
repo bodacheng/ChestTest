@@ -80,7 +80,9 @@ public sealed partial class HexTacticsPrototype
             definition.MaxHealth,
             definition.AttackPower,
             definition.Cost,
-            definition.MoveRange);
+            definition.MoveRange,
+            definition.AttackRange,
+            definition.Speed);
 
         unit.VisualHeight = baseUnitVisualHeight;
         unit.LabelHeight = baseUnitVisualHeight + worldLabelPadding;

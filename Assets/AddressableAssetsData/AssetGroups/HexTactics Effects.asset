@@ -111,6 +111,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.Effects
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a62a3a7f920834664a7cccf76b7d9582
+    m_Address: Effects/AttackEffects/Variants/ErbAttackWave01
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.Effects
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a6bf43773c3be413fa062444c5409efa
     m_Address: Effects/HitEffects/Variants/ErbHit04
     m_ReadOnly: 0

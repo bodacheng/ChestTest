@@ -332,6 +332,30 @@ public sealed partial class HexTacticsPrototype
         return false;
     }
 
+    private static int GetAttackReach(int attackRange)
+    {
+        return Mathf.Clamp(attackRange, 0, 1) + 1;
+    }
+
+    private static int GetAttackReach(HexUnit unit)
+    {
+        return unit != null ? GetAttackReach(unit.AttackRange) : 1;
+    }
+
+    private static bool IsWithinAttackRange(HexCoord origin, HexCoord target, int attackRange)
+    {
+        // Attack range is evaluated by hex distance, so "corner" directions are
+        // counted the same way as straight approaches on the hex board.
+        return origin != target && HexDistance(origin, target) <= GetAttackReach(attackRange);
+    }
+
+    private static bool IsWithinAttackRange(HexUnit attacker, HexUnit defender)
+    {
+        return attacker != null &&
+               defender != null &&
+               IsWithinAttackRange(attacker.Coord, defender.Coord, attacker.AttackRange);
+    }
+
     private static int HexDistance(HexCoord a, HexCoord b)
     {
         var dq = a.Q - b.Q;

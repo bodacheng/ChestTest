@@ -59,6 +59,8 @@ public readonly struct HexTacticsRosterEntryUiData
         string description,
         int maxHealth,
         int attackPower,
+        int attackRange,
+        int speed,
         int moveRange,
         int cost,
         HexTacticsAvatarUiData avatar,
@@ -69,6 +71,8 @@ public readonly struct HexTacticsRosterEntryUiData
         Description = description;
         MaxHealth = maxHealth;
         AttackPower = attackPower;
+        AttackRange = attackRange;
+        Speed = speed;
         MoveRange = moveRange;
         Cost = cost;
         Avatar = avatar;
@@ -80,6 +84,8 @@ public readonly struct HexTacticsRosterEntryUiData
     public string Description { get; }
     public int MaxHealth { get; }
     public int AttackPower { get; }
+    public int AttackRange { get; }
+    public int Speed { get; }
     public int MoveRange { get; }
     public int Cost { get; }
     public HexTacticsAvatarUiData Avatar { get; }
@@ -94,6 +100,8 @@ public readonly struct HexTacticsSelectionEntryUiData
         string displayName,
         int maxHealth,
         int attackPower,
+        int attackRange,
+        int speed,
         int moveRange,
         int cost,
         string deploymentText,
@@ -104,6 +112,8 @@ public readonly struct HexTacticsSelectionEntryUiData
         DisplayName = displayName;
         MaxHealth = maxHealth;
         AttackPower = attackPower;
+        AttackRange = attackRange;
+        Speed = speed;
         MoveRange = moveRange;
         Cost = cost;
         DeploymentText = deploymentText;
@@ -115,6 +125,8 @@ public readonly struct HexTacticsSelectionEntryUiData
     public string DisplayName { get; }
     public int MaxHealth { get; }
     public int AttackPower { get; }
+    public int AttackRange { get; }
+    public int Speed { get; }
     public int MoveRange { get; }
     public int Cost { get; }
     public string DeploymentText { get; }
