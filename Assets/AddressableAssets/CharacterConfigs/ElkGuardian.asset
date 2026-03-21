@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1c79c0b9f6744bbac1885a8f6a61101, type: 3}
   m_Name: ElkGuardian
   m_EditorClassIdentifier: 
-  displayName: 巨角卫士
-  description: 驼鹿，高血量低机动防线
+  displayName: "\u5DE8\u89D2\u536B\u58EB"
+  description: "\u9A7C\u9E7F\uFF0C\u9AD8\u8840\u91CF\u4F4E\u673A\u52A8\u9632\u7EBF"
   maxHealth: 16
   attackPower: 3
   cost: 5
@@ -21,6 +21,8 @@ MonoBehaviour:
   attackRange: 0
   speed: 2
   visualArchetype: 2
-  avatar: {fileID: 0}
+  avatar: {fileID: 21300000, guid: 84247a9af688f4f578f9a4e5cc1f03ad, type: 3}
+  battleUnitPrefab: {fileID: 0}
+  visualHeightScale: 1
   attackImpactFrame: 24
   attackImpactNormalizedTime: 0.45

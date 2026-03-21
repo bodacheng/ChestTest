@@ -7,9 +7,7 @@ using UnityEngine.UI;
 [RequireComponent(typeof(RectTransform))]
 public sealed class HexTacticsRosterRowView : HexTacticsUiGeneratedView, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    [SerializeField] private Image avatarBackground;
-    [SerializeField] private Image avatarImage;
-    [SerializeField] private Text avatarFallbackText;
+    [SerializeField] private HexTacticsAvatarView avatarView;
     [SerializeField] private Text titleText;
     [SerializeField] private Text statsText;
     [SerializeField] private Text hintText;
@@ -20,12 +18,10 @@ public sealed class HexTacticsRosterRowView : HexTacticsUiGeneratedView, IBeginD
     private Action<Vector2> dragHandler;
     private Action<Vector2> endDragHandler;
 
-    protected override int CurrentLayoutVersion => 10;
+    protected override int CurrentLayoutVersion => 11;
 
     protected override bool HasCurrentBindings =>
-        avatarBackground != null &&
-        avatarImage != null &&
-        avatarFallbackText != null &&
+        avatarView != null &&
         titleText != null &&
         statsText != null &&
         hintText != null &&
@@ -76,15 +72,15 @@ public sealed class HexTacticsRosterRowView : HexTacticsUiGeneratedView, IBeginD
         root.anchorMin = new Vector2(0f, 1f);
         root.anchorMax = new Vector2(1f, 1f);
         root.pivot = new Vector2(0.5f, 1f);
-        root.sizeDelta = new Vector2(0f, 128f);
+        root.sizeDelta = new Vector2(0f, 136f);
 
         var panel = HexTacticsUiFactory.AddImage(root.gameObject, new Color(0.06f, 0.09f, 0.10f, 0.72f));
         HexTacticsUiFactory.StylePanel(panel, new Color(1f, 1f, 1f, 0.04f), 0f);
-        HexTacticsUiFactory.AddLayoutElement(root.gameObject, preferredHeight: 128f);
+        HexTacticsUiFactory.AddLayoutElement(root.gameObject, preferredHeight: 136f);
 
         var layout = root.gameObject.AddComponent<HorizontalLayoutGroup>();
         layout.padding = new RectOffset(14, 14, 14, 14);
-        layout.spacing = 12f;
+        layout.spacing = 14f;
         layout.childAlignment = TextAnchor.MiddleLeft;
         layout.childControlHeight = true;
         layout.childControlWidth = true;
@@ -92,21 +88,13 @@ public sealed class HexTacticsRosterRowView : HexTacticsUiGeneratedView, IBeginD
         layout.childForceExpandHeight = false;
 
         var avatarRoot = HexTacticsUiFactory.CreateRect("Avatar", root);
-        HexTacticsUiFactory.AddLayoutElement(avatarRoot.gameObject, preferredWidth: 56f, preferredHeight: 56f);
-        avatarBackground = HexTacticsUiFactory.AddImage(avatarRoot.gameObject, new Color(0.25f, 0.34f, 0.40f, 1f));
-        HexTacticsUiFactory.StylePanel(avatarBackground, new Color(1f, 1f, 1f, 0.04f), 0f);
-        var avatarIconRoot = HexTacticsUiFactory.CreateRect("Icon", avatarRoot);
-        HexTacticsUiFactory.Stretch(avatarIconRoot, Vector2.zero, Vector2.one);
-        HexTacticsUiFactory.SetOffsets(avatarIconRoot, 4f, 4f, 4f, 4f);
-        avatarImage = HexTacticsUiFactory.AddImage(avatarIconRoot.gameObject, Color.white, false);
-        HexTacticsUiFactory.Stretch(avatarImage.rectTransform, Vector2.zero, Vector2.one);
-        avatarFallbackText = HexTacticsUiFactory.CreateText(avatarRoot, "AvatarFallback", string.Empty, 24, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.Stretch(avatarFallbackText.rectTransform, Vector2.zero, Vector2.one);
+        HexTacticsUiFactory.AddLayoutElement(avatarRoot.gameObject, preferredWidth: 72f, preferredHeight: 72f);
+        avatarView = HexTacticsAvatarView.CreateStandalone(avatarRoot, "AvatarView", 5f, 22);
 
         var content = HexTacticsUiFactory.CreateRect("Content", root);
         HexTacticsUiFactory.AddLayoutElement(content.gameObject, flexibleWidth: 1f);
         var contentLayout = content.gameObject.AddComponent<VerticalLayoutGroup>();
-        contentLayout.spacing = 5f;
+        contentLayout.spacing = 6f;
         contentLayout.childAlignment = TextAnchor.UpperLeft;
         contentLayout.childControlHeight = false;
         contentLayout.childControlWidth = true;
@@ -116,10 +104,10 @@ public sealed class HexTacticsRosterRowView : HexTacticsUiGeneratedView, IBeginD
         titleText = HexTacticsUiFactory.CreateText(content, "Title", string.Empty, 18, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
         titleText.resizeTextForBestFit = true;
         titleText.resizeTextMinSize = 15;
-        titleText.resizeTextMaxSize = 18;
+        titleText.resizeTextMaxSize = 19;
         titleText.horizontalOverflow = HorizontalWrapMode.Wrap;
         titleText.verticalOverflow = VerticalWrapMode.Truncate;
-        HexTacticsUiFactory.AddLayoutElement(titleText.gameObject, preferredHeight: 26f);
+        HexTacticsUiFactory.AddLayoutElement(titleText.gameObject, preferredHeight: 28f);
 
         statsText = HexTacticsUiFactory.CreateText(content, "Stats", string.Empty, 14, TextAnchor.MiddleLeft, new Color(0.73f, 0.80f, 0.84f));
         statsText.resizeTextForBestFit = true;
@@ -127,7 +115,7 @@ public sealed class HexTacticsRosterRowView : HexTacticsUiGeneratedView, IBeginD
         statsText.resizeTextMaxSize = 14;
         statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
         statsText.verticalOverflow = VerticalWrapMode.Truncate;
-        HexTacticsUiFactory.AddLayoutElement(statsText.gameObject, preferredHeight: 24f);
+        HexTacticsUiFactory.AddLayoutElement(statsText.gameObject, preferredHeight: 26f);
 
         hintText = HexTacticsUiFactory.CreateText(content, "Hint", string.Empty, 13, TextAnchor.MiddleLeft, new Color(0.60f, 0.70f, 0.74f));
         hintText.resizeTextForBestFit = true;
@@ -135,7 +123,7 @@ public sealed class HexTacticsRosterRowView : HexTacticsUiGeneratedView, IBeginD
         hintText.resizeTextMaxSize = 13;
         hintText.horizontalOverflow = HorizontalWrapMode.Wrap;
         hintText.verticalOverflow = VerticalWrapMode.Truncate;
-        HexTacticsUiFactory.AddLayoutElement(hintText.gameObject, preferredHeight: 20f);
+        HexTacticsUiFactory.AddLayoutElement(hintText.gameObject, preferredHeight: 24f);
 
         var actionArea = HexTacticsUiFactory.CreateRect("ActionArea", root);
         HexTacticsUiFactory.AddLayoutElement(actionArea.gameObject, preferredWidth: 78f, preferredHeight: 44f);
@@ -153,13 +141,7 @@ public sealed class HexTacticsRosterRowView : HexTacticsUiGeneratedView, IBeginD
 
     private void ApplyAvatar(HexTacticsAvatarUiData avatar)
     {
-        avatarBackground.color = avatar.BackgroundColor;
-        avatarImage.sprite = avatar.Sprite;
-        avatarImage.color = Color.white;
-        avatarImage.preserveAspect = true;
-        avatarImage.enabled = avatar.Sprite != null;
-        avatarFallbackText.text = avatar.FallbackText;
-        avatarFallbackText.gameObject.SetActive(avatar.Sprite == null);
+        avatarView.Bind(avatar);
     }
 
     private static string BuildCompactDescription(string description)

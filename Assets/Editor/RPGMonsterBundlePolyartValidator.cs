@@ -124,51 +124,7 @@ public static class RPGMonsterBundlePolyartValidator
 
     private static void ValidateHierarchy(string assetPath, GameObject root, List<string> issues)
     {
-        foreach (var transform in root.GetComponentsInChildren<Transform>(true))
-        {
-            var gameObject = transform.gameObject;
-            var missingScriptCount = GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(gameObject);
-            if (missingScriptCount > 0)
-            {
-                issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} has {missingScriptCount} missing script reference(s).");
-            }
-
-            foreach (var renderer in gameObject.GetComponents<Renderer>())
-            {
-                var materials = renderer.sharedMaterials;
-                if (materials == null || materials.Length == 0)
-                {
-                    issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} has no assigned materials.");
-                    continue;
-                }
-
-                for (var i = 0; i < materials.Length; i++)
-                {
-                    if (materials[i] == null)
-                    {
-                        issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} has a missing material at slot {i}.");
-                    }
-                }
-
-                if (renderer is SkinnedMeshRenderer skinnedMeshRenderer && skinnedMeshRenderer.sharedMesh == null)
-                {
-                    issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} is missing its skinned mesh.");
-                }
-            }
-
-            var meshFilter = gameObject.GetComponent<MeshFilter>();
-            var meshRenderer = gameObject.GetComponent<MeshRenderer>();
-            if (meshRenderer != null && meshFilter != null && meshFilter.sharedMesh == null)
-            {
-                issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} is missing its mesh filter mesh.");
-            }
-
-            var animator = gameObject.GetComponent<Animator>();
-            if (animator != null && animator.runtimeAnimatorController == null)
-            {
-                issues.Add($"{assetPath}: {GetHierarchyPath(gameObject)} is missing its animator controller.");
-            }
-        }
+        HexTacticsHierarchyAuditUtility.ValidateHierarchy(assetPath, root, issues);
     }
 
     private static void ValidateHexTacticsUi(List<string> issues)
@@ -238,6 +194,15 @@ public static class RPGMonsterBundlePolyartValidator
                 issues.Add($"Character config has an invalid visual height scale: {path}");
             }
 
+            if (config.Avatar == null)
+            {
+                issues.Add($"Character config is missing a square avatar icon: {path}");
+            }
+            else if (!Mathf.Approximately(config.Avatar.rect.width, config.Avatar.rect.height))
+            {
+                issues.Add($"Character config avatar icon is not square: {path}");
+            }
+
             var requiresDirectPrefab = path.Contains("/RPGMonsterBundlePolyart/");
             if (requiresDirectPrefab && config.BattleUnitPrefab == null)
             {
@@ -246,16 +211,4 @@ public static class RPGMonsterBundlePolyartValidator
         }
     }
 
-    private static string GetHierarchyPath(GameObject gameObject)
-    {
-        var path = gameObject.name;
-        var current = gameObject.transform.parent;
-        while (current != null)
-        {
-            path = current.name + "/" + path;
-            current = current.parent;
-        }
-
-        return path;
-    }
 }

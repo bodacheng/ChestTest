@@ -12,15 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1c79c0b9f6744bbac1885a8f6a61101, type: 3}
   m_Name: FawnScout
   m_EditorClassIdentifier: 
-  displayName: 幼鹿斥候
-  description: 幼鹿，低 cost 高机动侦察
+  displayName: "\u5E7C\u9E7F\u65A5\u5019"
+  description: "\u5E7C\u9E7F\uFF0C\u4F4E cost \u9AD8\u673A\u52A8\u4FA6\u5BDF"
   maxHealth: 7
   attackPower: 2
   cost: 2
-  moveRange: 4
+  moveRange: 2
   attackRange: 0
   speed: 6
   visualArchetype: 3
-  avatar: {fileID: 0}
+  avatar: {fileID: 21300000, guid: fa47175c91845405990edb99d43713be, type: 3}
+  battleUnitPrefab: {fileID: 0}
+  visualHeightScale: 1
   attackImpactFrame: 24
   attackImpactNormalizedTime: 0.45

@@ -467,7 +467,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b9ebfb66d3b4b2695c6240dbd89eaab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boardRadius: 3
+  boardRadius: 2
   hexRadius: 1.15
   tileHeight: 0.28
   unitHoverHeight: 0.18

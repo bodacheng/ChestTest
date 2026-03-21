@@ -12,15 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1c79c0b9f6744bbac1885a8f6a61101, type: 3}
   m_Name: StagVanguard
   m_EditorClassIdentifier: 
-  displayName: 角冠先锋
-  description: 牡鹿，稳健推进的均衡前锋
+  displayName: "\u89D2\u51A0\u5148\u950B"
+  description: "\u7261\u9E7F\uFF0C\u7A33\u5065\u63A8\u8FDB\u7684\u5747\u8861\u524D\u950B"
   maxHealth: 12
   attackPower: 4
   cost: 4
-  moveRange: 2
+  moveRange: 1
   attackRange: 0
   speed: 3
   visualArchetype: 0
-  avatar: {fileID: 0}
+  avatar: {fileID: 21300000, guid: 7c9c137816fac40d2a387a25cc948107, type: 3}
+  battleUnitPrefab: {fileID: 0}
+  visualHeightScale: 1
   attackImpactFrame: 24
   attackImpactNormalizedTime: 0.45

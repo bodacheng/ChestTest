@@ -8,7 +8,7 @@ public sealed class HexTacticsCharacterConfig : ScriptableObject
     [SerializeField, Min(1)] private int maxHealth = 10;
     [SerializeField, Min(1)] private int attackPower = 3;
     [SerializeField, Min(1)] private int cost = 3;
-    [SerializeField, Min(1)] private int moveRange = 2;
+    [SerializeField, Min(1)] private int moveRange = 1;
     [SerializeField, Range(0, 1)] private int attackRange = 0;
     [SerializeField, Min(1)] private int speed = 3;
     [SerializeField] private HexTacticsCharacterVisualArchetype visualArchetype = HexTacticsCharacterVisualArchetype.Stag;

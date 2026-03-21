@@ -7,9 +7,7 @@ using UnityEngine.UI;
 [RequireComponent(typeof(RectTransform))]
 public sealed class HexTacticsSelectedRosterRowView : HexTacticsUiGeneratedView, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    [SerializeField] private Image avatarBackground;
-    [SerializeField] private Image avatarImage;
-    [SerializeField] private Text avatarFallbackText;
+    [SerializeField] private HexTacticsAvatarView avatarView;
     [SerializeField] private Text titleText;
     [SerializeField] private Text statsText;
     [SerializeField] private Text deploymentText;
@@ -20,12 +18,10 @@ public sealed class HexTacticsSelectedRosterRowView : HexTacticsUiGeneratedView,
     private Action<Vector2> dragHandler;
     private Action<Vector2> endDragHandler;
 
-    protected override int CurrentLayoutVersion => 10;
+    protected override int CurrentLayoutVersion => 11;
 
     protected override bool HasCurrentBindings =>
-        avatarBackground != null &&
-        avatarImage != null &&
-        avatarFallbackText != null &&
+        avatarView != null &&
         titleText != null &&
         statsText != null &&
         deploymentText != null &&
@@ -75,15 +71,15 @@ public sealed class HexTacticsSelectedRosterRowView : HexTacticsUiGeneratedView,
         root.anchorMin = new Vector2(0f, 1f);
         root.anchorMax = new Vector2(1f, 1f);
         root.pivot = new Vector2(0.5f, 1f);
-        root.sizeDelta = new Vector2(0f, 124f);
+        root.sizeDelta = new Vector2(0f, 132f);
 
         var panel = HexTacticsUiFactory.AddImage(root.gameObject, new Color(0.06f, 0.09f, 0.10f, 0.72f));
         HexTacticsUiFactory.StylePanel(panel, new Color(1f, 1f, 1f, 0.04f), 0f);
-        HexTacticsUiFactory.AddLayoutElement(root.gameObject, preferredHeight: 124f);
+        HexTacticsUiFactory.AddLayoutElement(root.gameObject, preferredHeight: 132f);
 
         var layout = root.gameObject.AddComponent<HorizontalLayoutGroup>();
         layout.padding = new RectOffset(14, 14, 14, 14);
-        layout.spacing = 12f;
+        layout.spacing = 14f;
         layout.childAlignment = TextAnchor.MiddleLeft;
         layout.childControlHeight = true;
         layout.childControlWidth = true;
@@ -91,16 +87,8 @@ public sealed class HexTacticsSelectedRosterRowView : HexTacticsUiGeneratedView,
         layout.childForceExpandHeight = false;
 
         var avatarRoot = HexTacticsUiFactory.CreateRect("Avatar", root);
-        HexTacticsUiFactory.AddLayoutElement(avatarRoot.gameObject, preferredWidth: 56f, preferredHeight: 56f);
-        avatarBackground = HexTacticsUiFactory.AddImage(avatarRoot.gameObject, new Color(0.25f, 0.34f, 0.40f, 1f));
-        HexTacticsUiFactory.StylePanel(avatarBackground, new Color(1f, 1f, 1f, 0.04f), 0f);
-        var avatarIconRoot = HexTacticsUiFactory.CreateRect("Icon", avatarRoot);
-        HexTacticsUiFactory.Stretch(avatarIconRoot, Vector2.zero, Vector2.one);
-        HexTacticsUiFactory.SetOffsets(avatarIconRoot, 4f, 4f, 4f, 4f);
-        avatarImage = HexTacticsUiFactory.AddImage(avatarIconRoot.gameObject, Color.white, false);
-        HexTacticsUiFactory.Stretch(avatarImage.rectTransform, Vector2.zero, Vector2.one);
-        avatarFallbackText = HexTacticsUiFactory.CreateText(avatarRoot, "AvatarFallback", string.Empty, 22, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.Stretch(avatarFallbackText.rectTransform, Vector2.zero, Vector2.one);
+        HexTacticsUiFactory.AddLayoutElement(avatarRoot.gameObject, preferredWidth: 68f, preferredHeight: 68f);
+        avatarView = HexTacticsAvatarView.CreateStandalone(avatarRoot, "AvatarView", 5f, 21);
 
         var content = HexTacticsUiFactory.CreateRect("Content", root);
         HexTacticsUiFactory.AddLayoutElement(content.gameObject, flexibleWidth: 1f);
@@ -152,12 +140,6 @@ public sealed class HexTacticsSelectedRosterRowView : HexTacticsUiGeneratedView,
 
     private void ApplyAvatar(HexTacticsAvatarUiData avatar)
     {
-        avatarBackground.color = avatar.BackgroundColor;
-        avatarImage.sprite = avatar.Sprite;
-        avatarImage.color = Color.white;
-        avatarImage.preserveAspect = true;
-        avatarImage.enabled = avatar.Sprite != null;
-        avatarFallbackText.text = avatar.FallbackText;
-        avatarFallbackText.gameObject.SetActive(avatar.Sprite == null);
+        avatarView.Bind(avatar);
     }
 }

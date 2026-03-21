@@ -22,9 +22,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
     [SerializeField] private Button startButton;
     [SerializeField] private RectTransform dragPreviewRoot;
     [SerializeField] private Image dragPreviewBackground;
-    [SerializeField] private Image dragPreviewAvatarBackground;
-    [SerializeField] private Image dragPreviewAvatar;
-    [SerializeField] private Text dragPreviewFallbackText;
+    [SerializeField] private HexTacticsAvatarView dragPreviewAvatarView;
     [SerializeField] private Text dragPreviewLabel;
     [SerializeField] private HexTacticsRosterRowView rosterRowPrefab;
     [SerializeField] private HexTacticsSelectedRosterRowView selectedRosterRowPrefab;
@@ -36,7 +34,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
     private int draggingRosterIndex = -1;
     private int draggingEntryId = -1;
 
-    protected override int CurrentLayoutVersion => 10;
+    protected override int CurrentLayoutVersion => 11;
 
     protected override bool HasCurrentBindings =>
         summaryPanel != null &&
@@ -53,9 +51,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         startButton != null &&
         dragPreviewRoot != null &&
         dragPreviewBackground != null &&
-        dragPreviewAvatarBackground != null &&
-        dragPreviewAvatar != null &&
-        dragPreviewFallbackText != null &&
+        dragPreviewAvatarView != null &&
         dragPreviewLabel != null;
 
     public RectTransform Root => (RectTransform)transform;
@@ -321,15 +317,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
 
         var avatarRoot = HexTacticsUiFactory.CreateRect("Avatar", dragPreviewRoot);
         HexTacticsUiFactory.AddLayoutElement(avatarRoot.gameObject, preferredWidth: 40f, preferredHeight: 40f);
-        dragPreviewAvatarBackground = HexTacticsUiFactory.AddImage(avatarRoot.gameObject, new Color(0.25f, 0.34f, 0.40f, 1f), false);
-        HexTacticsUiFactory.StylePanel(dragPreviewAvatarBackground, new Color(1f, 1f, 1f, 0.05f), 0f);
-        var avatarIconRoot = HexTacticsUiFactory.CreateRect("Icon", avatarRoot);
-        HexTacticsUiFactory.Stretch(avatarIconRoot, Vector2.zero, Vector2.one);
-        HexTacticsUiFactory.SetOffsets(avatarIconRoot, 3f, 3f, 3f, 3f);
-        dragPreviewAvatar = HexTacticsUiFactory.AddImage(avatarIconRoot.gameObject, Color.white, false);
-        HexTacticsUiFactory.Stretch(dragPreviewAvatar.rectTransform, Vector2.zero, Vector2.one);
-        dragPreviewFallbackText = HexTacticsUiFactory.CreateText(avatarRoot, "Fallback", string.Empty, 16, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.Stretch(dragPreviewFallbackText.rectTransform, Vector2.zero, Vector2.one);
+        dragPreviewAvatarView = HexTacticsAvatarView.CreateStandalone(avatarRoot, "AvatarView", 3f, 16, false);
 
         dragPreviewLabel = HexTacticsUiFactory.CreateText(dragPreviewRoot, "Label", string.Empty, 15, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
         HexTacticsUiFactory.AddLayoutElement(dragPreviewLabel.gameObject, flexibleWidth: 1f, preferredHeight: 22f);
@@ -388,13 +376,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
             return;
         }
 
-        dragPreviewAvatarBackground.color = avatar.BackgroundColor;
-        dragPreviewAvatar.sprite = avatar.Sprite;
-        dragPreviewAvatar.color = Color.white;
-        dragPreviewAvatar.preserveAspect = true;
-        dragPreviewAvatar.enabled = avatar.Sprite != null;
-        dragPreviewFallbackText.text = avatar.FallbackText;
-        dragPreviewFallbackText.gameObject.SetActive(avatar.Sprite == null);
+        dragPreviewAvatarView.Bind(avatar);
         dragPreviewLabel.text = label;
         dragPreviewRoot.gameObject.SetActive(true);
         dragPreviewRoot.SetAsLastSibling();

@@ -12,15 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1c79c0b9f6744bbac1885a8f6a61101, type: 3}
   m_Name: TigerFighter
   m_EditorClassIdentifier: 
-  displayName: 猛虎斗士
-  description: 孟加拉虎，高爆发近战输出
+  displayName: "\u731B\u864E\u6597\u58EB"
+  description: "\u5B5F\u52A0\u62C9\u864E\uFF0C\u9AD8\u7206\u53D1\u8FD1\u6218\u8F93\u51FA"
   maxHealth: 11
   attackPower: 5
   cost: 5
-  moveRange: 2
+  moveRange: 1
   attackRange: 0
   speed: 4
   visualArchetype: 4
-  avatar: {fileID: 0}
+  avatar: {fileID: 21300000, guid: 054fd4bf0fec044b5be061cbe4073edf, type: 3}
+  battleUnitPrefab: {fileID: 0}
+  visualHeightScale: 1
   attackImpactFrame: 13
   attackImpactNormalizedTime: 0.45

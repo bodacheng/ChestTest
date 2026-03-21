@@ -3,6 +3,7 @@ public static class HexTacticsAssetPaths
     public const string AddressablesRoot = "Assets/AddressableAssets";
 
     public const string CharacterConfigFolder = AddressablesRoot + "/CharacterConfigs";
+    public const string CharacterIconFolder = AddressablesRoot + "/CharacterIcons";
     public const string BattleUnitFolder = AddressablesRoot + "/BattleUnits";
     public const string EffectsFolder = AddressablesRoot + "/Effects";
     public const string AttackEffectsFolder = EffectsFolder + "/AttackEffects";

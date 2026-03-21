@@ -10,7 +10,7 @@ using UnityEditor;
 public sealed partial class HexTacticsPrototype : MonoBehaviour
 {
     [Header("Board")]
-    [SerializeField, Range(2, 6)] private int boardRadius = 3;
+    [SerializeField, Range(2, 6)] private int boardRadius = 2;
     [SerializeField, Min(0.6f)] private float hexRadius = 1.15f;
     [SerializeField, Min(0.1f)] private float tileHeight = 0.28f;
     [SerializeField, Min(0.1f)] private float unitHoverHeight = 0.18f;
@@ -19,8 +19,8 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     [SerializeField, Range(20f, 70f)] private float cameraFieldOfView = 42f;
     [SerializeField, Range(15f, 70f)] private float cameraPitch = 41f;
     [SerializeField, Range(-180f, 180f)] private float cameraYaw = 32f;
-    [SerializeField, Range(1f, 1.5f)] private float cameraFitPadding = 1.04f;
-    [SerializeField, Min(1f)] private float cameraMinDistance = 6f;
+    [SerializeField, Range(1f, 1.5f)] private float cameraFitPadding = 1f;
+    [SerializeField, Min(1f)] private float cameraMinDistance = 5.4f;
     [SerializeField, Min(0.01f)] private float cameraMoveSmoothTime = 0.24f;
     [SerializeField, Min(0.01f)] private float cameraZoomSmoothTime = 0.18f;
     [SerializeField, Range(1f, 20f)] private float cameraRotationSmoothness = 9f;
@@ -327,11 +327,11 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     private List<HexTacticsCharacterConfig> BuildFallbackCharacterRoster()
     {
         var roster = new List<HexTacticsCharacterConfig>();
-        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Fawn, "幼鹿斥候", "幼鹿，低 cost 高机动侦察", 7, 2, 2, 4, 0, 6);
-        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Doe, "林地游骑", "母鹿，游击压制与快速补位", 9, 3, 3, 3, 1, 5);
-        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Stag, "角冠先锋", "牡鹿，稳健推进的均衡前锋", 12, 4, 4, 2, 0, 3);
-        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.WhiteTiger, "霜牙猎手", "白虎，擅长追击的精英猎手", 10, 4, 4, 3, 1, 5);
-        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Tiger, "猛虎斗士", "孟加拉虎，高爆发近战输出", 11, 5, 5, 2, 0, 4);
+        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Fawn, "幼鹿斥候", "幼鹿，低 cost 高机动侦察", 7, 2, 2, 2, 0, 6);
+        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Doe, "林地游骑", "母鹿，游击压制与快速补位", 9, 3, 3, 2, 1, 5);
+        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Stag, "角冠先锋", "牡鹿，稳健推进的均衡前锋", 12, 4, 4, 1, 0, 3);
+        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.WhiteTiger, "霜牙猎手", "白虎，擅长追击的精英猎手", 10, 4, 4, 2, 1, 5);
+        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Tiger, "猛虎斗士", "孟加拉虎，高爆发近战输出", 11, 5, 5, 1, 0, 4);
         TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Elk, "巨角卫士", "驼鹿，高血量低机动防线", 16, 3, 5, 1, 0, 2);
         return roster;
     }

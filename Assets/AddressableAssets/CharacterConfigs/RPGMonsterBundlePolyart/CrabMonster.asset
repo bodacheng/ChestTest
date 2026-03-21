@@ -17,9 +17,11 @@ MonoBehaviour:
   maxHealth: 12
   attackPower: 3
   cost: 4
-  moveRange: 2
+  moveRange: 1
+  attackRange: 0
+  speed: 3
   visualArchetype: 1
-  avatar: {fileID: 0}
+  avatar: {fileID: 21300000, guid: aa9c870170b5542628efcd6f58c021f1, type: 3}
   battleUnitPrefab: {fileID: 6928589415477418788, guid: 9c58664934474575929c87c0939c1b27, type: 3}
   visualHeightScale: 0.9
   attackImpactFrame: 11

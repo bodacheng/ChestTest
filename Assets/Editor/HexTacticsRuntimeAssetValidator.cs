@@ -82,6 +82,16 @@ public static class HexTacticsRuntimeAssetValidator
             if (configs[i] == null)
             {
                 errors.Add($"Character config at index {i} is null.");
+                continue;
+            }
+
+            if (configs[i].Avatar == null)
+            {
+                errors.Add($"Character config '{configs[i].name}' is missing its avatar icon.");
+            }
+            else if (!Mathf.Approximately(configs[i].Avatar.rect.width, configs[i].Avatar.rect.height))
+            {
+                errors.Add($"Character config '{configs[i].name}' avatar icon is not square.");
             }
         }
     }

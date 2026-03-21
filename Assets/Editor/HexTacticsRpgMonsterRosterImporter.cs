@@ -12,37 +12,37 @@ public static class HexTacticsRpgMonsterRosterImporter
 
     private static readonly MonsterImportSpec[] Specs =
     {
-        new("Bat", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/BatPADefault.prefab", "蝙蝠", "高速飞掠", 6, 2, 2, 4, HexTacticsCharacterVisualArchetype.Fawn, 0.70f, AttackTimingProfile.Lunge),
-        new("Dragon", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/DragonPADefault.prefab", "幼龙", "重击突袭", 14, 5, 5, 2, HexTacticsCharacterVisualArchetype.Tiger, 1.10f, AttackTimingProfile.Heavy),
-        new("EvilMage", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/EvilMagePADefault.prefab", "邪术师", "暗术爆发", 8, 4, 4, 2, HexTacticsCharacterVisualArchetype.Doe, 1.00f, AttackTimingProfile.Cast),
+        new("Bat", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/BatPADefault.prefab", "蝙蝠", "高速飞掠", 6, 2, 2, 2, HexTacticsCharacterVisualArchetype.Fawn, 0.70f, AttackTimingProfile.Lunge),
+        new("Dragon", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/DragonPADefault.prefab", "幼龙", "重击突袭", 14, 5, 5, 1, HexTacticsCharacterVisualArchetype.Tiger, 1.10f, AttackTimingProfile.Heavy),
+        new("EvilMage", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/EvilMagePADefault.prefab", "邪术师", "暗术爆发", 8, 4, 4, 1, HexTacticsCharacterVisualArchetype.Doe, 1.00f, AttackTimingProfile.Cast),
         new("Golem", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/GolemPADefault.prefab", "岩石魔像", "厚甲前排", 16, 4, 5, 1, HexTacticsCharacterVisualArchetype.Elk, 1.25f, AttackTimingProfile.Heavy),
         new("MonsterPlant", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/MonsterPlantPADefault.prefab", "怪物花", "扎根缠斗", 9, 3, 3, 1, HexTacticsCharacterVisualArchetype.Doe, 0.95f, AttackTimingProfile.BodySlam),
-        new("Orc", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/OrcPADefault.prefab", "兽人战士", "蛮力推进", 12, 4, 4, 2, HexTacticsCharacterVisualArchetype.Stag, 1.00f, AttackTimingProfile.Heavy),
+        new("Orc", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/OrcPADefault.prefab", "兽人战士", "蛮力推进", 12, 4, 4, 1, HexTacticsCharacterVisualArchetype.Stag, 1.00f, AttackTimingProfile.Heavy),
         new("Skeleton", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/SkeletonPADefault.prefab", "骷髅兵", "脆身快攻", 8, 3, 3, 2, HexTacticsCharacterVisualArchetype.Doe, 0.95f, AttackTimingProfile.Slash),
-        new("Slime", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/SlimePADefault.prefab", "史莱姆", "黏性纠缠", 7, 2, 2, 2, HexTacticsCharacterVisualArchetype.Fawn, 0.75f, AttackTimingProfile.BodySlam),
-        new("Spider", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/SpiderPADefault.prefab", "毒蛛", "迅捷穿插", 7, 3, 2, 3, HexTacticsCharacterVisualArchetype.Fawn, 0.85f, AttackTimingProfile.Snap),
+        new("Slime", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/SlimePADefault.prefab", "史莱姆", "黏性纠缠", 7, 2, 2, 1, HexTacticsCharacterVisualArchetype.Fawn, 0.75f, AttackTimingProfile.BodySlam),
+        new("Spider", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/SpiderPADefault.prefab", "毒蛛", "迅捷穿插", 7, 3, 2, 2, HexTacticsCharacterVisualArchetype.Fawn, 0.85f, AttackTimingProfile.Snap),
         new("TurtleShell", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave01/CharacterPA/TurtleShellPA.prefab", "龟壳兽", "高防慢推", 13, 3, 4, 1, HexTacticsCharacterVisualArchetype.Elk, 1.00f, AttackTimingProfile.Heavy),
-        new("Beholder", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/BeholderPADefault.prefab", "眼魔", "浮游压迫", 9, 4, 4, 3, HexTacticsCharacterVisualArchetype.WhiteTiger, 0.90f, AttackTimingProfile.Cast),
-        new("BlackKnight", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/BlackKnightPADefault.prefab", "黑骑士", "重装推进", 13, 5, 5, 2, HexTacticsCharacterVisualArchetype.Stag, 1.05f, AttackTimingProfile.Heavy),
+        new("Beholder", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/BeholderPADefault.prefab", "眼魔", "浮游压迫", 9, 4, 4, 1, HexTacticsCharacterVisualArchetype.WhiteTiger, 0.90f, AttackTimingProfile.Cast),
+        new("BlackKnight", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/BlackKnightPADefault.prefab", "黑骑士", "重装推进", 13, 5, 5, 1, HexTacticsCharacterVisualArchetype.Stag, 1.05f, AttackTimingProfile.Heavy),
         new("ChestMonster", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/ChestMonsterPADefault.prefab", "宝箱怪", "伏击反咬", 10, 4, 4, 1, HexTacticsCharacterVisualArchetype.Elk, 0.90f, AttackTimingProfile.Snap),
-        new("CrabMonster", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/CrabMonsterPADefault.prefab", "蟹怪", "横移压线", 12, 3, 4, 2, HexTacticsCharacterVisualArchetype.Doe, 0.90f, AttackTimingProfile.BodySlam),
-        new("FlyingDemon", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/FylingDemonPADefault.prefab", "飞魔", "俯冲撕咬", 8, 4, 4, 3, HexTacticsCharacterVisualArchetype.WhiteTiger, 0.95f, AttackTimingProfile.Lunge),
-        new("LizardWarrior", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/LizardWarriorPADefault.prefab", "蜥蜴战士", "贴身肉搏", 11, 4, 4, 2, HexTacticsCharacterVisualArchetype.Stag, 1.00f, AttackTimingProfile.Slash),
-        new("RatAssassin", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/RatAssassinPADefault.prefab", "鼠人刺客", "侧翼突杀", 7, 4, 3, 4, HexTacticsCharacterVisualArchetype.Fawn, 0.90f, AttackTimingProfile.Lunge),
-        new("Specter", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/SpecterPADefault.prefab", "幽魂", "幽影追击", 8, 4, 4, 3, HexTacticsCharacterVisualArchetype.WhiteTiger, 1.00f, AttackTimingProfile.Cast),
-        new("Werewolf", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/WerewolfPADefault.prefab", "狼人", "狂爪扑击", 12, 5, 5, 3, HexTacticsCharacterVisualArchetype.Tiger, 1.05f, AttackTimingProfile.Slash),
+        new("CrabMonster", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/CrabMonsterPADefault.prefab", "蟹怪", "横移压线", 12, 3, 4, 1, HexTacticsCharacterVisualArchetype.Doe, 0.90f, AttackTimingProfile.BodySlam),
+        new("FlyingDemon", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/FylingDemonPADefault.prefab", "飞魔", "俯冲撕咬", 8, 4, 4, 2, HexTacticsCharacterVisualArchetype.WhiteTiger, 0.95f, AttackTimingProfile.Lunge),
+        new("LizardWarrior", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/LizardWarriorPADefault.prefab", "蜥蜴战士", "贴身肉搏", 11, 4, 4, 1, HexTacticsCharacterVisualArchetype.Stag, 1.00f, AttackTimingProfile.Slash),
+        new("RatAssassin", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/RatAssassinPADefault.prefab", "鼠人刺客", "侧翼突杀", 7, 4, 3, 2, HexTacticsCharacterVisualArchetype.Fawn, 0.90f, AttackTimingProfile.Lunge),
+        new("Specter", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/SpecterPADefault.prefab", "幽魂", "幽影追击", 8, 4, 4, 2, HexTacticsCharacterVisualArchetype.WhiteTiger, 1.00f, AttackTimingProfile.Cast),
+        new("Werewolf", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/WerewolfPADefault.prefab", "狼人", "狂爪扑击", 12, 5, 5, 2, HexTacticsCharacterVisualArchetype.Tiger, 1.05f, AttackTimingProfile.Slash),
         new("WormMonster", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave02/CharacterPA/WormMonsterPADefault.prefab", "蠕虫怪", "钝击顶线", 14, 4, 5, 1, HexTacticsCharacterVisualArchetype.Elk, 1.15f, AttackTimingProfile.Heavy),
-        new("BattleBee", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/BattleBeePADefault.prefab", "战蜂", "急袭穿梭", 6, 2, 2, 4, HexTacticsCharacterVisualArchetype.Fawn, 0.75f, AttackTimingProfile.Lunge),
-        new("BishopKnight", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/BishopKnightPADefault.prefab", "主教骑士", "稳步压阵", 12, 4, 4, 2, HexTacticsCharacterVisualArchetype.Stag, 1.00f, AttackTimingProfile.Heavy),
+        new("BattleBee", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/BattleBeePADefault.prefab", "战蜂", "急袭穿梭", 6, 2, 2, 2, HexTacticsCharacterVisualArchetype.Fawn, 0.75f, AttackTimingProfile.Lunge),
+        new("BishopKnight", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/BishopKnightPADefault.prefab", "主教骑士", "稳步压阵", 12, 4, 4, 1, HexTacticsCharacterVisualArchetype.Stag, 1.00f, AttackTimingProfile.Heavy),
         new("Cactus", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/CactusPADefault.prefab", "仙人掌怪", "迟缓反打", 10, 3, 3, 1, HexTacticsCharacterVisualArchetype.Doe, 0.90f, AttackTimingProfile.BodySlam),
-        new("Cyclops", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/CyclopsPADefault.prefab", "独眼巨人", "巨力压制", 15, 5, 5, 2, HexTacticsCharacterVisualArchetype.Elk, 1.15f, AttackTimingProfile.Heavy),
-        new("DemonKing", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/DemonKingPADefault.prefab", "魔王", "高压斩击", 16, 6, 6, 2, HexTacticsCharacterVisualArchetype.Tiger, 1.20f, AttackTimingProfile.Heavy),
-        new("Fishman", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/FishmanPADefault.prefab", "鱼人", "疾步围杀", 10, 4, 4, 3, HexTacticsCharacterVisualArchetype.Doe, 1.00f, AttackTimingProfile.Slash),
-        new("MushroomAngry", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/MushroomAngryPADefault.prefab", "怒蘑菇", "贴地缠斗", 8, 3, 3, 2, HexTacticsCharacterVisualArchetype.Fawn, 0.85f, AttackTimingProfile.BodySlam),
-        new("MushroomSmile", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/MushroomSmilePADefault.prefab", "笑脸蘑菇", "低费占格", 7, 2, 2, 2, HexTacticsCharacterVisualArchetype.Fawn, 0.80f, AttackTimingProfile.BodySlam),
-        new("NagaWizard", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/NagaWizardPADefault.prefab", "娜迦巫师", "法术牵制", 9, 4, 4, 2, HexTacticsCharacterVisualArchetype.Doe, 1.00f, AttackTimingProfile.Cast),
-        new("Salamander", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/SalamanderPADefault.prefab", "火蜥蜴", "灼热突袭", 11, 5, 4, 3, HexTacticsCharacterVisualArchetype.Tiger, 1.00f, AttackTimingProfile.Slash),
-        new("StingRay", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/StingRayPADefault.prefab", "魔鬼鱼", "滑翔切入", 7, 3, 3, 4, HexTacticsCharacterVisualArchetype.WhiteTiger, 0.85f, AttackTimingProfile.Lunge)
+        new("Cyclops", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/CyclopsPADefault.prefab", "独眼巨人", "巨力压制", 15, 5, 5, 1, HexTacticsCharacterVisualArchetype.Elk, 1.15f, AttackTimingProfile.Heavy),
+        new("DemonKing", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/DemonKingPADefault.prefab", "魔王", "高压斩击", 16, 6, 6, 1, HexTacticsCharacterVisualArchetype.Tiger, 1.20f, AttackTimingProfile.Heavy),
+        new("Fishman", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/FishmanPADefault.prefab", "鱼人", "疾步围杀", 10, 4, 4, 2, HexTacticsCharacterVisualArchetype.Doe, 1.00f, AttackTimingProfile.Slash),
+        new("MushroomAngry", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/MushroomAngryPADefault.prefab", "怒蘑菇", "贴地缠斗", 8, 3, 3, 1, HexTacticsCharacterVisualArchetype.Fawn, 0.85f, AttackTimingProfile.BodySlam),
+        new("MushroomSmile", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/MushroomSmilePADefault.prefab", "笑脸蘑菇", "低费占格", 7, 2, 2, 1, HexTacticsCharacterVisualArchetype.Fawn, 0.80f, AttackTimingProfile.BodySlam),
+        new("NagaWizard", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/NagaWizardPADefault.prefab", "娜迦巫师", "法术牵制", 9, 4, 4, 1, HexTacticsCharacterVisualArchetype.Doe, 1.00f, AttackTimingProfile.Cast),
+        new("Salamander", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/SalamanderPADefault.prefab", "火蜥蜴", "灼热突袭", 11, 5, 4, 2, HexTacticsCharacterVisualArchetype.Tiger, 1.00f, AttackTimingProfile.Slash),
+        new("StingRay", "Assets/RPGMonsterBundlePolyart/CommonStuffs/Prefab/Wave03/CharacterPA/StingRayPADefault.prefab", "魔鬼鱼", "滑翔切入", 7, 3, 3, 2, HexTacticsCharacterVisualArchetype.WhiteTiger, 0.85f, AttackTimingProfile.Lunge)
     };
 
     public static void RunBatchMode()
@@ -81,15 +81,17 @@ public static class HexTacticsRpgMonsterRosterImporter
         EnsureFolder(OutputRoot);
 
         var importedCount = 0;
+        var configsToGenerateIconsFor = new List<HexTacticsCharacterConfig>();
         var issues = new List<string>();
         foreach (var spec in Specs)
         {
-            if (CreateOrUpdateCharacterConfig(spec, issues))
+            if (CreateOrUpdateCharacterConfig(spec, issues, configsToGenerateIconsFor))
             {
                 importedCount++;
             }
         }
 
+        var generatedIconCount = HexTacticsCharacterIconGenerator.GenerateIconsForConfigs(configsToGenerateIconsFor, issues);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
         HexTacticsAddressablesSync.Sync();
@@ -105,7 +107,7 @@ public static class HexTacticsRpgMonsterRosterImporter
             return false;
         }
 
-        Debug.Log($"[HexTacticsRpgMonsterRosterImporter] Imported or updated {importedCount} character config assets.");
+        Debug.Log($"[HexTacticsRpgMonsterRosterImporter] Imported or updated {importedCount} character config assets and generated {generatedIconCount} icons.");
         return true;
     }
 
@@ -116,7 +118,8 @@ public static class HexTacticsRpgMonsterRosterImporter
         var issues = new List<string>();
         foreach (var spec in Specs)
         {
-            var timing = ResolveAttackTiming(spec, issues);
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(spec.PrefabPath);
+            var timing = ResolveAttackTiming(spec, prefab, issues);
             Debug.Log(
                 $"[HexTacticsRpgMonsterRosterImporter] {spec.AssetName} -> clip={timing.ClipName} " +
                 $"frames={timing.TotalFrames} impactFrame={timing.ImpactFrame} " +
@@ -138,7 +141,10 @@ public static class HexTacticsRpgMonsterRosterImporter
         return false;
     }
 
-    private static bool CreateOrUpdateCharacterConfig(MonsterImportSpec spec, List<string> issues)
+    private static bool CreateOrUpdateCharacterConfig(
+        MonsterImportSpec spec,
+        List<string> issues,
+        List<HexTacticsCharacterConfig> configsToGenerateIconsFor)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(spec.PrefabPath);
         if (prefab == null)
@@ -155,7 +161,7 @@ public static class HexTacticsRpgMonsterRosterImporter
             AssetDatabase.CreateAsset(config, assetPath);
         }
 
-        var timing = ResolveAttackTiming(spec, issues);
+        var timing = ResolveAttackTiming(spec, prefab, issues);
         var serializedObject = new SerializedObject(config);
         serializedObject.FindProperty("displayName").stringValue = spec.DisplayName;
         serializedObject.FindProperty("description").stringValue = string.IsNullOrWhiteSpace(spec.Description)
@@ -166,19 +172,19 @@ public static class HexTacticsRpgMonsterRosterImporter
         serializedObject.FindProperty("cost").intValue = spec.Cost;
         serializedObject.FindProperty("moveRange").intValue = spec.MoveRange;
         serializedObject.FindProperty("visualArchetype").enumValueIndex = (int)spec.VisualArchetype;
-        serializedObject.FindProperty("avatar").objectReferenceValue = null;
+        serializedObject.FindProperty("avatar").objectReferenceValue = config.Avatar;
         serializedObject.FindProperty("battleUnitPrefab").objectReferenceValue = prefab;
         serializedObject.FindProperty("visualHeightScale").floatValue = spec.VisualHeightScale;
         serializedObject.FindProperty("attackImpactFrame").intValue = timing.ImpactFrame;
         serializedObject.FindProperty("attackImpactNormalizedTime").floatValue = timing.ImpactNormalizedTime;
         serializedObject.ApplyModifiedPropertiesWithoutUndo();
         EditorUtility.SetDirty(config);
+        configsToGenerateIconsFor.Add(config);
         return true;
     }
 
-    private static AttackTimingResolution ResolveAttackTiming(MonsterImportSpec spec, List<string> issues)
+    private static AttackTimingResolution ResolveAttackTiming(MonsterImportSpec spec, GameObject prefab, List<string> issues)
     {
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(spec.PrefabPath);
         if (prefab == null)
         {
             return new AttackTimingResolution(0, DefaultAttackImpactNormalizedTime, "Missing Prefab", 0);

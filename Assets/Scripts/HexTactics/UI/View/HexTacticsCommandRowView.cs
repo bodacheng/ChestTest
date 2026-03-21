@@ -7,21 +7,17 @@ using UnityEngine.UI;
 public sealed class HexTacticsCommandRowView : HexTacticsUiGeneratedView
 {
     [SerializeField] private Image panelImage;
-    [SerializeField] private Image avatarBackground;
-    [SerializeField] private Image avatarImage;
-    [SerializeField] private Text avatarFallbackText;
+    [SerializeField] private HexTacticsAvatarView avatarView;
     [SerializeField] private Text commandText;
     [SerializeField] private Button selectButton;
     [SerializeField] private Text selectButtonText;
     [SerializeField] private Button waitButton;
 
-    protected override int CurrentLayoutVersion => 8;
+    protected override int CurrentLayoutVersion => 9;
 
     protected override bool HasCurrentBindings =>
         panelImage != null &&
-        avatarBackground != null &&
-        avatarImage != null &&
-        avatarFallbackText != null &&
+        avatarView != null &&
         commandText != null &&
         selectButton != null &&
         selectButtonText != null &&
@@ -73,16 +69,8 @@ public sealed class HexTacticsCommandRowView : HexTacticsUiGeneratedView
         layout.childForceExpandHeight = false;
 
         var avatarRoot = HexTacticsUiFactory.CreateRect("Avatar", root);
-        HexTacticsUiFactory.AddLayoutElement(avatarRoot.gameObject, preferredWidth: 38f, preferredHeight: 38f);
-        avatarBackground = HexTacticsUiFactory.AddImage(avatarRoot.gameObject, new Color(0.25f, 0.34f, 0.40f, 1f));
-        HexTacticsUiFactory.StylePanel(avatarBackground, new Color(1f, 1f, 1f, 0.04f), 0f);
-        var avatarIconRoot = HexTacticsUiFactory.CreateRect("Icon", avatarRoot);
-        HexTacticsUiFactory.Stretch(avatarIconRoot, Vector2.zero, Vector2.one);
-        HexTacticsUiFactory.SetOffsets(avatarIconRoot, 3f, 3f, 3f, 3f);
-        avatarImage = HexTacticsUiFactory.AddImage(avatarIconRoot.gameObject, Color.white, false);
-        HexTacticsUiFactory.Stretch(avatarImage.rectTransform, Vector2.zero, Vector2.one);
-        avatarFallbackText = HexTacticsUiFactory.CreateText(avatarRoot, "AvatarFallback", string.Empty, 16, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.Stretch(avatarFallbackText.rectTransform, Vector2.zero, Vector2.one);
+        HexTacticsUiFactory.AddLayoutElement(avatarRoot.gameObject, preferredWidth: 40f, preferredHeight: 40f);
+        avatarView = HexTacticsAvatarView.CreateStandalone(avatarRoot, "AvatarView", 3f, 16);
 
         commandText = HexTacticsUiFactory.CreateText(root, "CommandText", string.Empty, 14, TextAnchor.MiddleLeft, Color.white);
         commandText.verticalOverflow = VerticalWrapMode.Truncate;
@@ -105,13 +93,7 @@ public sealed class HexTacticsCommandRowView : HexTacticsUiGeneratedView
 
     private void ApplyAvatar(HexTacticsAvatarUiData avatar)
     {
-        avatarBackground.color = avatar.BackgroundColor;
-        avatarImage.sprite = avatar.Sprite;
-        avatarImage.color = Color.white;
-        avatarImage.preserveAspect = true;
-        avatarImage.enabled = avatar.Sprite != null;
-        avatarFallbackText.text = avatar.FallbackText;
-        avatarFallbackText.gameObject.SetActive(avatar.Sprite == null);
+        avatarView.Bind(avatar);
     }
 
     private static Color ResolvePanelColor(HexTacticsCommandEntryUiData data)
