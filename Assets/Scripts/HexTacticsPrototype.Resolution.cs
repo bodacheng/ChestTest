@@ -64,30 +64,39 @@ public sealed partial class HexTacticsPrototype
             lastResolutionKind = ResolutionKind.Move;
             yield return ResolveMoveTurn(resolvedTurnCount > 0, moveTurnIndex, stepResult);
             ResolveFriendlyOccupiedMoveGoals(stepResult);
-            if (stepResult.SuccessfulMoves.Count == 0)
+
+            if (stepResult.SuccessfulMoves.Count > 0)
+            {
+                AdvanceMovePaths(stepResult.SuccessfulMoves);
+                resolvedTurnCount++;
+
+                if (CheckVictory())
+                {
+                    isAnimating = false;
+                    isResolving = false;
+                    currentFlowState = FlowState.Victory;
+                    RefreshVisuals();
+                    yield break;
+                }
+            }
+
+            if (stepResult.HasEnemyContest)
+            {
+                LockUnitsForEnemyContact(stepResult.EnemyContacts);
+            }
+
+            var postMoveAttacks = CollectPostMoveAttacks(stepResult);
+            if (postMoveAttacks.Count == 0 && stepResult.SuccessfulMoves.Count == 0)
             {
                 break;
             }
 
-            AdvanceMovePaths(stepResult.SuccessfulMoves);
-            resolvedTurnCount++;
-
-            if (CheckVictory())
-            {
-                isAnimating = false;
-                isResolving = false;
-                currentFlowState = FlowState.Victory;
-                RefreshVisuals();
-                yield break;
-            }
-
-            var followUpAttacks = CollectReadyFollowUpAttacks();
-            if (followUpAttacks.Count > 0)
+            if (postMoveAttacks.Count > 0)
             {
                 lastResolutionKind = ResolutionKind.Attack;
-                resolutionStatus = $"第 {planningRoundNumber} 轮移动第 {moveTurnIndex} 回合后，{followUpAttacks.Count} 名棋子在接敌后发起攻击";
-                MarkAttackUsage(followUpAttacks, lockMovementAfterAttack: true);
-                yield return ResolveAttackTurn(followUpAttacks);
+                resolutionStatus = $"第 {planningRoundNumber} 轮移动第 {moveTurnIndex} 回合后，{postMoveAttacks.Count} 名棋子在接敌后发起攻击";
+                MarkAttackUsage(postMoveAttacks, lockMovementAfterAttack: true);
+                yield return ResolveAttackTurn(postMoveAttacks);
                 resolvedTurnCount++;
 
                 if (CheckVictory())
@@ -1263,7 +1272,47 @@ public sealed partial class HexTacticsPrototype
 
         var winners = ChooseMoveWinners(intents, out var conflictCount);
         var successfulMoves = FilterSuccessfulMoves(winners);
-        return new MoveStepResolution(intents, successfulMoves, conflictCount, new Dictionary<HexUnit, HashSet<HexUnit>>());
+        var enemyContacts = CollectEnemyMoveContacts(intents);
+        return new MoveStepResolution(intents, successfulMoves, conflictCount, enemyContacts);
+    }
+
+    private List<AttackEvent> CollectPostMoveAttacks(MoveStepResolution stepResult)
+    {
+        var plannedAttacks = CollectReadyFollowUpAttacks();
+        if (!stepResult.HasEnemyContest)
+        {
+            return plannedAttacks;
+        }
+
+        var contactAttacks = BuildContactAttackEvents(stepResult.EnemyContacts);
+        return MergeAttackEvents(plannedAttacks, contactAttacks);
+    }
+
+    private static List<AttackEvent> MergeAttackEvents(List<AttackEvent> preferredAttacks, List<AttackEvent> fallbackAttacks)
+    {
+        var merged = new List<AttackEvent>();
+        var queuedAttackers = new HashSet<HexUnit>();
+        AppendUniqueAttacks(merged, preferredAttacks, queuedAttackers);
+        AppendUniqueAttacks(merged, fallbackAttacks, queuedAttackers);
+        return merged;
+    }
+
+    private static void AppendUniqueAttacks(List<AttackEvent> destination, List<AttackEvent> source, HashSet<HexUnit> queuedAttackers)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        foreach (var attack in source)
+        {
+            if (attack.Attacker == null || !queuedAttackers.Add(attack.Attacker))
+            {
+                continue;
+            }
+
+            destination.Add(attack);
+        }
     }
 
     private Dictionary<HexUnit, HashSet<HexUnit>> CollectEnemyMoveContacts(List<MoveIntent> intents)
@@ -1831,12 +1880,35 @@ public sealed partial class HexTacticsPrototype
             return false;
         }
 
-        if (targetCell.Occupant != null && targetCell.Occupant.Team != unit.Team)
+        if (targetCell.Occupant == null)
+        {
+            return true;
+        }
+
+        if (targetCell.Occupant.Team != unit.Team)
         {
             return false;
         }
 
-        return true;
+        return WillUnitAttemptToLeaveCurrentCell(targetCell.Occupant);
+    }
+
+    private bool WillUnitAttemptToLeaveCurrentCell(HexUnit unit)
+    {
+        if (unit == null || !unit.HasPlannedMove || unit.MovementLocked || unit.PlannedMoveProgress >= unit.MoveRange)
+        {
+            return false;
+        }
+
+        if (IsEnemyCommand(unit))
+        {
+            var plannedSkill = unit.PlannedSkill;
+            return plannedSkill != null &&
+                   IsUnitAlive(unit.PlannedEnemyTargetUnit) &&
+                   HexDistance(unit.Coord, unit.PlannedEnemyTargetUnit.Coord) > GetAttackReach(plannedSkill);
+        }
+
+        return unit.Coord != unit.PlannedMoveTarget;
     }
 
     private bool CanAssignEnemyTarget(HexUnit unit, HexCoord target)
