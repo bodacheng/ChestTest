@@ -10,19 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7033fc0862404bee8b688b52356e0703, type: 3}
-  m_Name: ArcBurst_Ranged_P6_R1_C2
+  m_Name: RepulseBolt_Ranged_P5_R1_C2
   m_EditorClassIdentifier: Assembly-CSharp::HexTacticsSkillConfig
-  displayName: "\u5965\u672f\u7206\u88c2"
-  description: "\u6d88\u8017 2 \u70b9\u80fd\u91cf\u5f15\u7206\u5965\u672f\u5f39\uff0c\u547d\u4e2d\u540e\u53ef\u5c06\u76ee\u6807\u9707\u5f00\u3002"
-  power: 6
+  displayName: "\u65a5\u529b\u6cd5\u7403"
+  description: "\u6d88\u8017 2 \u70b9\u80fd\u91cf\u53d1\u51fa\u65a5\u529b\u5f39\uff0c\u547d\u4e2d\u540e\u53ef\u5c06\u76ee\u6807\u9707\u9000 1 \u683c\u3002"
+  power: 5
   attackRange: 1
   energyCost: 2
   energyGainOnHit: 0
   collisionAttribute: 1
   selfMovementAttribute: 0
   projectileEffectPrefab: {fileID: 6448594173215879760, guid: 21187664e919848e7ac03e126b438bf2, type: 3}
-  projectileEffectScale: 0.98
-  impactEffectPrefab: {fileID: 7069495237875253993, guid: 75caeaad2ff9c46898f2e2cb7be524a1, type: 3}
-  impactEffectScale: 1.18
-  impactHeightNormalized: 0.66
-  impactForwardOffset: 0.09
+  projectileEffectScale: 0.94
+  impactEffectPrefab: {fileID: 1666791193596681458, guid: db3a9ed0c38cd4a8ab493a7b8f6ab47e, type: 3}
+  impactEffectScale: 1.1
+  impactHeightNormalized: 0.64
+  impactForwardOffset: 0.07

@@ -12,12 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7033fc0862404bee8b688b52356e0703, type: 3}
   m_Name: Snipe_Ranged_P5_R2_C2
   m_EditorClassIdentifier: Assembly-CSharp::HexTacticsSkillConfig
-  displayName: "\u72D9\u730E\u8FDC\u5C04"
-  description: "\u6D88\u8017 2 \u70B9\u80FD\u91CF\u8FDB\u884C\u66F4\u8FDC\u8DDD\u79BB\u7684\u72D9\u51FB\uFF0C\u662F\u8FDC\u7A0B\u5355\u4F4D\u7684\u91CD\u8981\u6218\u672F\u9009\u62E9\u3002"
+  displayName: "\u72d9\u730e\u8fdc\u5c04"
+  description: "\u6d88\u8017 2 \u70b9\u80fd\u91cf\u8fdb\u884c\u66f4\u8fdc\u8ddd\u79bb\u7684\u72d9\u51fb\uff0c\u662f\u8fdc\u7a0b\u5355\u4f4d\u7684\u91cd\u8981\u6218\u672f\u9009\u62e9\u3002"
   power: 5
   attackRange: 2
   energyCost: 2
   energyGainOnHit: 0
+  collisionAttribute: 0
+  selfMovementAttribute: 0
   projectileEffectPrefab: {fileID: 2763477782707023762, guid: c868d637a2fff4b28bfcb4936311eb49, type: 3}
   projectileEffectScale: 1
   impactEffectPrefab: {fileID: 7069495237875253993, guid: 75caeaad2ff9c46898f2e2cb7be524a1, type: 3}

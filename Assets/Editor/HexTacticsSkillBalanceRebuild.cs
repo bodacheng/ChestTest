@@ -9,22 +9,7 @@ public static class HexTacticsSkillBalanceRebuild
         new(
             "ScoutBurst_Melee_P4_R0_C1",
             "俯冲重击",
-            "消耗 1 点能量发动更凶狠的近身扑击，适合轻型单位补足斩杀线。",
-            4,
-            0,
-            1,
-            0,
-            null,
-            1f,
-            HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactMediumAzure.prefab",
-            HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit16.prefab",
-            1.02f,
-            0.54f,
-            0.05f),
-        new(
-            "VenomStrike_Melee_P4_R0_C1",
-            "毒袭",
-            "消耗 1 点能量追加毒性打击，适合持续追击的压血单位。",
+            "消耗 1 点能量向目标踏前扑击，适合轻型单位补足斩杀线。",
             4,
             0,
             1,
@@ -35,11 +20,28 @@ public static class HexTacticsSkillBalanceRebuild
             HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit16.prefab",
             1.04f,
             0.56f,
-            0.05f),
+            0.06f,
+            selfMovementAttribute: HexTacticsSelfMovementAttribute.Advance),
+        new(
+            "VenomStrike_Melee_P4_R0_C1",
+            "毒袭",
+            "消耗 1 点能量踏前咬刺，将毒伤更稳定地送进前排。",
+            4,
+            0,
+            1,
+            0,
+            null,
+            1f,
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactMediumAzure.prefab",
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit16.prefab",
+            1.0f,
+            0.56f,
+            0.05f,
+            selfMovementAttribute: HexTacticsSelfMovementAttribute.Advance),
         new(
             "ThornShot_Ranged_P4_R1_C1",
             "棘刺射击",
-            "消耗 1 点能量发出中距离棘刺，适合拉扯和抢先压低目标血量。",
+            "消耗 1 点能量射出带刺弹体，命中后可将目标逼退 1 格。",
             4,
             1,
             1,
@@ -50,11 +52,12 @@ public static class HexTacticsSkillBalanceRebuild
             HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit16.prefab",
             1.02f,
             0.60f,
-            0.07f),
+            0.07f,
+            collisionAttribute: HexTacticsCollisionAttribute.PushTarget),
         new(
             "SkirmishCombo_Melee_P5_R0_C1",
             "追猎连击",
-            "消耗 1 点能量打出高效率连击，是中速近战的主力爆发。",
+            "消耗 1 点能量踏前切入后快速连击，是中速近战的主力爆发。",
             5,
             0,
             1,
@@ -62,14 +65,31 @@ public static class HexTacticsSkillBalanceRebuild
             null,
             1f,
             HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactHeavyEmber.prefab",
-            HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit25.prefab",
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit16.prefab",
             1.12f,
             0.60f,
-            0.07f),
+            0.07f,
+            selfMovementAttribute: HexTacticsSelfMovementAttribute.Advance),
+        new(
+            "BulwarkBash_Melee_P5_R0_C1",
+            "壁垒猛撞",
+            "消耗 1 点能量用盾肩或甲壳猛撞，将前方目标顶退 1 格。",
+            5,
+            0,
+            1,
+            0,
+            null,
+            1f,
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactHeavyEmber.prefab",
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit16.prefab",
+            1.1f,
+            0.60f,
+            0.07f,
+            collisionAttribute: HexTacticsCollisionAttribute.PushTarget),
         new(
             "BreakArmor_Melee_P6_R0_C2",
             "破甲重击",
-            "消耗 2 点能量造成强力近战打击，专门用于前排破局。",
+            "消耗 2 点能量砸出破甲重击，并将目标从前线击退。",
             6,
             0,
             2,
@@ -80,11 +100,12 @@ public static class HexTacticsSkillBalanceRebuild
             HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit25.prefab",
             1.18f,
             0.62f,
-            0.09f),
+            0.09f,
+            collisionAttribute: HexTacticsCollisionAttribute.PushTarget),
         new(
             "CrushingBlow_Melee_P7_R0_C2",
             "粉碎重击",
-            "消耗 2 点能量释放重型爆发，适合高体型近战的终结一击。",
+            "消耗 2 点能量打出重型爆发，适合高体型近战强行推线。",
             7,
             0,
             2,
@@ -95,22 +116,41 @@ public static class HexTacticsSkillBalanceRebuild
             HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit25.prefab",
             1.24f,
             0.64f,
-            0.09f),
+            0.09f,
+            collisionAttribute: HexTacticsCollisionAttribute.PushTarget),
         new(
             "PredatorRush_Melee_P6_R0_C1",
             "猎杀突击",
-            "消耗 1 点能量进行高效率爆发，适合高机动近战连续施压。",
+            "消耗 1 点能量朝目标猛扑，适合高机动近战连续施压。",
             6,
             0,
             1,
             0,
             null,
             1f,
-            HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactHeavyCrimson.prefab",
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactHeavyEmber.prefab",
             HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit25.prefab",
             1.14f,
             0.62f,
-            0.08f),
+            0.08f,
+            selfMovementAttribute: HexTacticsSelfMovementAttribute.Advance),
+        new(
+            "ExecutionDive_Melee_P7_R0_C2",
+            "断头突进",
+            "消耗 2 点能量先突进贴身，再以重击把目标撞退。",
+            7,
+            0,
+            2,
+            0,
+            null,
+            1f,
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactHeavyCrimson.prefab",
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit25.prefab",
+            1.28f,
+            0.64f,
+            0.10f,
+            collisionAttribute: HexTacticsCollisionAttribute.PushTarget,
+            selfMovementAttribute: HexTacticsSelfMovementAttribute.Advance),
         new(
             "PowerShot_Ranged_P5_R1_C1",
             "贯穿射击",
@@ -127,6 +167,22 @@ public static class HexTacticsSkillBalanceRebuild
             0.62f,
             0.07f),
         new(
+            "BackstepShot_Ranged_P4_R1_C1",
+            "后撤射击",
+            "消耗 1 点能量射击后立即后撤 1 格，是游击单位的保命手段。",
+            4,
+            1,
+            1,
+            0,
+            HexTacticsAssetPaths.AttackEffectsVariantFolder + "/HovlProjectileFrost.prefab",
+            0.82f,
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactRangedNova.prefab",
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit16.prefab",
+            0.98f,
+            0.60f,
+            0.06f,
+            selfMovementAttribute: HexTacticsSelfMovementAttribute.Retreat),
+        new(
             "Snipe_Ranged_P5_R2_C2",
             "狙猎远射",
             "消耗 2 点能量进行更远距离的狙击，是远程单位的重要战术选择。",
@@ -142,9 +198,25 @@ public static class HexTacticsSkillBalanceRebuild
             0.66f,
             0.09f),
         new(
+            "RepulseBolt_Ranged_P5_R1_C2",
+            "斥力法球",
+            "消耗 2 点能量发出斥力弹，命中后可将目标震退 1 格。",
+            5,
+            1,
+            2,
+            0,
+            HexTacticsAssetPaths.AttackEffectsVariantFolder + "/HovlProjectileArcane.prefab",
+            0.94f,
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactRangedNova.prefab",
+            HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit25.prefab",
+            1.10f,
+            0.64f,
+            0.07f,
+            collisionAttribute: HexTacticsCollisionAttribute.PushTarget),
+        new(
             "ArcBurst_Ranged_P6_R1_C2",
             "奥术爆裂",
-            "消耗 2 点能量引爆奥术弹，适合中距离高压清场。",
+            "消耗 2 点能量引爆奥术弹，命中后可将目标震开。",
             6,
             1,
             2,
@@ -155,7 +227,8 @@ public static class HexTacticsSkillBalanceRebuild
             HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit25.prefab",
             1.18f,
             0.66f,
-            0.09f),
+            0.09f,
+            collisionAttribute: HexTacticsCollisionAttribute.PushTarget),
         new(
             "ShadowBolt_Ranged_P5_R2_C2",
             "暗蚀弹",
@@ -174,7 +247,7 @@ public static class HexTacticsSkillBalanceRebuild
         new(
             "WaveSlash_Ranged_P6_R1_C2",
             "震荡斩波",
-            "消耗 2 点能量挥出中距离冲击，是大型怪物和首领的范围压制手段。",
+            "消耗 2 点能量挥出中距离冲击，可将命中的敌人震退 1 格。",
             6,
             1,
             2,
@@ -185,11 +258,12 @@ public static class HexTacticsSkillBalanceRebuild
             HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit25.prefab",
             1.2f,
             0.66f,
-            0.09f),
+            0.09f,
+            collisionAttribute: HexTacticsCollisionAttribute.PushTarget),
         new(
             "RoyalExecution_Melee_P8_R0_C3",
             "王者处决",
-            "消耗 3 点能量打出极高爆发，只在关键斩杀时使用。",
+            "消耗 3 点能量突进处决并将目标撞退，是首领级单位的终结手段。",
             8,
             0,
             3,
@@ -200,27 +274,34 @@ public static class HexTacticsSkillBalanceRebuild
             HexTacticsAssetPaths.HitEffectsVariantFolder + "/ErbHit25.prefab",
             1.36f,
             0.68f,
-            0.10f)
+            0.10f,
+            collisionAttribute: HexTacticsCollisionAttribute.PushTarget,
+            selfMovementAttribute: HexTacticsSelfMovementAttribute.Advance)
     };
 
     private static readonly CharacterLoadout[] CharacterLoadouts =
     {
         new(new[] { "Bat", "BattleBee", "FawnScout", "MushroomSmile", "Slime" }, 3, 0, "BasicAttack_Melee_P2_R0", "ScoutBurst_Melee_P4_R0_C1"),
-        new(new[] { "Spider" }, 3, 0, "BasicAttack_Melee_P3_R0", "VenomStrike_Melee_P4_R0_C1"),
-        new(new[] { "Cactus", "MonsterPlant", "StingRay" }, 3, 0, "BasicAttack_Melee_P3_R0", "ThornShot_Ranged_P4_R1_C1"),
-        new(new[] { "MushroomAngry", "Skeleton" }, 3, 0, "BasicAttack_Melee_P3_R0", "SkirmishCombo_Melee_P5_R0_C1"),
-        new(new[] { "RatAssassin" }, 3, 0, "BasicAttack_Melee_P4_R0", "SkirmishCombo_Melee_P5_R0_C1"),
-        new(new[] { "BishopKnight", "ChestMonster", "Golem", "LizardWarrior", "Orc", "StagVanguard", "WormMonster" }, 4, 0, "BasicAttack_Melee_P4_R0", "BreakArmor_Melee_P6_R0_C2"),
-        new(new[] { "CrabMonster", "ElkGuardian", "TurtleShell" }, 4, 0, "BasicAttack_Melee_P3_R0", "BreakArmor_Melee_P6_R0_C2"),
-        new(new[] { "Fishman" }, 3, 0, "BasicAttack_Melee_P4_R0", "PowerShot_Ranged_P5_R1_C1"),
-        new(new[] { "BlackKnight", "Cyclops" }, 4, 0, "BasicAttack_Melee_P5_R0", "CrushingBlow_Melee_P7_R0_C2"),
-        new(new[] { "TigerFighter", "Werewolf" }, 4, 0, "BasicAttack_Melee_P5_R0", "PredatorRush_Melee_P6_R0_C1"),
-        new(new[] { "Dragon", "Salamander" }, 4, 0, "BasicAttack_Melee_P5_R0", "WaveSlash_Ranged_P6_R1_C2"),
-        new(new[] { "DemonKing" }, 5, 1, "BasicAttack_Melee_P6_R0", "WaveSlash_Ranged_P6_R1_C2", "RoyalExecution_Melee_P8_R0_C3"),
-        new(new[] { "DoeRider" }, 4, 0, "BasicAttack_Ranged_P3_R1", "PowerShot_Ranged_P5_R1_C1", "Snipe_Ranged_P5_R2_C2"),
-        new(new[] { "WhiteTigerHunter" }, 4, 1, "BasicAttack_Ranged_P4_R1", "ArcBurst_Ranged_P6_R1_C2", "Snipe_Ranged_P5_R2_C2"),
-        new(new[] { "EvilMage", "NagaWizard" }, 4, 1, "BasicAttack_Ranged_P3_R1", "ShadowBolt_Ranged_P5_R2_C2", "ArcBurst_Ranged_P6_R1_C2"),
-        new(new[] { "Beholder", "Specter", "FlyingDemon" }, 4, 1, "BasicAttack_Ranged_P4_R1", "ShadowBolt_Ranged_P5_R2_C2", "ArcBurst_Ranged_P6_R1_C2")
+        new(new[] { "Spider" }, 4, 0, "BasicAttack_Melee_P3_R0", "VenomStrike_Melee_P4_R0_C1", "ScoutBurst_Melee_P4_R0_C1"),
+        new(new[] { "Cactus", "MonsterPlant" }, 4, 0, "BasicAttack_Melee_P3_R0", "ThornShot_Ranged_P4_R1_C1"),
+        new(new[] { "StingRay" }, 4, 0, "BasicAttack_Melee_P3_R0", "ThornShot_Ranged_P4_R1_C1", "BackstepShot_Ranged_P4_R1_C1"),
+        new(new[] { "MushroomAngry", "Skeleton" }, 4, 0, "BasicAttack_Melee_P3_R0", "SkirmishCombo_Melee_P5_R0_C1"),
+        new(new[] { "RatAssassin" }, 4, 0, "BasicAttack_Melee_P4_R0", "ScoutBurst_Melee_P4_R0_C1", "SkirmishCombo_Melee_P5_R0_C1"),
+        new(new[] { "BishopKnight", "ChestMonster", "LizardWarrior", "Orc", "StagVanguard" }, 4, 0, "BasicAttack_Melee_P4_R0", "BulwarkBash_Melee_P5_R0_C1", "BreakArmor_Melee_P6_R0_C2"),
+        new(new[] { "Golem", "WormMonster" }, 5, 0, "BasicAttack_Melee_P4_R0", "BreakArmor_Melee_P6_R0_C2", "CrushingBlow_Melee_P7_R0_C2"),
+        new(new[] { "CrabMonster", "ElkGuardian", "TurtleShell" }, 5, 0, "BasicAttack_Melee_P3_R0", "BulwarkBash_Melee_P5_R0_C1", "BreakArmor_Melee_P6_R0_C2"),
+        new(new[] { "Fishman" }, 4, 0, "BasicAttack_Melee_P4_R0", "BackstepShot_Ranged_P4_R1_C1", "PowerShot_Ranged_P5_R1_C1"),
+        new(new[] { "BlackKnight", "Cyclops" }, 5, 0, "BasicAttack_Melee_P5_R0", "CrushingBlow_Melee_P7_R0_C2", "ExecutionDive_Melee_P7_R0_C2"),
+        new(new[] { "TigerFighter" }, 5, 0, "BasicAttack_Melee_P5_R0", "PredatorRush_Melee_P6_R0_C1", "ExecutionDive_Melee_P7_R0_C2"),
+        new(new[] { "Werewolf" }, 5, 0, "BasicAttack_Melee_P5_R0", "PredatorRush_Melee_P6_R0_C1", "ScoutBurst_Melee_P4_R0_C1"),
+        new(new[] { "Dragon" }, 5, 1, "BasicAttack_Melee_P5_R0", "WaveSlash_Ranged_P6_R1_C2", "ExecutionDive_Melee_P7_R0_C2"),
+        new(new[] { "Salamander" }, 5, 0, "BasicAttack_Melee_P5_R0", "WaveSlash_Ranged_P6_R1_C2", "PredatorRush_Melee_P6_R0_C1"),
+        new(new[] { "DemonKing" }, 6, 2, "BasicAttack_Melee_P6_R0", "RepulseBolt_Ranged_P5_R1_C2", "WaveSlash_Ranged_P6_R1_C2", "RoyalExecution_Melee_P8_R0_C3"),
+        new(new[] { "DoeRider" }, 5, 0, "BasicAttack_Ranged_P3_R1", "BackstepShot_Ranged_P4_R1_C1", "Snipe_Ranged_P5_R2_C2"),
+        new(new[] { "WhiteTigerHunter" }, 5, 1, "BasicAttack_Ranged_P4_R1", "RepulseBolt_Ranged_P5_R1_C2", "Snipe_Ranged_P5_R2_C2"),
+        new(new[] { "EvilMage", "NagaWizard" }, 5, 1, "BasicAttack_Ranged_P3_R1", "ShadowBolt_Ranged_P5_R2_C2", "RepulseBolt_Ranged_P5_R1_C2"),
+        new(new[] { "Beholder" }, 5, 1, "BasicAttack_Ranged_P4_R1", "ShadowBolt_Ranged_P5_R2_C2", "ArcBurst_Ranged_P6_R1_C2"),
+        new(new[] { "Specter", "FlyingDemon" }, 5, 1, "BasicAttack_Ranged_P4_R1", "ArcBurst_Ranged_P6_R1_C2", "BackstepShot_Ranged_P4_R1_C1")
     };
 
     public static void RunBatchMode()
@@ -334,6 +415,8 @@ public static class HexTacticsSkillBalanceRebuild
         serializedSkill.FindProperty("attackRange").intValue = definition.AttackRange;
         serializedSkill.FindProperty("energyCost").intValue = definition.EnergyCost;
         serializedSkill.FindProperty("energyGainOnHit").intValue = definition.EnergyGainOnHit;
+        serializedSkill.FindProperty("collisionAttribute").enumValueIndex = (int)definition.CollisionAttribute;
+        serializedSkill.FindProperty("selfMovementAttribute").enumValueIndex = (int)definition.SelfMovementAttribute;
         serializedSkill.FindProperty("projectileEffectPrefab").objectReferenceValue = definition.AttackRange > 0 ? projectilePrefab : null;
         serializedSkill.FindProperty("projectileEffectScale").floatValue = definition.AttackRange > 0 ? definition.ProjectileEffectScale : 1f;
         serializedSkill.FindProperty("impactEffectPrefab").objectReferenceValue = impactPrefab;
@@ -430,7 +513,9 @@ public static class HexTacticsSkillBalanceRebuild
             string fallbackImpactEffectPath,
             float impactEffectScale,
             float impactHeightNormalized,
-            float impactForwardOffset)
+            float impactForwardOffset,
+            HexTacticsCollisionAttribute collisionAttribute = HexTacticsCollisionAttribute.None,
+            HexTacticsSelfMovementAttribute selfMovementAttribute = HexTacticsSelfMovementAttribute.None)
         {
             AssetName = assetName;
             DisplayName = displayName;
@@ -446,6 +531,8 @@ public static class HexTacticsSkillBalanceRebuild
             ImpactEffectScale = impactEffectScale;
             ImpactHeightNormalized = impactHeightNormalized;
             ImpactForwardOffset = impactForwardOffset;
+            CollisionAttribute = collisionAttribute;
+            SelfMovementAttribute = selfMovementAttribute;
         }
 
         public string AssetName { get; }
@@ -462,6 +549,8 @@ public static class HexTacticsSkillBalanceRebuild
         public float ImpactEffectScale { get; }
         public float ImpactHeightNormalized { get; }
         public float ImpactForwardOffset { get; }
+        public HexTacticsCollisionAttribute CollisionAttribute { get; }
+        public HexTacticsSelfMovementAttribute SelfMovementAttribute { get; }
     }
 
     private readonly struct CharacterLoadout

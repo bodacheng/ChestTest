@@ -18,10 +18,11 @@ MonoBehaviour:
   cost: 4
   moveRange: 2
   speed: 3
-  maxEnergy: 3
+  maxEnergy: 4
   startingEnergy: 0
   skills:
   - {fileID: 11400000, guid: 41572c9f0af5d4c3c98d59dd5486ec41, type: 2}
+  - {fileID: 11400000, guid: f3d594fa8d384cb78fd570a67581d728, type: 2}
   - {fileID: 11400000, guid: ec47e8c55971547fd8b65f48e1df7ecd, type: 2}
   visualArchetype: 1
   avatar: {fileID: 21300000, guid: c76705e50f5ce485383efa7048d17541, type: 3}

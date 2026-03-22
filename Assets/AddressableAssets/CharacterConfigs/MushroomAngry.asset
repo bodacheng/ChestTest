@@ -18,7 +18,7 @@ MonoBehaviour:
   cost: 3
   moveRange: 1
   speed: 3
-  maxEnergy: 3
+  maxEnergy: 4
   startingEnergy: 0
   skills:
   - {fileID: 11400000, guid: 214bcb007e7644deebc3eccf880b5f09, type: 2}

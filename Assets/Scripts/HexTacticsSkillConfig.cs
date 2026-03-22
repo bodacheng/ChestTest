@@ -9,6 +9,9 @@ public sealed class HexTacticsSkillConfig : ScriptableObject
     [SerializeField, Min(0)] private int attackRange = 0;
     [SerializeField, Min(0)] private int energyCost = 0;
     [SerializeField, Min(0)] private int energyGainOnHit = 1;
+    [Header("Attributes")]
+    [SerializeField] private HexTacticsCollisionAttribute collisionAttribute = HexTacticsCollisionAttribute.None;
+    [SerializeField] private HexTacticsSelfMovementAttribute selfMovementAttribute = HexTacticsSelfMovementAttribute.None;
     [Header("Effects")]
     [SerializeField] private GameObject projectileEffectPrefab;
     [SerializeField, Min(0.1f)] private float projectileEffectScale = 1f;
@@ -25,6 +28,8 @@ public sealed class HexTacticsSkillConfig : ScriptableObject
     public int EnergyGainOnHit => Mathf.Max(0, energyGainOnHit);
     public int AttackReach => AttackRange + 1;
     public bool IsEnergyConsuming => EnergyCost > 0;
+    public HexTacticsCollisionAttribute CollisionAttribute => collisionAttribute;
+    public HexTacticsSelfMovementAttribute SelfMovementAttribute => selfMovementAttribute;
     public GameObject ProjectileEffectPrefab => projectileEffectPrefab;
     public float ProjectileEffectScale => Mathf.Max(0.1f, projectileEffectScale);
     public GameObject ImpactEffectPrefab => impactEffectPrefab;
@@ -49,6 +54,8 @@ public sealed class HexTacticsSkillConfig : ScriptableObject
         attackRange = Mathf.Max(0, newAttackRange);
         energyCost = Mathf.Max(0, newEnergyCost);
         energyGainOnHit = Mathf.Max(0, newEnergyGainOnHit);
+        collisionAttribute = HexTacticsCollisionAttribute.None;
+        selfMovementAttribute = HexTacticsSelfMovementAttribute.None;
         projectileEffectPrefab = null;
         projectileEffectScale = 1f;
         impactEffectPrefab = null;
@@ -56,4 +63,17 @@ public sealed class HexTacticsSkillConfig : ScriptableObject
         impactHeightNormalized = 0.58f;
         impactForwardOffset = 0.08f;
     }
+}
+
+public enum HexTacticsCollisionAttribute
+{
+    None,
+    PushTarget
+}
+
+public enum HexTacticsSelfMovementAttribute
+{
+    None,
+    Advance,
+    Retreat
 }

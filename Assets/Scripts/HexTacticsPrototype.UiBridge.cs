@@ -134,10 +134,13 @@ public sealed partial class HexTacticsPrototype
                             : isAvailable
                                 ? string.Empty
                                 : "  不足";
+                var attributeSummary = BuildSkillAttributeSummary(skill);
                 snapshot.SelectedUnitSkillEntries.Add(new HexTacticsSkillChoiceUiData(
                     skillIndex,
                     skill.DisplayName,
-                    $"攻{skill.Power} 射{skill.AttackRange} 消{skill.EnergyCost}{stateLabel}",
+                    string.IsNullOrEmpty(attributeSummary)
+                        ? $"攻{skill.Power} 射{skill.AttackRange} 消{skill.EnergyCost}{stateLabel}"
+                        : $"攻{skill.Power} 射{skill.AttackRange} 消{skill.EnergyCost} {attributeSummary}{stateLabel}",
                     isSelected,
                     isHovered,
                     isAvailable,
@@ -440,7 +443,10 @@ public sealed partial class HexTacticsPrototype
             return "未设置";
         }
 
-        return $"{skill.DisplayName} 攻{skill.Power}/射{skill.AttackRange}/消{skill.EnergyCost}";
+        var attributeSummary = BuildSkillAttributeSummary(skill);
+        return string.IsNullOrEmpty(attributeSummary)
+            ? $"{skill.DisplayName} 攻{skill.Power}/射{skill.AttackRange}/消{skill.EnergyCost}"
+            : $"{skill.DisplayName} 攻{skill.Power}/射{skill.AttackRange}/消{skill.EnergyCost}/{attributeSummary}";
     }
 
     private static string BuildSkillSummary(HexTacticsSkillConfig skill)
@@ -450,7 +456,40 @@ public sealed partial class HexTacticsPrototype
             return "未设置";
         }
 
-        return $"{skill.DisplayName}  攻 {skill.Power}  射 {skill.AttackRange}  消 {skill.EnergyCost}  充 {skill.EnergyGainOnHit}";
+        var attributeSummary = BuildSkillAttributeSummary(skill);
+        return string.IsNullOrEmpty(attributeSummary)
+            ? $"{skill.DisplayName}  攻 {skill.Power}  射 {skill.AttackRange}  消 {skill.EnergyCost}  充 {skill.EnergyGainOnHit}"
+            : $"{skill.DisplayName}  攻 {skill.Power}  射 {skill.AttackRange}  消 {skill.EnergyCost}  充 {skill.EnergyGainOnHit}  属性 {attributeSummary}";
+    }
+
+    private static string BuildSkillAttributeSummary(HexTacticsSkillConfig skill)
+    {
+        if (skill == null)
+        {
+            return string.Empty;
+        }
+
+        var collisionLabel = skill.CollisionAttribute == HexTacticsCollisionAttribute.PushTarget
+            ? "衝突"
+            : string.Empty;
+        var movementLabel = skill.SelfMovementAttribute switch
+        {
+            HexTacticsSelfMovementAttribute.Advance => "前進",
+            HexTacticsSelfMovementAttribute.Retreat => "後退",
+            _ => string.Empty
+        };
+
+        if (!string.IsNullOrEmpty(collisionLabel) && !string.IsNullOrEmpty(movementLabel))
+        {
+            return $"{collisionLabel}/{movementLabel}";
+        }
+
+        if (!string.IsNullOrEmpty(collisionLabel))
+        {
+            return collisionLabel;
+        }
+
+        return movementLabel;
     }
 
     private int CountBlueAssignedCommands()

@@ -12,12 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7033fc0862404bee8b688b52356e0703, type: 3}
   m_Name: BreakArmor_Melee_P6_R0_C2
   m_EditorClassIdentifier: Assembly-CSharp::HexTacticsSkillConfig
-  displayName: "\u7834\u7532\u91CD\u51FB"
-  description: "\u6D88\u8017 2 \u70B9\u80FD\u91CF\u9020\u6210\u5F3A\u529B\u8FD1\u6218\u6253\u51FB\uFF0C\u4E13\u95E8\u7528\u4E8E\u524D\u6392\u7834\u5C40\u3002"
+  displayName: "\u7834\u7532\u91cd\u51fb"
+  description: "\u6d88\u8017 2 \u70b9\u80fd\u91cf\u7838\u51fa\u7834\u7532\u91cd\u51fb\uff0c\u5e76\u5c06\u76ee\u6807\u4ece\u524d\u7ebf\u51fb\u9000\u3002"
   power: 6
   attackRange: 0
   energyCost: 2
   energyGainOnHit: 0
+  collisionAttribute: 1
+  selfMovementAttribute: 0
   projectileEffectPrefab: {fileID: 0}
   projectileEffectScale: 1
   impactEffectPrefab: {fileID: 7069495237875253993, guid: 75caeaad2ff9c46898f2e2cb7be524a1, type: 3}

@@ -12,12 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7033fc0862404bee8b688b52356e0703, type: 3}
   m_Name: WaveSlash_Ranged_P6_R1_C2
   m_EditorClassIdentifier: Assembly-CSharp::HexTacticsSkillConfig
-  displayName: "\u9707\u8361\u65A9\u6CE2"
-  description: "\u6D88\u8017 2 \u70B9\u80FD\u91CF\u6325\u51FA\u4E2D\u8DDD\u79BB\u51B2\u51FB\uFF0C\u662F\u5927\u578B\u602A\u7269\u548C\u9996\u9886\u7684\u8303\u56F4\u538B\u5236\u624B\u6BB5\u3002"
+  displayName: "\u9707\u8361\u65a9\u6ce2"
+  description: "\u6d88\u8017 2 \u70b9\u80fd\u91cf\u6325\u51fa\u4e2d\u8ddd\u79bb\u51b2\u51fb\uff0c\u53ef\u5c06\u547d\u4e2d\u7684\u654c\u4eba\u9707\u9000 1 \u683c\u3002"
   power: 6
   attackRange: 1
   energyCost: 2
   energyGainOnHit: 0
+  collisionAttribute: 1
+  selfMovementAttribute: 0
   projectileEffectPrefab: {fileID: 6448594173215879760, guid: 21187664e919848e7ac03e126b438bf2, type: 3}
   projectileEffectScale: 1.04
   impactEffectPrefab: {fileID: 7069495237875253993, guid: 75caeaad2ff9c46898f2e2cb7be524a1, type: 3}

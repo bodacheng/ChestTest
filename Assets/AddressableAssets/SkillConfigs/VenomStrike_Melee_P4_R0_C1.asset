@@ -12,15 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7033fc0862404bee8b688b52356e0703, type: 3}
   m_Name: VenomStrike_Melee_P4_R0_C1
   m_EditorClassIdentifier: Assembly-CSharp::HexTacticsSkillConfig
-  displayName: "\u6BD2\u88AD"
-  description: "\u6D88\u8017 1 \u70B9\u80FD\u91CF\u8FFD\u52A0\u6BD2\u6027\u6253\u51FB\uFF0C\u9002\u5408\u6301\u7EED\u8FFD\u51FB\u7684\u538B\u8840\u5355\u4F4D\u3002"
+  displayName: "\u6bd2\u88ad"
+  description: "\u6d88\u8017 1 \u70b9\u80fd\u91cf\u8e0f\u524d\u54ac\u523a\uff0c\u5c06\u6bd2\u4f24\u66f4\u7a33\u5b9a\u5730\u9001\u8fdb\u524d\u6392\u3002"
   power: 4
   attackRange: 0
   energyCost: 1
   energyGainOnHit: 0
+  collisionAttribute: 0
+  selfMovementAttribute: 1
   projectileEffectPrefab: {fileID: 0}
   projectileEffectScale: 1
   impactEffectPrefab: {fileID: 2472027088096734223, guid: d4e54e45ef7394588b34b3ead2cb8341, type: 3}
-  impactEffectScale: 1.04
+  impactEffectScale: 1
   impactHeightNormalized: 0.56
   impactForwardOffset: 0.05

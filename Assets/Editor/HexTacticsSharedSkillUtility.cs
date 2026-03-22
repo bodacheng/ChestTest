@@ -35,6 +35,8 @@ public static class HexTacticsSharedSkillUtility
         serializedSkill.FindProperty("attackRange").intValue = normalizedRange;
         serializedSkill.FindProperty("energyCost").intValue = 0;
         serializedSkill.FindProperty("energyGainOnHit").intValue = 1;
+        serializedSkill.FindProperty("collisionAttribute").enumValueIndex = (int)HexTacticsCollisionAttribute.None;
+        serializedSkill.FindProperty("selfMovementAttribute").enumValueIndex = (int)HexTacticsSelfMovementAttribute.None;
         ApplyDefaultSkillEffects(
             serializedSkill,
             normalizedPower,

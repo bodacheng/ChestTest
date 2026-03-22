@@ -338,11 +338,20 @@ public sealed partial class HexTacticsPrototype
         return skill != null ? Mathf.Max(1, skill.AttackReach) : 1;
     }
 
+    private static bool IsOnAttackLine(HexCoord origin, HexCoord target)
+    {
+        var dq = target.Q - origin.Q;
+        var dr = target.R - origin.R;
+        return dq == 0 || dr == 0 || dq + dr == 0;
+    }
+
     private static bool IsWithinAttackRange(HexCoord origin, HexCoord target, HexTacticsSkillConfig skill)
     {
-        // Attack range is evaluated by hex distance, so "corner" directions are
-        // counted the same way as straight approaches on the hex board.
-        return skill != null && origin != target && HexDistance(origin, target) <= GetAttackReach(skill);
+        // Attacks can only travel along one of the six edge-sharing directions.
+        return skill != null &&
+               origin != target &&
+               IsOnAttackLine(origin, target) &&
+               HexDistance(origin, target) <= GetAttackReach(skill);
     }
 
     private static bool IsWithinAttackRange(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
