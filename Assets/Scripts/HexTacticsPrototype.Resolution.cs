@@ -38,7 +38,6 @@ public sealed partial class HexTacticsPrototype
         {
             lastResolutionKind = ResolutionKind.Attack;
             resolutionStatus = $"第 {planningRoundNumber} 轮进入攻击回合：{openingAttacks.Count} 次攻击依次结算，之后继续执行移动命令";
-            MarkAttackUsage(openingEnemyAttacks, lockMovementAfterAttack: true);
             yield return ResolveAttackTurn(openingAttacks);
             resolvedTurnCount++;
 
@@ -95,7 +94,6 @@ public sealed partial class HexTacticsPrototype
             {
                 lastResolutionKind = ResolutionKind.Attack;
                 resolutionStatus = $"第 {planningRoundNumber} 轮移动第 {moveTurnIndex} 回合后，{postMoveAttacks.Count} 名棋子在接敌后发起攻击";
-                MarkAttackUsage(postMoveAttacks, lockMovementAfterAttack: true);
                 yield return ResolveAttackTurn(postMoveAttacks);
                 resolvedTurnCount++;
 
@@ -194,18 +192,6 @@ public sealed partial class HexTacticsPrototype
         }
 
         return events;
-    }
-
-    private void MarkAttackUsage(List<AttackEvent> attacks, bool lockMovementAfterAttack)
-    {
-        foreach (var attack in attacks)
-        {
-            attack.Attacker.AttackConsumed = true;
-            if (lockMovementAfterAttack)
-            {
-                attack.Attacker.MovementLocked = true;
-            }
-        }
     }
 
     private void ConfigureAnimator(HexUnit unit)
@@ -735,6 +721,8 @@ public sealed partial class HexTacticsPrototype
             yield break;
         }
 
+        attacker.AttackConsumed = true;
+        attacker.MovementLocked = true;
         SpendSkillEnergy(attacker, skill);
         ApplySkillMovementOnCast(attacker, defender, skill);
 

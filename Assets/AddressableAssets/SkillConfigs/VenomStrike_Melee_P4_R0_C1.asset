@@ -22,7 +22,7 @@ MonoBehaviour:
   selfMovementAttribute: 1
   projectileEffectPrefab: {fileID: 0}
   projectileEffectScale: 1
-  impactEffectPrefab: {fileID: 2472027088096734223, guid: d4e54e45ef7394588b34b3ead2cb8341, type: 3}
-  impactEffectScale: 1
-  impactHeightNormalized: 0.56
-  impactForwardOffset: 0.05
+  impactEffectPrefab: {fileID: 6673248520794652214, guid: 636908a24aedd40d0b1ac6d4f880c6ec, type: 3}
+  impactEffectScale: 1.02
+  impactHeightNormalized: 0.54
+  impactForwardOffset: 0.04

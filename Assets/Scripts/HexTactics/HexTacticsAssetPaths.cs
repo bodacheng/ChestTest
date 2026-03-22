@@ -12,6 +12,7 @@ public static class HexTacticsAssetPaths
     public const string AttackEffectsMaterialFolder = AttackEffectsFolder + "/Materials";
     public const string HitEffectsFolder = EffectsFolder + "/HitEffects";
     public const string HitEffectsVariantFolder = HitEffectsFolder + "/Variants";
+    public const string HitEffectsSkillVariantFolder = HitEffectsFolder + "/SkillVariants";
     public const string HitEffectsMaterialFolder = HitEffectsFolder + "/Materials";
     public const string HitEffectCatalogAssetPath = HitEffectsFolder + "/HexTacticsHitEffectCatalog.asset";
     public const string UiFolder = AddressablesRoot + "/UI";

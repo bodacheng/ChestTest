@@ -2,6 +2,9 @@ using UnityEngine;
 
 public sealed partial class HexTacticsPrototype
 {
+    private const float SkillImpactAccentScaleMin = 0.42f;
+    private const float SkillImpactAccentScaleMax = 0.82f;
+
     private void SpawnAttackReleaseEffect(HexUnit attacker, HexUnit defender, float travelDuration, HexTacticsSkillConfig skill)
     {
         if (!enableHitEffects || !UsesRangedAttackPresentation(skill) || effectsRoot == null || attacker?.Transform == null || defender?.Transform == null)
@@ -43,17 +46,12 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
+        var effectRotation = ResolveHitEffectRotation(attacker, defender);
         if (skill.ImpactEffectPrefab != null)
         {
             var effectPosition = ResolveConfiguredHitEffectPosition(attacker, defender, skill);
-            var effectRotation = ResolveHitEffectRotation(attacker, defender);
-            var effectInstance = Instantiate(skill.ImpactEffectPrefab, effectPosition, effectRotation, effectsRoot);
-            effectInstance.name = skill.ImpactEffectPrefab.name;
-            effectInstance.transform.localScale *= skill.ImpactEffectScale;
-            if (effectInstance.GetComponent<HexTacticsTransientEffect>() == null)
-            {
-                effectInstance.AddComponent<HexTacticsTransientEffect>();
-            }
+            SpawnTransientEffect(skill.ImpactEffectPrefab, effectPosition, effectRotation, skill.ImpactEffectScale, skill.ImpactEffectPrefab.name);
+            TrySpawnDedicatedSkillHitAccent(attacker, defender, skill, effectPosition, effectRotation);
 
             return;
         }
@@ -70,15 +68,7 @@ public sealed partial class HexTacticsPrototype
         }
 
         var autoEffectPosition = ResolveHitEffectPosition(attacker, defender, entry);
-        var autoEffectRotation = ResolveHitEffectRotation(attacker, defender);
-        var autoEffectInstance = Instantiate(entry.Prefab, autoEffectPosition, autoEffectRotation, effectsRoot);
-        autoEffectInstance.name = entry.DisplayName;
-        autoEffectInstance.transform.localScale *= Mathf.Max(0.1f, entry.Scale);
-
-        if (autoEffectInstance.GetComponent<HexTacticsTransientEffect>() == null)
-        {
-            autoEffectInstance.AddComponent<HexTacticsTransientEffect>();
-        }
+        SpawnTransientEffect(entry.Prefab, autoEffectPosition, effectRotation, Mathf.Max(0.1f, entry.Scale), entry.DisplayName);
     }
 
     private bool TryEnsureHitEffectCatalogLoaded()
@@ -205,5 +195,66 @@ public sealed partial class HexTacticsPrototype
         }
 
         return Quaternion.LookRotation(direction.normalized, Vector3.up);
+    }
+
+    private void TrySpawnDedicatedSkillHitAccent(
+        HexUnit attacker,
+        HexUnit defender,
+        HexTacticsSkillConfig skill,
+        Vector3 configuredEffectPosition,
+        Quaternion effectRotation)
+    {
+        if (!ShouldSpawnDedicatedSkillHitAccent(skill) || !TryEnsureHitEffectCatalogLoaded())
+        {
+            return;
+        }
+
+        var accentPower = skill.Power + skill.EnergyCost + (skill.CollisionAttribute != HexTacticsCollisionAttribute.None ? 1 : 0);
+        if (!hitEffectCatalog.TryResolveAutoEffect(accentPower, nextHitEffectVariantIndex++, out var entry) ||
+            entry?.Prefab == null)
+        {
+            return;
+        }
+
+        var catalogEffectPosition = ResolveHitEffectPosition(attacker, defender, entry);
+        var accentPosition = Vector3.Lerp(configuredEffectPosition, catalogEffectPosition, 0.4f);
+        var accentScale = ResolveDedicatedSkillHitAccentScale(skill, entry);
+        SpawnTransientEffect(entry.Prefab, accentPosition, effectRotation, accentScale, entry.DisplayName + "_Accent");
+    }
+
+    private static bool ShouldSpawnDedicatedSkillHitAccent(HexTacticsSkillConfig skill)
+    {
+        return skill != null && skill.HasImpactEffect && skill.IsEnergyConsuming;
+    }
+
+    private static float ResolveDedicatedSkillHitAccentScale(HexTacticsSkillConfig skill, HexTacticsHitEffectEntry entry)
+    {
+        var energyBoost = skill != null ? skill.EnergyCost * 0.08f : 0f;
+        var powerBoost = skill != null ? skill.Power * 0.02f : 0f;
+        var normalizedScale = Mathf.Clamp(SkillImpactAccentScaleMin + energyBoost + powerBoost, SkillImpactAccentScaleMin, SkillImpactAccentScaleMax);
+        return Mathf.Max(0.1f, entry.Scale * normalizedScale);
+    }
+
+    private GameObject SpawnTransientEffect(
+        GameObject effectPrefab,
+        Vector3 position,
+        Quaternion rotation,
+        float scale,
+        string instanceName)
+    {
+        if (effectPrefab == null || effectsRoot == null)
+        {
+            return null;
+        }
+
+        var effectInstance = Instantiate(effectPrefab, position, rotation, effectsRoot);
+        effectInstance.name = string.IsNullOrWhiteSpace(instanceName) ? effectPrefab.name : instanceName;
+        effectInstance.transform.localScale *= Mathf.Max(0.1f, scale);
+        if (effectInstance.GetComponent<HexTacticsTransientEffect>() == null)
+        {
+            effectInstance.AddComponent<HexTacticsTransientEffect>();
+        }
+
+        return effectInstance;
     }
 }
