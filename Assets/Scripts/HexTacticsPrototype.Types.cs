@@ -99,7 +99,9 @@ public sealed partial class HexTacticsPrototype
         public float VisualHeight { get; set; }
         public float LabelHeight { get; set; }
         public float SelectionRadius { get; set; }
+        public Vector3 VisualBaseLocalPosition { get; set; }
         public int DamagedAnimationRevision { get; set; }
+        public int HitShakeRevision { get; set; }
         public UnitAnimationBinding AnimationBinding { get; set; }
         public List<HexCoord> PlannedPath { get; } = new();
 

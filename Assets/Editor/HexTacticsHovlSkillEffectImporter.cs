@@ -1,59 +1,93 @@
-using System;
-using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-public static class HexTacticsHovlSkillEffectImporter
+public static class HexTacticsGabrielSkillEffectImporter
 {
-    private const string HovlOrbFolder = "Assets/Hovl Studio/Glowing orbs Vol 3/Prefabs";
+    private const string GabrielPrefabsRoot = "Assets/GabrielAguiarProductions/UniqueMagicAbilitiesVol_1/Prefabs";
+    private const string GabrielProjectileFolder = GabrielPrefabsRoot + "/Projectiles";
+    private const string GabrielHitFolder = GabrielPrefabsRoot + "/Hits";
+    private const string GabrielMagicFolder = GabrielPrefabsRoot + "/MagicAbilities";
+    private static readonly TimingProfile ProjectileTimingProfile = new(
+        startDelayMultiplier: 0.18f,
+        maxStartDelay: 0.03f,
+        durationMultiplier: 0.72f,
+        maxDuration: 0.55f,
+        lifetimeMultiplier: 0.74f,
+        maxLifetime: 0.4f,
+        simulationSpeedMultiplier: 1.18f,
+        trailTimeMultiplier: 0.45f,
+        maxTrailTime: 0.16f,
+        destroyDelayPadding: 0.05f);
+    private static readonly TimingProfile HitTimingProfile = new(
+        startDelayMultiplier: 0.12f,
+        maxStartDelay: 0.02f,
+        durationMultiplier: 0.52f,
+        maxDuration: 0.45f,
+        lifetimeMultiplier: 0.58f,
+        maxLifetime: 0.32f,
+        simulationSpeedMultiplier: 1.32f,
+        trailTimeMultiplier: 0.3f,
+        maxTrailTime: 0.1f,
+        destroyDelayPadding: 0.04f);
 
+    // Keep the existing generated target paths so skill config asset references and addressable GUIDs stay stable.
     private static readonly EffectRecipe[] EffectRecipes =
     {
         new(
-            sourcePrefabPath: HovlOrbFolder + "/Glowing orb 21.prefab",
+            sourcePrefabPath: GabrielHitFolder + "/vfx_Hit_Frag_Red.prefab",
             targetPrefabPath: HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactLightRose.prefab",
             loopParticles: false,
-            fallbackLifetime: 1.15f),
+            fallbackLifetime: 0.72f,
+            rootScale: 0.94f),
         new(
-            sourcePrefabPath: HovlOrbFolder + "/Glowing orb 24.prefab",
+            sourcePrefabPath: GabrielMagicFolder + "/vfx_MagicAbility_Stripes_Green.prefab",
             targetPrefabPath: HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactLightVerdant.prefab",
             loopParticles: false,
-            fallbackLifetime: 1.15f),
+            fallbackLifetime: 0.82f,
+            rootScale: 0.66f),
         new(
-            sourcePrefabPath: HovlOrbFolder + "/Glowing orb 27.prefab",
+            sourcePrefabPath: GabrielHitFolder + "/vfx_Hit_Comet_Blue.prefab",
             targetPrefabPath: HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactMediumAzure.prefab",
             loopParticles: false,
-            fallbackLifetime: 1.18f),
+            fallbackLifetime: 0.86f,
+            rootScale: 0.72f),
         new(
-            sourcePrefabPath: HovlOrbFolder + "/Glowing orb 38.prefab",
+            sourcePrefabPath: GabrielMagicFolder + "/vfx_MagicAbility_Earthshatter_Fire.prefab",
             targetPrefabPath: HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactHeavyEmber.prefab",
             loopParticles: false,
-            fallbackLifetime: 1.25f),
+            fallbackLifetime: 0.94f,
+            rootScale: 0.74f),
         new(
-            sourcePrefabPath: HovlOrbFolder + "/Glowing orb 39.prefab",
+            sourcePrefabPath: GabrielMagicFolder + "/vfx_MagicAbility_CircleExplosion_Red.prefab",
             targetPrefabPath: HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactHeavyCrimson.prefab",
             loopParticles: false,
-            fallbackLifetime: 1.3f),
+            fallbackLifetime: 1.02f,
+            rootScale: 0.7f),
         new(
-            sourcePrefabPath: HovlOrbFolder + "/Glowing orb 34.prefab",
+            sourcePrefabPath: GabrielMagicFolder + "/vfx_MagicAbility_Impact_Blue.prefab",
             targetPrefabPath: HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactRangedMist.prefab",
             loopParticles: false,
-            fallbackLifetime: 1.2f),
+            fallbackLifetime: 0.78f,
+            rootScale: 0.92f),
         new(
-            sourcePrefabPath: HovlOrbFolder + "/Glowing orb 33.prefab",
+            sourcePrefabPath: GabrielMagicFolder + "/vfx_MagicAbility_DarkEnergy_Purple.prefab",
             targetPrefabPath: HexTacticsAssetPaths.HitEffectsVariantFolder + "/HovlImpactRangedNova.prefab",
             loopParticles: false,
-            fallbackLifetime: 1.24f),
+            fallbackLifetime: 0.98f,
+            rootScale: 0.62f),
         new(
-            sourcePrefabPath: HovlOrbFolder + "/Glowing orb 40.prefab",
+            sourcePrefabPath: GabrielProjectileFolder + "/vfx_Projectile_Comet_Blue.prefab",
             targetPrefabPath: HexTacticsAssetPaths.AttackEffectsVariantFolder + "/HovlProjectileFrost.prefab",
             loopParticles: true,
-            fallbackLifetime: 1.1f),
+            fallbackLifetime: 0.9f,
+            rootScale: 0.82f),
         new(
-            sourcePrefabPath: HovlOrbFolder + "/Glowing orb 37.prefab",
+            sourcePrefabPath: GabrielProjectileFolder + "/vfx_Projectile_Comet.prefab",
             targetPrefabPath: HexTacticsAssetPaths.AttackEffectsVariantFolder + "/HovlProjectileArcane.prefab",
             loopParticles: true,
-            fallbackLifetime: 1.16f)
+            fallbackLifetime: 0.94f,
+            rootScale: 0.84f)
     };
 
     private static readonly SkillRecipe[] SkillRecipes =
@@ -115,13 +149,13 @@ public static class HexTacticsHovlSkillEffectImporter
         }
     }
 
-    [MenuItem("Tools/Hex Tactics/Import Hovl Skill Effects")]
+    [MenuItem("Tools/Hex Tactics/Import Gabriel Skill Effects")]
     public static void Import()
     {
         ImportInternal();
     }
 
-    [MenuItem("Tools/Hex Tactics/Validate Hovl Skill Effects")]
+    [MenuItem("Tools/Hex Tactics/Validate Gabriel Skill Effects")]
     public static void Validate()
     {
         ValidateInternal(logSuccess: true);
@@ -160,7 +194,7 @@ public static class HexTacticsHovlSkillEffectImporter
         {
             if (AssetDatabase.LoadAssetAtPath<GameObject>(recipe.TargetPrefabPath) == null)
             {
-                Debug.LogError("[HexTacticsHovlSkillEffectImporter] Missing generated prefab: " + recipe.TargetPrefabPath);
+                Debug.LogError("[HexTacticsGabrielSkillEffectImporter] Missing generated prefab: " + recipe.TargetPrefabPath);
                 return false;
             }
         }
@@ -170,7 +204,7 @@ public static class HexTacticsHovlSkillEffectImporter
             var asset = AssetDatabase.LoadAssetAtPath<HexTacticsSkillConfig>(recipe.SkillAssetPath);
             if (asset == null)
             {
-                Debug.LogError("[HexTacticsHovlSkillEffectImporter] Missing skill config: " + recipe.SkillAssetPath);
+                Debug.LogError("[HexTacticsGabrielSkillEffectImporter] Missing skill config: " + recipe.SkillAssetPath);
                 return false;
             }
 
@@ -178,14 +212,14 @@ public static class HexTacticsHovlSkillEffectImporter
             if (!MatchesObjectReference(serializedObject.FindProperty("projectileEffectPrefab"), recipe.ProjectilePrefabPath) ||
                 !MatchesObjectReference(serializedObject.FindProperty("impactEffectPrefab"), recipe.ImpactPrefabPath))
             {
-                Debug.LogError("[HexTacticsHovlSkillEffectImporter] Skill config was not updated correctly: " + recipe.SkillAssetPath);
+                Debug.LogError("[HexTacticsGabrielSkillEffectImporter] Skill config was not updated correctly: " + recipe.SkillAssetPath);
                 return false;
             }
         }
 
         if (logSuccess)
         {
-            Debug.Log("[HexTacticsHovlSkillEffectImporter] Generated Hovl skill effects and updated current skill configs.");
+            Debug.Log("[HexTacticsGabrielSkillEffectImporter] Generated Gabriel-based skill effects and refreshed current skill configs.");
         }
 
         return true;
@@ -196,7 +230,7 @@ public static class HexTacticsHovlSkillEffectImporter
         var sourcePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(recipe.SourcePrefabPath);
         if (sourcePrefab == null)
         {
-            Debug.LogError("[HexTacticsHovlSkillEffectImporter] Could not load source prefab: " + recipe.SourcePrefabPath);
+            Debug.LogError("[HexTacticsGabrielSkillEffectImporter] Could not load source prefab: " + recipe.SourcePrefabPath);
             return false;
         }
 
@@ -204,10 +238,13 @@ public static class HexTacticsHovlSkillEffectImporter
         try
         {
             prefabRoot.name = recipe.AssetName;
-            NormalizeRootTransform(prefabRoot);
+            NormalizeRootTransform(prefabRoot, recipe.RootScale);
+            ResetTagsAndLayers(prefabRoot);
+            StripGameplayComponents(prefabRoot);
             ConfigureParticleSystems(prefabRoot, recipe.LoopParticles);
+            ConfigureTrailRenderers(prefabRoot, recipe.TimingProfile);
             DisableShadows(prefabRoot);
-            EnsureTransientEffect(prefabRoot, recipe.FallbackLifetime);
+            EnsureTransientEffect(prefabRoot, recipe.FallbackLifetime, recipe.TimingProfile);
             PrefabUtility.SaveAsPrefabAsset(prefabRoot, recipe.TargetPrefabPath);
         }
         finally
@@ -223,7 +260,7 @@ public static class HexTacticsHovlSkillEffectImporter
         var skill = AssetDatabase.LoadAssetAtPath<HexTacticsSkillConfig>(recipe.SkillAssetPath);
         if (skill == null)
         {
-            Debug.LogError("[HexTacticsHovlSkillEffectImporter] Could not load skill config: " + recipe.SkillAssetPath);
+            Debug.LogError("[HexTacticsGabrielSkillEffectImporter] Could not load skill config: " + recipe.SkillAssetPath);
             return false;
         }
 
@@ -257,26 +294,80 @@ public static class HexTacticsHovlSkillEffectImporter
         }
     }
 
-    private static void NormalizeRootTransform(GameObject prefabRoot)
+    private static void NormalizeRootTransform(GameObject prefabRoot, float rootScale)
     {
         var transform = prefabRoot.transform;
         transform.localPosition = Vector3.zero;
         transform.localRotation = Quaternion.identity;
-        transform.localScale = Vector3.one;
+        transform.localScale = Vector3.one * Mathf.Max(0.01f, rootScale);
+    }
+
+    private static void ResetTagsAndLayers(GameObject prefabRoot)
+    {
+        foreach (var transform in prefabRoot.GetComponentsInChildren<Transform>(true))
+        {
+            transform.gameObject.tag = "Untagged";
+            transform.gameObject.layer = 0;
+        }
+    }
+
+    private static void StripGameplayComponents(GameObject prefabRoot)
+    {
+        foreach (var behaviour in prefabRoot.GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (behaviour is HexTacticsTransientEffect)
+            {
+                continue;
+            }
+
+            Object.DestroyImmediate(behaviour, true);
+        }
+
+        foreach (var collider in prefabRoot.GetComponentsInChildren<Collider>(true))
+        {
+            Object.DestroyImmediate(collider, true);
+        }
+
+        foreach (var rigidbody in prefabRoot.GetComponentsInChildren<Rigidbody>(true))
+        {
+            Object.DestroyImmediate(rigidbody, true);
+        }
     }
 
     private static void ConfigureParticleSystems(GameObject prefabRoot, bool loopParticles)
     {
+        var timingProfile = loopParticles ? ProjectileTimingProfile : HitTimingProfile;
         foreach (var particleSystem in prefabRoot.GetComponentsInChildren<ParticleSystem>(true))
         {
             var main = particleSystem.main;
-            main.loop = loopParticles;
+            if (!loopParticles)
+            {
+                main.loop = false;
+            }
+
             main.prewarm = false;
             main.playOnAwake = true;
+            main.startDelay = ScaleCurve(main.startDelay, timingProfile.StartDelayMultiplier, timingProfile.MaxStartDelay);
+            main.startLifetime = ScaleCurve(main.startLifetime, timingProfile.LifetimeMultiplier, timingProfile.MaxLifetime);
+            main.duration = Mathf.Clamp(main.duration * timingProfile.DurationMultiplier, 0.05f, timingProfile.MaxDuration);
+            main.simulationSpeed = Mathf.Max(0.01f, main.simulationSpeed * timingProfile.SimulationSpeedMultiplier);
             if (!loopParticles)
             {
                 main.stopAction = ParticleSystemStopAction.None;
             }
+        }
+    }
+
+    private static void ConfigureTrailRenderers(GameObject prefabRoot, TimingProfile timingProfile)
+    {
+        foreach (var trail in prefabRoot.GetComponentsInChildren<TrailRenderer>(true))
+        {
+            if (trail.time <= 0f)
+            {
+                continue;
+            }
+
+            trail.time = Mathf.Clamp(trail.time * timingProfile.TrailTimeMultiplier, 0.02f, timingProfile.MaxTrailTime);
         }
     }
 
@@ -289,7 +380,7 @@ public static class HexTacticsHovlSkillEffectImporter
         }
     }
 
-    private static void EnsureTransientEffect(GameObject prefabRoot, float fallbackLifetime)
+    private static void EnsureTransientEffect(GameObject prefabRoot, float fallbackLifetime, TimingProfile timingProfile)
     {
         var transientEffect = prefabRoot.GetComponent<HexTacticsTransientEffect>();
         if (transientEffect == null)
@@ -299,8 +390,76 @@ public static class HexTacticsHovlSkillEffectImporter
 
         var serializedObject = new SerializedObject(transientEffect);
         serializedObject.FindProperty("fallbackLifetime").floatValue = fallbackLifetime;
-        serializedObject.FindProperty("destroyDelayPadding").floatValue = 0.12f;
+        serializedObject.FindProperty("destroyDelayPadding").floatValue = timingProfile.DestroyDelayPadding;
         serializedObject.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static ParticleSystem.MinMaxCurve ScaleCurve(
+        ParticleSystem.MinMaxCurve curve,
+        float multiplier,
+        float maxValue)
+    {
+        switch (curve.mode)
+        {
+            case ParticleSystemCurveMode.TwoConstants:
+                curve.constantMin = ClampScaledValue(curve.constantMin, multiplier, maxValue);
+                curve.constantMax = ClampScaledValue(curve.constantMax, multiplier, maxValue);
+                break;
+            case ParticleSystemCurveMode.Curve:
+            {
+                var peak = ResolveCurvePeak(curve.curve);
+                curve.curveMultiplier = ClampCurveMultiplier(curve.curveMultiplier, peak, multiplier, maxValue);
+                break;
+            }
+            case ParticleSystemCurveMode.TwoCurves:
+            {
+                var peak = Mathf.Max(ResolveCurvePeak(curve.curveMin), ResolveCurvePeak(curve.curveMax));
+                curve.curveMultiplier = ClampCurveMultiplier(curve.curveMultiplier, peak, multiplier, maxValue);
+                break;
+            }
+            default:
+                curve.constant = ClampScaledValue(curve.constant, multiplier, maxValue);
+                break;
+        }
+
+        return curve;
+    }
+
+    private static float ClampScaledValue(float value, float multiplier, float maxValue)
+    {
+        if (value <= 0f)
+        {
+            return 0f;
+        }
+
+        return Mathf.Clamp(value * multiplier, 0f, maxValue);
+    }
+
+    private static float ClampCurveMultiplier(float currentMultiplier, float peak, float scaleMultiplier, float maxValue)
+    {
+        var scaledMultiplier = currentMultiplier * scaleMultiplier;
+        if (peak <= 0f)
+        {
+            return Mathf.Max(0f, scaledMultiplier);
+        }
+
+        return Mathf.Clamp(scaledMultiplier, 0f, maxValue / peak);
+    }
+
+    private static float ResolveCurvePeak(AnimationCurve curve)
+    {
+        if (curve == null || curve.length == 0)
+        {
+            return 0f;
+        }
+
+        var peak = curve.keys[0].value;
+        for (var i = 1; i < curve.length; i++)
+        {
+            peak = Mathf.Max(peak, curve.keys[i].value);
+        }
+
+        return peak;
     }
 
     private static bool MatchesObjectReference(SerializedProperty property, string assetPath)
@@ -328,19 +487,22 @@ public static class HexTacticsHovlSkillEffectImporter
 
     private readonly struct EffectRecipe
     {
-        public EffectRecipe(string sourcePrefabPath, string targetPrefabPath, bool loopParticles, float fallbackLifetime)
+        public EffectRecipe(string sourcePrefabPath, string targetPrefabPath, bool loopParticles, float fallbackLifetime, float rootScale)
         {
             SourcePrefabPath = sourcePrefabPath;
             TargetPrefabPath = targetPrefabPath;
             LoopParticles = loopParticles;
             FallbackLifetime = fallbackLifetime;
+            RootScale = rootScale;
         }
 
         public string SourcePrefabPath { get; }
         public string TargetPrefabPath { get; }
         public bool LoopParticles { get; }
         public float FallbackLifetime { get; }
-        public string AssetName => System.IO.Path.GetFileNameWithoutExtension(TargetPrefabPath);
+        public float RootScale { get; }
+        public TimingProfile TimingProfile => LoopParticles ? ProjectileTimingProfile : HitTimingProfile;
+        public string AssetName => Path.GetFileNameWithoutExtension(TargetPrefabPath);
     }
 
     private readonly struct SkillRecipe
@@ -370,5 +532,51 @@ public static class HexTacticsHovlSkillEffectImporter
         public float ImpactScale { get; }
         public float ImpactHeightNormalized { get; }
         public float ImpactForwardOffset { get; }
+    }
+
+    private readonly struct TimingProfile
+    {
+        public TimingProfile(
+            float startDelayMultiplier,
+            float maxStartDelay,
+            float durationMultiplier,
+            float maxDuration,
+            float lifetimeMultiplier,
+            float maxLifetime,
+            float simulationSpeedMultiplier,
+            float trailTimeMultiplier,
+            float maxTrailTime,
+            float destroyDelayPadding)
+        {
+            StartDelayMultiplier = startDelayMultiplier;
+            MaxStartDelay = maxStartDelay;
+            DurationMultiplier = durationMultiplier;
+            MaxDuration = maxDuration;
+            LifetimeMultiplier = lifetimeMultiplier;
+            MaxLifetime = maxLifetime;
+            SimulationSpeedMultiplier = simulationSpeedMultiplier;
+            TrailTimeMultiplier = trailTimeMultiplier;
+            MaxTrailTime = maxTrailTime;
+            DestroyDelayPadding = destroyDelayPadding;
+        }
+
+        public float StartDelayMultiplier { get; }
+        public float MaxStartDelay { get; }
+        public float DurationMultiplier { get; }
+        public float MaxDuration { get; }
+        public float LifetimeMultiplier { get; }
+        public float MaxLifetime { get; }
+        public float SimulationSpeedMultiplier { get; }
+        public float TrailTimeMultiplier { get; }
+        public float MaxTrailTime { get; }
+        public float DestroyDelayPadding { get; }
+    }
+}
+
+public static class HexTacticsHovlSkillEffectImporter
+{
+    public static void RunBatchMode()
+    {
+        HexTacticsGabrielSkillEffectImporter.RunBatchMode();
     }
 }

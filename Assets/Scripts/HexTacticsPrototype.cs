@@ -48,6 +48,10 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     [SerializeField, Range(0.15f, 1.2f)] private float hitEffectHeightNormalized = 0.58f;
     [SerializeField, Min(0f)] private float hitEffectForwardOffset = 0.08f;
 
+    [Header("Hit Feel")]
+    [SerializeField, Range(0f, 0.3f)] private float hitShakeDistanceNormalized = 0.16f;
+    [SerializeField, Min(0.02f)] private float hitShakeDuration = 0.12f;
+
     [Header("Roster")]
     [SerializeField] private List<HexTacticsCharacterConfig> characterRoster = new();
 

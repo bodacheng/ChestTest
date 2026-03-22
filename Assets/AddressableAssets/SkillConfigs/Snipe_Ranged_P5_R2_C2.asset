@@ -20,7 +20,7 @@ MonoBehaviour:
   energyGainOnHit: 0
   projectileEffectPrefab: {fileID: 2763477782707023762, guid: c868d637a2fff4b28bfcb4936311eb49, type: 3}
   projectileEffectScale: 1
-  impactEffectPrefab: {fileID: 1666791193596681458, guid: db3a9ed0c38cd4a8ab493a7b8f6ab47e, type: 3}
-  impactEffectScale: 1.08
-  impactHeightNormalized: 0.64
-  impactForwardOffset: 0.08
+  impactEffectPrefab: {fileID: 7069495237875253993, guid: 75caeaad2ff9c46898f2e2cb7be524a1, type: 3}
+  impactEffectScale: 1.16
+  impactHeightNormalized: 0.66
+  impactForwardOffset: 0.09

@@ -165,6 +165,7 @@ public sealed partial class HexTacticsPrototype
         }
 
         unit.VisualRoot = visualInstance.transform;
+        unit.VisualBaseLocalPosition = visualInstance.transform.localPosition;
         unit.Animator = visualInstance.GetComponentInChildren<Animator>(true);
         unit.AnimationBinding = ResolveAnimationBinding(unit.Animator);
         ConfigureAnimator(unit);
@@ -440,17 +441,24 @@ public sealed partial class HexTacticsPrototype
     {
         var teamBodyMaterial = unit.Team == Team.Blue ? blueBodyMaterial : redBodyMaterial;
         var teamAccentMaterial = unit.Team == Team.Blue ? blueRingMaterial : redRingMaterial;
+        var fallbackRoot = new GameObject("FallbackVisualRoot");
+        fallbackRoot.transform.SetParent(unit.Transform, false);
+        fallbackRoot.transform.localPosition = Vector3.zero;
+        fallbackRoot.transform.localRotation = Quaternion.identity;
+        fallbackRoot.transform.localScale = Vector3.one;
+        unit.VisualRoot = fallbackRoot.transform;
+        unit.VisualBaseLocalPosition = fallbackRoot.transform.localPosition;
 
         var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
         body.name = "Body";
-        body.transform.SetParent(unit.Transform, false);
+        body.transform.SetParent(fallbackRoot.transform, false);
         body.transform.localPosition = new Vector3(0f, 0.75f, 0f);
         body.transform.localScale = new Vector3(0.55f, 0.62f, 0.55f);
         body.GetComponent<MeshRenderer>().sharedMaterial = teamBodyMaterial;
 
         var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         head.name = "Head";
-        head.transform.SetParent(unit.Transform, false);
+        head.transform.SetParent(fallbackRoot.transform, false);
         head.transform.localPosition = new Vector3(0f, 1.52f, 0f);
         head.transform.localScale = Vector3.one * 0.34f;
         head.GetComponent<MeshRenderer>().sharedMaterial = teamAccentMaterial;
