@@ -27,12 +27,6 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.UI
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 392adc69986392c498f5600ba8170841
-    m_Address: Assets/Modern & Clean GUI/Menus & Windows/Window_Frame_Rounded.png
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 4893e513ae6d442129a233db602b91b9
     m_Address: UI/Screens/HexTacticsResolvingScreen
     m_ReadOnly: 0
@@ -41,18 +35,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 4baabd013d0994b59ad350a5025fd5ec
     m_Address: UI/Elements/HexTacticsWorldLabel
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 4db6d84d7126abe42a8091ce68910948
-    m_Address: Assets/Modern & Clean GUI/Icons/Rounded/64x64/Icons_Undo_Rounded.png
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 558888f91ea28fb4fba5a8ea719e0c05
-    m_Address: Assets/Modern & Clean GUI/Icons/Rounded/64x64/Icons_Power_Rounded.png
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.UI
@@ -69,38 +51,8 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.UI
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 76cd79047f156614d92c3944b7c7d9b6
-    m_Address: Assets/Modern & Clean GUI/Buttons/Button_Main_NoHover_Rounded.png
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 7a3f761d33f9f6b45a178cc533ca9d84
-    m_Address: Assets/Modern & Clean GUI/HUD/HUD_Menu_Extended_Rounded.png
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 830be745fb8594343be51e620e3a3068
-    m_Address: Assets/Modern & Clean GUI/HUD/HUD_Target_HealthBar_Fill_Rounded.png
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8eeefd06d2815442eb17fa6503771612
     m_Address: UI/Screens/HexTacticsPlanningScreen
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 9db7cad34af4d0947b454de270dbec46
-    m_Address: Assets/Modern & Clean GUI/HUD/HUD_Announcement_Rounded.png
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: a07f1917a0341ca489377750b13edc59
-    m_Address: Assets/Modern & Clean GUI/HUD/HUD_Target_HealthBar_Empty_Rounded.png
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.UI
@@ -117,32 +69,8 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.UI
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: b5358b188d4bf6e40940b6da8602f83b
-    m_Address: Assets/Modern & Clean GUI/HUD/HUD_ActionBar_Slot_Empty_Rounded.png
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: ce3c3c906ae4a7c43a6af348e82c5d98
-    m_Address: Assets/Modern & Clean GUI/HUD/HUD_ActionBar_Slot_Filled_Rounded.png
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d406e3254a8674ac3b87f687c3a03ba7
     m_Address: UI/HexTacticsCanvasRoot
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: e67f439cf1c5dda4a989d83a2d46b39b
-    m_Address: Assets/Modern & Clean GUI/HUD/HUD_ActionBar_Frame_Rounded.png
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: eff5dcb823e56cf43a253b0e3fa06855
-    m_Address: Assets/Modern & Clean GUI/Menus & Windows/Window_SubHeading_Rounded.png
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.UI

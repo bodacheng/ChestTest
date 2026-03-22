@@ -135,16 +135,15 @@ public static class HexTacticsUiFactory
     {
         var rect = CreateRect(name, parent);
         var image = AddImage(rect.gameObject, backgroundColor);
-        HexTacticsModernUiSkin.ApplyButton(image, backgroundColor);
-        StylePanel(image, new Color(1f, 1f, 1f, 0.05f), 0f);
-
         var button = rect.gameObject.AddComponent<Button>();
         button.targetGraphic = image;
+        HexTacticsModernUiSkin.ConfigureButton(button, image, backgroundColor);
+        StylePanel(image, new Color(1f, 1f, 1f, 0.05f), 0f);
 
         var colors = button.colors;
         colors.normalColor = backgroundColor;
-        colors.highlightedColor = Color.Lerp(backgroundColor, Color.white, 0.08f);
-        colors.pressedColor = Color.Lerp(backgroundColor, Color.black, 0.12f);
+        colors.highlightedColor = Color.Lerp(backgroundColor, Color.white, 0.16f);
+        colors.pressedColor = Color.Lerp(backgroundColor, Color.black, 0.08f);
         colors.selectedColor = colors.highlightedColor;
         colors.disabledColor = new Color(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a * 0.32f);
         colors.fadeDuration = 0.08f;
@@ -180,7 +179,7 @@ public static class HexTacticsUiFactory
         content.sizeDelta = new Vector2(0f, 0f);
 
         var verticalLayout = content.gameObject.AddComponent<VerticalLayoutGroup>();
-        verticalLayout.childControlHeight = false;
+        verticalLayout.childControlHeight = true;
         verticalLayout.childForceExpandHeight = false;
         verticalLayout.childControlWidth = true;
         verticalLayout.childForceExpandWidth = true;

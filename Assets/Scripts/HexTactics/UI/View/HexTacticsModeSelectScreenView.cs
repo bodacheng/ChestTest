@@ -8,7 +8,7 @@ public sealed class HexTacticsModeSelectScreenView : HexTacticsUiGeneratedView
 {
     [SerializeField] private Button cpuButton;
 
-    protected override int CurrentLayoutVersion => 3;
+    protected override int CurrentLayoutVersion => 4;
 
     protected override bool HasCurrentBindings => cpuButton != null;
 
@@ -28,32 +28,40 @@ public sealed class HexTacticsModeSelectScreenView : HexTacticsUiGeneratedView
         root.anchorMin = new Vector2(0.5f, 0.5f);
         root.anchorMax = new Vector2(0.5f, 0.5f);
         root.pivot = new Vector2(0.5f, 0.5f);
-        root.sizeDelta = new Vector2(500f, 220f);
+        root.sizeDelta = new Vector2(512f, 228f);
         root.anchoredPosition = new Vector2(0f, 40f);
 
         var panel = HexTacticsUiFactory.AddImage(root.gameObject, new Color(0.04f, 0.07f, 0.08f, 0.82f));
+        HexTacticsModernUiSkin.ApplyPopupPanel(panel, new Color(1f, 1f, 1f, 0.96f));
         HexTacticsUiFactory.StylePanel(panel, new Color(1f, 1f, 1f, 0.05f));
 
         var layout = root.gameObject.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(32, 32, 28, 28);
-        layout.spacing = 10f;
+        layout.padding = new RectOffset(28, 28, 26, 24);
+        layout.spacing = 8f;
         layout.childAlignment = TextAnchor.UpperCenter;
         layout.childControlHeight = false;
         layout.childControlWidth = true;
         layout.childForceExpandHeight = false;
         layout.childForceExpandWidth = true;
 
-        var title = HexTacticsUiFactory.CreateText(root, "Title", "六方向战棋", 30, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 36f);
+        var chip = HexTacticsUiFactory.CreateRect("ModeChip", root);
+        HexTacticsUiFactory.AddLayoutElement(chip.gameObject, preferredHeight: 28f, preferredWidth: 152f);
+        var chipImage = HexTacticsUiFactory.AddImage(chip.gameObject, new Color(0.18f, 0.30f, 0.34f, 0.95f), false);
+        HexTacticsModernUiSkin.ApplyHeaderChip(chipImage, new Color(0.18f, 0.30f, 0.34f, 0.95f));
+        var chipText = HexTacticsUiFactory.CreateText(chip, "ChipText", "同步结算对战", 13, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
+        HexTacticsUiFactory.Stretch(chipText.rectTransform, Vector2.zero, Vector2.one);
+
+        var title = HexTacticsUiFactory.CreateText(root, "Title", "六方向战棋", 28, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
+        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 34f);
 
         var description = HexTacticsUiFactory.CreateText(root, "Description", "先完成编队，再进入同步结算战斗。", 16, TextAnchor.MiddleCenter, new Color(0.82f, 0.88f, 0.90f));
-        HexTacticsUiFactory.AddLayoutElement(description.gameObject, preferredHeight: 24f);
+        HexTacticsUiFactory.AddLayoutElement(description.gameObject, preferredHeight: 22f);
 
         var hint = HexTacticsUiFactory.CreateText(root, "Hint", "当前开放单人对战。", 13, TextAnchor.MiddleCenter, new Color(0.62f, 0.72f, 0.76f));
         HexTacticsUiFactory.AddLayoutElement(hint.gameObject, preferredHeight: 18f);
 
         cpuButton = HexTacticsUiFactory.CreateButton(root, "CpuButton", "开始对战", new Color(0.19f, 0.46f, 0.46f, 0.94f), Color.white, out _);
-        HexTacticsUiFactory.AddLayoutElement(cpuButton.gameObject, preferredHeight: 46f, preferredWidth: 220f);
+        HexTacticsUiFactory.AddLayoutElement(cpuButton.gameObject, preferredHeight: 44f, preferredWidth: 236f);
     }
 
     public static HexTacticsModeSelectScreenView CreateStandalone(Transform parent)

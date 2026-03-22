@@ -12,7 +12,7 @@ public sealed class HexTacticsAvatarView : HexTacticsUiGeneratedView
     [SerializeField, Min(8)] private int fallbackFontSize = 18;
     [SerializeField] private bool raycastTarget = true;
 
-    protected override int CurrentLayoutVersion => 1;
+    protected override int CurrentLayoutVersion => 2;
 
     protected override bool HasCurrentBindings =>
         backgroundImage != null &&
@@ -22,6 +22,7 @@ public sealed class HexTacticsAvatarView : HexTacticsUiGeneratedView
     public void Bind(HexTacticsAvatarUiData avatar)
     {
         EnsureBuilt();
+        HexTacticsModernUiSkin.ApplySkillSlot(backgroundImage, filled: true, avatar.BackgroundColor);
         backgroundImage.color = avatar.BackgroundColor;
         iconImage.sprite = avatar.Sprite;
         iconImage.color = Color.white;
@@ -40,6 +41,7 @@ public sealed class HexTacticsAvatarView : HexTacticsUiGeneratedView
         HexTacticsUiFactory.SetOffsets(root, 0f, 0f, 0f, 0f);
 
         backgroundImage = HexTacticsUiFactory.AddImage(root.gameObject, new Color(0.25f, 0.34f, 0.40f, 1f), raycastTarget);
+        HexTacticsModernUiSkin.ApplySkillSlot(backgroundImage, filled: true, new Color(0.25f, 0.34f, 0.40f, 1f));
         HexTacticsUiFactory.StylePanel(backgroundImage, new Color(1f, 1f, 1f, 0.04f), 0f);
 
         var iconRoot = HexTacticsUiFactory.CreateRect("Icon", root);
