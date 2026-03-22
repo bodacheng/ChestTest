@@ -42,6 +42,9 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     [SerializeField, Min(0.8f)] private float baseUnitVisualHeight = 1.62f;
     [SerializeField, Min(0.15f)] private float worldLabelPadding = 0.34f;
     [SerializeField, Range(0.8f, 1.4f)] private float selectionFootprintPadding = 1.05f;
+    [Header("Motion")]
+    [SerializeField, Range(3f, 30f)] private float unitTurnSharpness = 11f;
+    [SerializeField, Range(4f, 40f)] private float attackTurnSharpness = 18f;
 
     [Header("Hit Effects")]
     [SerializeField] private bool enableHitEffects = true;
@@ -160,6 +163,8 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
 
     private void Update()
     {
+        UpdateUnitRotations(Time.deltaTime);
+
         if (currentFlowState != FlowState.Planning || isAnimating || isResolving)
         {
             return;
@@ -372,17 +377,77 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     private List<HexTacticsCharacterConfig> BuildFallbackCharacterRoster()
     {
         var roster = new List<HexTacticsCharacterConfig>();
-        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Fawn, "幼鹿斥候", "幼鹿，低 cost 高机动侦察", 7, 2, 2, 2, 0, 6);
-        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Doe, "林地游骑", "母鹿，游击压制与快速补位", 9, 3, 3, 2, 1, 5);
-        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Stag, "角冠先锋", "牡鹿，稳健推进的均衡前锋", 12, 4, 4, 1, 0, 3);
-        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.WhiteTiger, "霜牙猎手", "白虎，擅长追击的精英猎手", 10, 4, 4, 2, 1, 5);
-        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Tiger, "猛虎斗士", "孟加拉虎，高爆发近战输出", 11, 5, 5, 1, 0, 4);
-        TryAddFallbackCharacter(roster, HexTacticsCharacterVisualArchetype.Elk, "巨角卫士", "驼鹿，高血量低机动防线", 16, 3, 5, 1, 0, 2);
+        TryAddFallbackCharacterWithVisual(
+            roster,
+            "BattleUnits/Dragons/NatureDragon",
+            HexTacticsCharacterVisualArchetype.Stag,
+            "森护龙",
+            "自然护鳞，迅捷追猎与连续压迫",
+            13,
+            4,
+            4,
+            2,
+            0,
+            5,
+            1.02f);
+        TryAddFallbackCharacterWithVisual(
+            roster,
+            "BattleUnits/Dragons/IceDragon",
+            HexTacticsCharacterVisualArchetype.WhiteTiger,
+            "冰霜龙",
+            "寒息射线，擅长中距离控制与击退",
+            11,
+            4,
+            5,
+            2,
+            1,
+            4,
+            0.98f);
+        TryAddFallbackCharacterWithVisual(
+            roster,
+            "BattleUnits/Dragons/CrystalDragon",
+            HexTacticsCharacterVisualArchetype.Doe,
+            "晶簇龙",
+            "晶能吐息，远程爆裂与终结兼备",
+            12,
+            4,
+            5,
+            1,
+            1,
+            4,
+            1.08f);
+        TryAddFallbackCharacterWithVisual(
+            roster,
+            "BattleUnits/Dragons/LavaDragon",
+            HexTacticsCharacterVisualArchetype.Tiger,
+            "熔岩龙",
+            "熔岩鳞甲，近战爆发与灼烧压迫",
+            15,
+            5,
+            5,
+            1,
+            0,
+            4,
+            1.18f);
+        TryAddFallbackCharacterWithVisual(
+            roster,
+            "BattleUnits/Dragons/RockDragon",
+            HexTacticsCharacterVisualArchetype.Elk,
+            "岩甲龙",
+            "岩壳厚重，前排顶线与破甲推进",
+            18,
+            4,
+            6,
+            1,
+            0,
+            2,
+            1.26f);
         return roster;
     }
 
-    private void TryAddFallbackCharacter(
+    private void TryAddFallbackCharacterWithVisual(
         List<HexTacticsCharacterConfig> roster,
+        string battleUnitAddress,
         HexTacticsCharacterVisualArchetype archetype,
         string displayName,
         string description,
@@ -391,9 +456,11 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         int cost,
         int moveRange,
         int attackRange,
-        int speed)
+        int speed,
+        float visualHeightScale)
     {
-        if (LoadUnitVisualPrefabFromArchetype(archetype) == null)
+        var battleUnitPrefab = HexTacticsAddressables.LoadAsset<GameObject>(battleUnitAddress);
+        if (battleUnitPrefab == null)
         {
             return;
         }
@@ -401,6 +468,7 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         var config = ScriptableObject.CreateInstance<HexTacticsCharacterConfig>();
         config.hideFlags = HideFlags.DontSave;
         config.ConfigureRuntime(displayName, description, maxHealth, attackPower, cost, moveRange, attackRange, speed, archetype);
+        config.ConfigureRuntimeVisual(battleUnitPrefab, visualHeightScale);
         roster.Add(config);
     }
 

@@ -72,7 +72,7 @@ public sealed partial class HexTacticsPrototype
                 var targetPoint = IsEnemyCommand(unit) && IsUnitAlive(unit.PlannedEnemyTargetUnit)
                     ? unit.PlannedEnemyTargetUnit.Transform.position
                     : unitsRoot.TransformPoint(CellToUnitPosition(unit.PlannedMoveTarget));
-                FaceUnitTowards(unit, targetPoint, immediate: true);
+                FaceUnitTowards(unit, targetPoint, immediate: false);
             }
 
             if (unit.CurrentHealth > 0)

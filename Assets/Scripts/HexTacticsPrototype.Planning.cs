@@ -613,7 +613,7 @@ public sealed partial class HexTacticsPrototype
 
                 var canUseCandidate = requireCurrentRange
                     ? CanSelectAttackTargetFromOrigin(unit, origin, candidate.Coord, skill)
-                    : HasEnemyTargetAt(unit, candidate.Coord) && CanUseSkill(unit, skill);
+                    : CanAssignEnemyTarget(unit, candidate.Coord, skill);
                 if (!canUseCandidate)
                 {
                     continue;

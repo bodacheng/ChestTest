@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 5cbe9f9fd918cbc4292c90b25314adb1
+labels:
+- AllCreature
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 137816
+  packageName: Elemental Dragon
+  packageVersion: 3.9a
+  assetPath: Assets/Malbers Animations/Common/Shaders/HueChange.asset
+  uploadId: 639884

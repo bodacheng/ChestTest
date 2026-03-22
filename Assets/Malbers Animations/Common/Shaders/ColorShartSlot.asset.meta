@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 231fe18505db4a84b9c478d379c9247d
+labels:
+- AllCreature
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 137816
+  packageName: Elemental Dragon
+  packageVersion: 3.9a
+  assetPath: Assets/Malbers Animations/Common/Shaders/ColorShartSlot.asset
+  uploadId: 639884

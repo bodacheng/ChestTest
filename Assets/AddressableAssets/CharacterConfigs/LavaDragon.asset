@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1c79c0b9f6744bbac1885a8f6a61101, type: 3}
+  m_Name: LavaDragon
+  m_EditorClassIdentifier: Assembly-CSharp::HexTacticsCharacterConfig
+  displayName: "\u7194\u5CA9\u9F99"
+  description: "\u7194\u5CA9\u9CDE\u7532\uFF0C\u8FD1\u6218\u7206\u53D1\u4E0E\u707C\u70E7\u538B\u8FEB"
+  maxHealth: 15
+  cost: 5
+  moveRange: 1
+  speed: 4
+  maxEnergy: 5
+  startingEnergy: 1
+  skills:
+  - {fileID: 11400000, guid: 83ad0564cbc0843d696d1c1648d2931b, type: 2}
+  - {fileID: 11400000, guid: 86ea9d933b14a47b08b4e89902937404, type: 2}
+  - {fileID: 11400000, guid: 93fa9355c4c684c7ead3892f06de68db, type: 2}
+  visualArchetype: 4
+  avatar: {fileID: 21300000, guid: 9d5752e164c4e489d93ed440dc352ef3, type: 3}
+  battleUnitPrefab: {fileID: 6444902605870308933, guid: b9ebe8da2a74196d160c072a40082f41, type: 3}
+  visualHeightScale: 1.1
+  attackImpactFrame: 32
+  attackImpactNormalizedTime: 0.58
+  attackPower: 5
+  attackRange: 0

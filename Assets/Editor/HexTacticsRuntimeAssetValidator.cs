@@ -1,9 +1,13 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public static class HexTacticsRuntimeAssetValidator
 {
+    private const string UrpShaderPrefix = "Universal Render Pipeline/";
+
     [MenuItem("Tools/Hex Tactics/Validate Runtime Asset Loading")]
     public static void Validate()
     {
@@ -61,12 +65,32 @@ public static class HexTacticsRuntimeAssetValidator
 
     private static void ValidateBattleUnitAssets(List<string> errors)
     {
-        ValidateAsset<GameObject>("BattleUnits/Stag", "Battle Unit Stag", errors);
-        ValidateAsset<GameObject>("BattleUnits/Doe", "Battle Unit Doe", errors);
-        ValidateAsset<GameObject>("BattleUnits/Elk", "Battle Unit Elk", errors);
-        ValidateAsset<GameObject>("BattleUnits/Fawn", "Battle Unit Fawn", errors);
-        ValidateAsset<GameObject>("BattleUnits/Tiger", "Battle Unit Tiger", errors);
-        ValidateAsset<GameObject>("BattleUnits/WhiteTiger", "Battle Unit WhiteTiger", errors);
+        var prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { HexTacticsAssetPaths.BattleUnitFolder });
+        if (prefabGuids == null || prefabGuids.Length == 0)
+        {
+            errors.Add("No battle unit prefabs could be found.");
+            return;
+        }
+
+        foreach (var guid in prefabGuids)
+        {
+            var assetPath = AssetDatabase.GUIDToAssetPath(guid);
+            if (string.IsNullOrWhiteSpace(assetPath))
+            {
+                continue;
+            }
+
+            var address = ToAddress(assetPath);
+            var label = "Battle Unit " + Path.GetFileNameWithoutExtension(assetPath);
+            var prefab = HexTacticsAddressables.LoadAsset<GameObject>(address);
+            if (prefab == null)
+            {
+                errors.Add($"{label} could not be loaded from '{address}'.");
+                continue;
+            }
+
+            ValidateBattleUnitPrefab(prefab, label, errors);
+        }
     }
 
     private static void ValidateCharacterConfigs(List<string> errors)
@@ -94,6 +118,8 @@ public static class HexTacticsRuntimeAssetValidator
             {
                 errors.Add($"Character config '{configs[i].name}' avatar icon is not square.");
             }
+
+            ValidateCharacterAttackAnimationCoverage(configs[i], errors);
         }
     }
 
@@ -186,6 +212,153 @@ public static class HexTacticsRuntimeAssetValidator
         }
     }
 
+    private static void ValidateBattleUnitPrefab(GameObject prefab, string label, List<string> errors)
+    {
+        var renderers = prefab.GetComponentsInChildren<Renderer>(true);
+        if (renderers.Length == 0)
+        {
+            errors.Add($"{label} has no renderers.");
+            return;
+        }
+
+        var usesScriptableRenderPipeline = GraphicsSettings.defaultRenderPipeline != null;
+        foreach (var renderer in renderers)
+        {
+            var materials = renderer.sharedMaterials;
+            if (materials == null || materials.Length == 0)
+            {
+                errors.Add($"{label} renderer '{renderer.name}' has no shared materials.");
+                continue;
+            }
+
+            for (var i = 0; i < materials.Length; i++)
+            {
+                var material = materials[i];
+                if (material == null)
+                {
+                    errors.Add($"{label} renderer '{renderer.name}' has a missing material at slot {i}.");
+                    continue;
+                }
+
+                if (material.shader == null)
+                {
+                    errors.Add($"{label} material '{material.name}' has a missing shader.");
+                    continue;
+                }
+
+                if (usesScriptableRenderPipeline && UsesBuiltinShader(material.shader))
+                {
+                    errors.Add($"{label} material '{material.name}' is still using built-in shader '{material.shader.name}' in a SRP project.");
+                }
+            }
+        }
+    }
+
+    private static void ValidateCharacterAttackAnimationCoverage(HexTacticsCharacterConfig config, List<string> errors)
+    {
+        if (config == null || config.SkillCount <= 0 || config.BattleUnitPrefab == null)
+        {
+            return;
+        }
+
+        var animator = config.BattleUnitPrefab.GetComponentInChildren<Animator>(true);
+        if (animator == null)
+        {
+            errors.Add($"Character config '{config.name}' battle prefab '{config.BattleUnitPrefab.name}' is missing an Animator.");
+            return;
+        }
+
+        var controller = animator.runtimeAnimatorController;
+        if (controller == null)
+        {
+            errors.Add($"Character config '{config.name}' battle prefab '{config.BattleUnitPrefab.name}' is missing a runtime animator controller.");
+            return;
+        }
+
+        var hasMeleeSkill = false;
+        var hasRangedSkill = false;
+        foreach (var skill in config.Skills)
+        {
+            if (skill == null)
+            {
+                continue;
+            }
+
+            if (skill.AttackRange > 0)
+            {
+                hasRangedSkill = true;
+            }
+            else
+            {
+                hasMeleeSkill = true;
+            }
+        }
+
+        var neutralAttackCount = 0;
+        var meleeAttackCount = 0;
+        var rangedAttackCount = 0;
+        foreach (var clip in controller.animationClips)
+        {
+            if (!IsAttackAnimationClip(clip))
+            {
+                continue;
+            }
+
+            switch (ClassifyAttackAnimationFlavor(clip.name))
+            {
+                case AttackAnimationFlavor.Melee:
+                    meleeAttackCount++;
+                    break;
+                case AttackAnimationFlavor.Ranged:
+                    rangedAttackCount++;
+                    break;
+                default:
+                    neutralAttackCount++;
+                    break;
+            }
+        }
+
+        if (neutralAttackCount == 0 && meleeAttackCount == 0 && rangedAttackCount == 0)
+        {
+            errors.Add($"Character config '{config.name}' battle prefab '{config.BattleUnitPrefab.name}' has no recognizable attack animation clips.");
+            return;
+        }
+
+        if (hasMeleeSkill && meleeAttackCount == 0 && neutralAttackCount == 0)
+        {
+            errors.Add($"Character config '{config.name}' has melee skills but no melee-capable attack animation clips.");
+        }
+
+        if (hasRangedSkill && rangedAttackCount == 0 && neutralAttackCount == 0)
+        {
+            errors.Add($"Character config '{config.name}' has ranged skills but no ranged-capable attack animation clips.");
+        }
+
+        if (config.SkillCount > 1 && hasMeleeSkill && hasRangedSkill)
+        {
+            if (meleeAttackCount == 0 && neutralAttackCount > 0)
+            {
+                Debug.LogWarning($"[HexTacticsRuntimeAssetValidator] Character config '{config.name}' mixes melee and ranged skills, but only neutral/non-melee attack clip names were found. Neutral attack clips will be reused for melee skills.");
+            }
+
+            if (rangedAttackCount == 0 && neutralAttackCount > 0)
+            {
+                Debug.LogWarning($"[HexTacticsRuntimeAssetValidator] Character config '{config.name}' mixes melee and ranged skills, but only neutral/non-ranged attack clip names were found. Neutral attack clips will be reused for ranged skills.");
+            }
+        }
+    }
+
+    private static bool UsesBuiltinShader(Shader shader)
+    {
+        if (shader == null)
+        {
+            return false;
+        }
+
+        return !shader.name.StartsWith(UrpShaderPrefix) &&
+            (shader.name == "Standard" || shader.name.StartsWith("Legacy Shaders/"));
+    }
+
     private static void ValidateAsset<T>(string address, string label, List<string> errors) where T : Object
     {
         if (HexTacticsAddressables.LoadAsset<T>(address) == null)
@@ -194,11 +367,125 @@ public static class HexTacticsRuntimeAssetValidator
         }
     }
 
+    private static bool IsAttackAnimationClip(AnimationClip clip)
+    {
+        if (clip == null)
+        {
+            return false;
+        }
+
+        var normalizedName = NormalizeAnimationName(clip.name);
+        return normalizedName.Contains("attack") ||
+            normalizedName.Contains("shoot") ||
+            normalizedName.Contains("shot") ||
+            normalizedName.Contains("cast") ||
+            normalizedName.Contains("breath") ||
+            normalizedName.Contains("fireball") ||
+            normalizedName.Contains("spit") ||
+            normalizedName.Contains("slash") ||
+            normalizedName.Contains("bite") ||
+            normalizedName.Contains("claw") ||
+            normalizedName.Contains("tail") ||
+            normalizedName.Contains("wing");
+    }
+
+    private static AttackAnimationFlavor ClassifyAttackAnimationFlavor(string clipName)
+    {
+        var normalizedName = NormalizeAnimationName(clipName);
+        if (string.IsNullOrWhiteSpace(normalizedName))
+        {
+            return AttackAnimationFlavor.Neutral;
+        }
+
+        var rangedScore = 0;
+        if (ContainsAny(normalizedName, "rpt", "shoot", "shot", "bolt", "projectile", "missile", "beam", "laser", "throw", "toss"))
+        {
+            rangedScore += 4;
+        }
+
+        if (ContainsAny(normalizedName, "fireball", "firebreath", "breath", "spit", "cast", "magic", "orb", "ball", "wave"))
+        {
+            rangedScore += 6;
+        }
+
+        var meleeScore = 0;
+        if (ContainsAny(normalizedName, "bite", "claw", "slash", "tail", "wing", "paw", "stomp", "stump"))
+        {
+            meleeScore += 6;
+        }
+
+        if (ContainsAny(normalizedName, "bash", "strike", "swing", "rush", "dive", "stab", "punch", "kick"))
+        {
+            meleeScore += 4;
+        }
+
+        if (rangedScore > meleeScore && rangedScore > 0)
+        {
+            return AttackAnimationFlavor.Ranged;
+        }
+
+        if (meleeScore > 0)
+        {
+            return AttackAnimationFlavor.Melee;
+        }
+
+        return AttackAnimationFlavor.Neutral;
+    }
+
+    private static string NormalizeAnimationName(string name)
+    {
+        return string.IsNullOrWhiteSpace(name)
+            ? string.Empty
+            : name.Replace("_", string.Empty)
+                .Replace(" ", string.Empty)
+                .Replace("-", string.Empty)
+                .ToLowerInvariant();
+    }
+
+    private static bool ContainsAny(string normalizedName, params string[] keywords)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedName) || keywords == null)
+        {
+            return false;
+        }
+
+        foreach (var keyword in keywords)
+        {
+            if (!string.IsNullOrWhiteSpace(keyword) && normalizedName.Contains(keyword))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static void ExitIfNeeded(bool exitOnComplete, int exitCode)
     {
         if (exitOnComplete && Application.isBatchMode)
         {
             EditorApplication.Exit(exitCode);
         }
+    }
+
+    private static string ToAddress(string assetPath)
+    {
+        if (string.IsNullOrWhiteSpace(assetPath) || !assetPath.StartsWith(HexTacticsAssetPaths.AddressablesRoot + "/"))
+        {
+            return assetPath;
+        }
+
+        var relativePath = assetPath.Substring(HexTacticsAssetPaths.AddressablesRoot.Length + 1);
+        var extension = Path.GetExtension(relativePath);
+        return string.IsNullOrEmpty(extension)
+            ? relativePath
+            : relativePath.Substring(0, relativePath.Length - extension.Length);
+    }
+
+    private enum AttackAnimationFlavor
+    {
+        Neutral,
+        Melee,
+        Ranged
     }
 }

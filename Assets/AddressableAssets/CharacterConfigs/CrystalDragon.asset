@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1c79c0b9f6744bbac1885a8f6a61101, type: 3}
+  m_Name: CrystalDragon
+  m_EditorClassIdentifier: Assembly-CSharp::HexTacticsCharacterConfig
+  displayName: "\u6676\u7C07\u9F99"
+  description: "\u6676\u80FD\u5410\u606F\uFF0C\u8FDC\u7A0B\u7206\u88C2\u4E0E\u7EC8\u7ED3\u517C\u5907"
+  maxHealth: 12
+  cost: 5
+  moveRange: 1
+  speed: 4
+  maxEnergy: 5
+  startingEnergy: 1
+  skills:
+  - {fileID: 11400000, guid: a1832f377e1bb464a9bab52617f3361d, type: 2}
+  - {fileID: 11400000, guid: 2373cceeeda30451abce498018373fa3, type: 2}
+  - {fileID: 11400000, guid: 4b26672e5a93d43df9def28ee8542893, type: 2}
+  visualArchetype: 1
+  avatar: {fileID: 21300000, guid: 9d5752e164c4e489d93ed440dc352ef3, type: 3}
+  battleUnitPrefab: {fileID: 6493433596526043569, guid: e485e11c6c4a03a2f49a857f07c8e069, type: 3}
+  visualHeightScale: 1
+  attackImpactFrame: 34
+  attackImpactNormalizedTime: 0.62
+  attackPower: 4
+  attackRange: 1

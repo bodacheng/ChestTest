@@ -223,6 +223,30 @@ public sealed partial class HexTacticsPrototype
         animator.SetBool(StunnedHash, false);
     }
 
+    private void UpdateUnitRotations(float deltaTime)
+    {
+        if (deltaTime <= 0f)
+        {
+            return;
+        }
+
+        foreach (var unit in units)
+        {
+            if (unit?.Transform == null || !unit.HasDesiredRotation)
+            {
+                continue;
+            }
+
+            var sharpness = Mathf.Max(0.01f, unit.RotationSharpness > 0.01f ? unit.RotationSharpness : unitTurnSharpness);
+            var t = 1f - Mathf.Exp(-sharpness * deltaTime);
+            unit.Transform.rotation = Quaternion.Slerp(unit.Transform.rotation, unit.DesiredRotation, t);
+            if (Quaternion.Angle(unit.Transform.rotation, unit.DesiredRotation) <= 0.05f)
+            {
+                unit.Transform.rotation = unit.DesiredRotation;
+            }
+        }
+    }
+
     private static void SetAnimatorLocomotion(Animator animator, float vertical, bool shift)
     {
         if (animator == null)
@@ -304,15 +328,21 @@ public sealed partial class HexTacticsPrototype
         SetAnimatorLocomotion(unit.Animator, usesFastStride ? 1.15f : 0.82f, usesFastStride);
     }
 
-    private void PlayUnitAttack(HexUnit unit, Vector3 worldTarget)
+    private void PlayUnitAttack(HexUnit unit, Vector3 worldTarget, int skillIndex)
     {
         if (unit == null)
         {
             return;
         }
 
-        FaceUnitTowards(unit, worldTarget, immediate: true);
+        var attackVariant = ResolveAttackVariant(unit, skillIndex);
+        FaceUnitTowards(unit, worldTarget, immediate: false, attackTurnSharpness);
         if (unit.Animator == null)
+        {
+            return;
+        }
+
+        if (TryPlayAttackVariant(unit, attackVariant))
         {
             return;
         }
@@ -328,6 +358,34 @@ public sealed partial class HexTacticsPrototype
         unit.Animator.SetBool(DamagedHash, false);
         unit.Animator.SetBool(Attack1Hash, false);
         unit.Animator.SetBool(Attack1Hash, true);
+    }
+
+    private AttackAnimationVariant ResolveAttackVariant(HexUnit unit, int skillIndex)
+    {
+        return unit?.AnimationBinding?.ResolveAttackVariant(skillIndex);
+    }
+
+    private static bool TryPlayAttackVariant(HexUnit unit, AttackAnimationVariant variant)
+    {
+        if (unit?.Animator == null || variant?.Clip == null)
+        {
+            return false;
+        }
+
+        if (variant.HasStatePath)
+        {
+            PlayBoundState(unit, variant.StatePath, restart: true);
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(variant.Clip.name))
+        {
+            return false;
+        }
+
+        unit.Animator.Play(variant.Clip.name, 0, 0f);
+        unit.Animator.Update(0f);
+        return true;
     }
 
     private void StopUnitAttack(HexUnit unit)
@@ -520,7 +578,7 @@ public sealed partial class HexTacticsPrototype
         activeCameraFocusOverride = null;
     }
 
-    private void FaceUnitTowards(HexUnit unit, Vector3 worldTarget, bool immediate)
+    private void FaceUnitTowards(HexUnit unit, Vector3 worldTarget, bool immediate, float sharpness = -1f)
     {
         if (unit?.Transform == null)
         {
@@ -535,9 +593,13 @@ public sealed partial class HexTacticsPrototype
         }
 
         var targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
-        unit.Transform.rotation = immediate
-            ? targetRotation
-            : Quaternion.Slerp(unit.Transform.rotation, targetRotation, 0.4f);
+        unit.DesiredRotation = targetRotation;
+        unit.RotationSharpness = sharpness > 0f ? sharpness : unitTurnSharpness;
+        unit.HasDesiredRotation = true;
+        if (immediate || unit.RotationSharpness <= 0.01f)
+        {
+            unit.Transform.rotation = targetRotation;
+        }
     }
 
     private void ApplySkillMovementOnCast(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
@@ -729,10 +791,10 @@ public sealed partial class HexTacticsPrototype
         var attackerStart = attacker.Transform.localPosition;
         var impactToken = attacker.AnimationEventRelay != null ? attacker.AnimationEventRelay.AttackImpactCount : -1;
 
-        PlayUnitAttack(attacker, defender.Transform.position);
+        PlayUnitAttack(attacker, defender.Transform.position, attack.SkillIndex);
         yield return null;
 
-        var attackClip = ResolveAttackClip(attacker);
+        var attackClip = ResolveAttackClip(attacker, attack.SkillIndex);
         var impactDelay = ResolveAttackImpactDelay(attacker, attackClip);
         var swingDuration = ResolveAttackSwingDuration(attacker, impactDelay, attackClip);
         var usesRangedPresentation = UsesRangedAttackPresentation(skill);
@@ -792,7 +854,7 @@ public sealed partial class HexTacticsPrototype
     {
         return IsUnitAlive(attack.Attacker) &&
                IsUnitAlive(attack.Defender) &&
-               attack.Attacker.Team != attack.Defender.Team &&
+               AreUnitsHostile(attack.Attacker, attack.Defender) &&
                attack.Skill != null &&
                CanUseSkill(attack.Attacker, attack.Skill) &&
                attack.Attacker.Transform != null &&
@@ -912,16 +974,11 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
-    private AnimationClip ResolveAttackClip(HexUnit attacker)
+    private AnimationClip ResolveAttackClip(HexUnit attacker, int skillIndex)
     {
         if (attacker?.Animator == null)
         {
             return null;
-        }
-
-        if (UsesDirectStatePlayback(attacker) && attacker.AnimationBinding?.AttackClip != null)
-        {
-            return attacker.AnimationBinding.AttackClip;
         }
 
         var attackClip = FindAttackClip(attacker.Animator.GetNextAnimatorClipInfo(0));
@@ -934,6 +991,17 @@ public sealed partial class HexTacticsPrototype
         if (attackClip != null)
         {
             return attackClip;
+        }
+
+        var boundVariant = ResolveAttackVariant(attacker, skillIndex);
+        if (boundVariant?.Clip != null)
+        {
+            return boundVariant.Clip;
+        }
+
+        if (UsesDirectStatePlayback(attacker) && attacker.AnimationBinding?.AttackClip != null)
+        {
+            return attacker.AnimationBinding.AttackClip;
         }
 
         var controller = attacker.Animator.runtimeAnimatorController;
@@ -980,8 +1048,24 @@ public sealed partial class HexTacticsPrototype
 
     private static bool IsAttackClip(AnimationClip clip)
     {
-        return clip != null &&
-               clip.name.IndexOf("attack", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        if (clip == null)
+        {
+            return false;
+        }
+
+        var normalizedName = NormalizeAnimationName(clip.name);
+        return normalizedName.Contains("attack") ||
+            normalizedName.Contains("shoot") ||
+            normalizedName.Contains("shot") ||
+            normalizedName.Contains("cast") ||
+            normalizedName.Contains("breath") ||
+            normalizedName.Contains("fireball") ||
+            normalizedName.Contains("spit") ||
+            normalizedName.Contains("slash") ||
+            normalizedName.Contains("bite") ||
+            normalizedName.Contains("claw") ||
+            normalizedName.Contains("tail") ||
+            normalizedName.Contains("wing");
     }
 
     private float ResolveDamagedAnimationDuration(HexUnit unit)
@@ -1099,6 +1183,14 @@ public sealed partial class HexTacticsPrototype
     private bool IsEnemyCommand(HexUnit unit)
     {
         return unit != null && unit.HasPlannedMove && unit.HasPlannedAttack && unit.PlannedEnemyTargetUnit != null;
+    }
+
+    private static bool AreUnitsHostile(HexUnit source, HexUnit target)
+    {
+        return source != null &&
+               target != null &&
+               source != target &&
+               source.Team != target.Team;
     }
 
     private bool IsUnitAlive(HexUnit unit)
@@ -1539,7 +1631,7 @@ public sealed partial class HexTacticsPrototype
             {
                 for (var j = i + 1; j < pair.Value.Count; j++)
                 {
-                    if (pair.Value[i].Team == pair.Value[j].Team)
+                    if (!AreUnitsHostile(pair.Value[i], pair.Value[j]))
                     {
                         continue;
                     }
@@ -1556,7 +1648,7 @@ public sealed partial class HexTacticsPrototype
                 continue;
             }
 
-            if (targetCell.Occupant.Team == intent.Unit.Team)
+            if (!AreUnitsHostile(intent.Unit, targetCell.Occupant))
             {
                 continue;
             }
@@ -1569,6 +1661,11 @@ public sealed partial class HexTacticsPrototype
 
     private void RegisterContact(Dictionary<HexUnit, HashSet<HexUnit>> contacts, HexUnit left, HexUnit right)
     {
+        if (!AreUnitsHostile(left, right))
+        {
+            return;
+        }
+
         if (!contacts.TryGetValue(left, out var leftTargets))
         {
             leftTargets = new HashSet<HexUnit>();
@@ -1600,7 +1697,7 @@ public sealed partial class HexTacticsPrototype
             var bestScore = int.MinValue;
             foreach (var candidate in pair.Value)
             {
-                if (!units.Contains(candidate) || candidate.CurrentHealth <= 0)
+                if (!AreUnitsHostile(attacker, candidate) || !units.Contains(candidate) || candidate.CurrentHealth <= 0)
                 {
                     continue;
                 }
@@ -1987,13 +2084,13 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        if (!cells.TryGetValue(target, out var targetCell) || targetCell.Occupant == null || targetCell.Occupant.Team == unit.Team)
+        if (!cells.TryGetValue(target, out var targetCell) || !AreUnitsHostile(unit, targetCell.Occupant))
         {
             return;
         }
 
         var skill = unit.GetSkillAt(skillIndex);
-        if (!HasEnemyTargetAt(unit, target) || !CanUseSkill(unit, skill))
+        if (!CanAssignEnemyTarget(unit, target, skill))
         {
             return;
         }
@@ -2084,7 +2181,7 @@ public sealed partial class HexTacticsPrototype
 
         if (targetCell.Occupant == null)
         {
-            return true;
+            return CanReachMoveDestinationThisRound(unit, target);
         }
 
         if (targetCell.Occupant.Team != unit.Team)
@@ -2092,7 +2189,12 @@ public sealed partial class HexTacticsPrototype
             return false;
         }
 
-        return WillUnitAttemptToLeaveCurrentCell(targetCell.Occupant);
+        if (!WillUnitAttemptToLeaveCurrentCell(targetCell.Occupant))
+        {
+            return false;
+        }
+
+        return CanReachMoveDestinationThisRound(unit, target);
     }
 
     private bool WillUnitAttemptToLeaveCurrentCell(HexUnit unit)
@@ -2115,7 +2217,14 @@ public sealed partial class HexTacticsPrototype
 
     private bool CanAssignEnemyTarget(HexUnit unit, HexCoord target)
     {
-        return HasEnemyTargetAt(unit, target) && CanUseSkill(unit, unit != null ? unit.SelectedSkill : null);
+        return CanAssignEnemyTarget(unit, target, unit != null ? unit.SelectedSkill : null);
+    }
+
+    private bool CanAssignEnemyTarget(HexUnit unit, HexCoord target, HexTacticsSkillConfig skill)
+    {
+        return HasEnemyTargetAt(unit, target) &&
+               CanUseSkill(unit, skill) &&
+               CanReachAttackTargetThisRound(unit, target, skill);
     }
 
     private bool HasEnemyTargetAt(HexUnit unit, HexCoord target)
@@ -2125,7 +2234,50 @@ public sealed partial class HexTacticsPrototype
             return false;
         }
 
-        return targetCell.Occupant.Team != unit.Team;
+        return AreUnitsHostile(unit, targetCell.Occupant) && targetCell.Occupant.CurrentHealth > 0;
+    }
+
+    private bool CanReachMoveDestinationThisRound(HexUnit unit, HexCoord target)
+    {
+        if (unit == null || !cells.ContainsKey(target))
+        {
+            return false;
+        }
+
+        var path = FindShortestPath(
+            unit,
+            unit.Coord,
+            target,
+            unit.MoveRange,
+            0,
+            null,
+            allowFriendlyWaitingOccupants: false);
+        return PathEndsAt(path, target);
+    }
+
+    private bool CanReachAttackTargetThisRound(HexUnit unit, HexCoord target, HexTacticsSkillConfig skill)
+    {
+        if (unit == null || skill == null || !HasEnemyTargetAt(unit, target))
+        {
+            return false;
+        }
+
+        var desiredAttackReach = GetAttackReach(skill);
+        var path = FindShortestPath(
+            unit,
+            unit.Coord,
+            target,
+            unit.MoveRange,
+            desiredAttackReach,
+            skill,
+            allowFriendlyWaitingOccupants: false);
+        return path.Count > 0 &&
+               IsPathGoalReached(unit, path[path.Count - 1], target, desiredAttackReach, skill);
+    }
+
+    private static bool PathEndsAt(List<HexCoord> path, HexCoord target)
+    {
+        return path != null && path.Count > 0 && path[path.Count - 1] == target;
     }
 
     private bool CanSelectAttackTargetFromOrigin(HexUnit unit, HexCoord origin, HexCoord target, HexTacticsSkillConfig skill)

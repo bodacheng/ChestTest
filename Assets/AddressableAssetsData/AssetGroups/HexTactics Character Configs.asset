@@ -51,14 +51,14 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 29b474d41cfc40d48bb01caf37c1644e
-    m_Address: CharacterConfigs/FawnScout
+  - m_GUID: 2a6d71ff3e9e115b1510951507b4a1df
+    m_Address: CharacterConfigs/LavaDragon
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 2d1103a043454ad4af85bb65f57db0f0
-    m_Address: CharacterConfigs/DoeRider
+  - m_GUID: 2b559c05205c8f80d1560efade3e3dda
+    m_Address: CharacterConfigs/RockDragon
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
@@ -87,6 +87,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 42e4f5cf48768197c2a6b4fc47500906
+    m_Address: CharacterConfigs/IceDragon
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.CharacterConfigs
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 48a2936e29ca749a8ad4bbc7f6577d0d
     m_Address: CharacterConfigs/NagaWizard
     m_ReadOnly: 0
@@ -95,12 +101,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 551920fe1b14946a1962ab5f0e8faebb
     m_Address: CharacterConfigs/Specter
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.CharacterConfigs
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 5a31d1ee1d8c442ea07aaf0f6fa08b29
-    m_Address: CharacterConfigs/TigerFighter
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
@@ -141,12 +141,6 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 88c530a0ebc74695b1ca1771d7252f6b
-    m_Address: CharacterConfigs/WhiteTigerHunter
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.CharacterConfigs
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8f0c6c96309374147a4cd9c4397c1837
     m_Address: CharacterConfigs/Spider
     m_ReadOnly: 0
@@ -161,12 +155,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 96e00c18770b94abdb70423b6b956b73
     m_Address: CharacterConfigs/Dragon
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.CharacterConfigs
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 9d2fb8d999fb49e2aeb8280f5cff1c77
-    m_Address: CharacterConfigs/ElkGuardian
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
@@ -201,6 +189,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c4342b81582c12f2a6d63c44d5dfa5ed
+    m_Address: CharacterConfigs/NatureDragon
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.CharacterConfigs
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c5fba79dbd366431686f94cbf6a05130
     m_Address: CharacterConfigs/Salamander
     m_ReadOnly: 0
@@ -219,6 +213,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - HexTactics.CharacterConfigs
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e34ccbba85b1e8d8614f694618d0c296
+    m_Address: CharacterConfigs/CrystalDragon
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - HexTactics.CharacterConfigs
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ec21f03b8d8d94d8db7c2d0df74becdd
     m_Address: CharacterConfigs/Cyclops
     m_ReadOnly: 0
@@ -227,12 +227,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ec570f0bebd464e2091f5aefa4907d11
     m_Address: CharacterConfigs/LizardWarrior
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - HexTactics.CharacterConfigs
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: f461d86e2d7b477ea3f79878e2a4bf65
-    m_Address: CharacterConfigs/StagVanguard
     m_ReadOnly: 0
     m_SerializedLabels:
     - HexTactics.CharacterConfigs

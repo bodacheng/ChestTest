@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1c79c0b9f6744bbac1885a8f6a61101, type: 3}
+  m_Name: RockDragon
+  m_EditorClassIdentifier: Assembly-CSharp::HexTacticsCharacterConfig
+  displayName: "\u5CA9\u7532\u9F99"
+  description: "\u5CA9\u58F3\u539A\u91CD\uFF0C\u524D\u6392\u9876\u7EBF\u4E0E\u7834\u7532\u63A8\u8FDB"
+  maxHealth: 18
+  cost: 6
+  moveRange: 1
+  speed: 2
+  maxEnergy: 5
+  startingEnergy: 0
+  skills:
+  - {fileID: 11400000, guid: 214bcb007e7644deebc3eccf880b5f09, type: 2}
+  - {fileID: 11400000, guid: 9fd9177cb53b44fc8a6c21489c3b241c, type: 2}
+  - {fileID: 11400000, guid: db545c255d53d4fe682a95492528203f, type: 2}
+  visualArchetype: 2
+  avatar: {fileID: 21300000, guid: 9d5752e164c4e489d93ed440dc352ef3, type: 3}
+  battleUnitPrefab: {fileID: 1272289719001990063, guid: 19ec7982980c98b449577d8ede74a545, type: 3}
+  visualHeightScale: 1.17
+  attackImpactFrame: 32
+  attackImpactNormalizedTime: 0.58
+  attackPower: 3
+  attackRange: 0

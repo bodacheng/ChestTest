@@ -167,7 +167,7 @@ public sealed partial class HexTacticsPrototype
         unit.VisualRoot = visualInstance.transform;
         unit.VisualBaseLocalPosition = visualInstance.transform.localPosition;
         unit.Animator = visualInstance.GetComponentInChildren<Animator>(true);
-        unit.AnimationBinding = ResolveAnimationBinding(unit.Animator);
+        unit.AnimationBinding = ResolveAnimationBinding(unit.Animator, unit.Skills);
         ConfigureAnimator(unit);
         if (unit.Animator != null)
         {
@@ -183,7 +183,7 @@ public sealed partial class HexTacticsPrototype
         return true;
     }
 
-    private UnitAnimationBinding ResolveAnimationBinding(Animator animator)
+    private UnitAnimationBinding ResolveAnimationBinding(Animator animator, List<HexTacticsSkillConfig> skills)
     {
         if (animator == null)
         {
@@ -204,22 +204,28 @@ public sealed partial class HexTacticsPrototype
         var clips = controller.animationClips;
         var idleClip = ChoosePreferredAnimationClip(clips, GetIdleClipScore);
         var moveClip = ChoosePreferredAnimationClip(clips, GetMoveClipScore);
-        var attackClip = ChoosePreferredAnimationClip(clips, GetAttackClipScore);
         var damagedClip = ChoosePreferredAnimationClip(clips, GetDamagedClipScore);
         var deathClip = ChoosePreferredAnimationClip(clips, GetDeathClipScore);
+        var attackVariants = ResolveAttackVariants(animator, clips);
+        var skillAttackVariants = ResolveAttackVariantsForSkills(attackVariants, skills);
+        var defaultAttackVariant = ResolveDefaultAttackVariant(attackVariants, skillAttackVariants);
+        var attackClip = defaultAttackVariant != null ? defaultAttackVariant.Clip : null;
 
         return new UnitAnimationBinding(
             usesParameterDriver,
-            BuildBaseLayerStatePath(idleClip),
-            BuildBaseLayerStatePath(moveClip),
-            BuildBaseLayerStatePath(attackClip),
-            BuildBaseLayerStatePath(damagedClip),
-            BuildBaseLayerStatePath(deathClip),
+            ResolvePlayableStatePath(animator, idleClip),
+            ResolvePlayableStatePath(animator, moveClip),
+            defaultAttackVariant != null ? defaultAttackVariant.StatePath : string.Empty,
+            ResolvePlayableStatePath(animator, damagedClip),
+            ResolvePlayableStatePath(animator, deathClip),
             idleClip,
             moveClip,
             attackClip,
             damagedClip,
-            deathClip);
+            deathClip,
+            defaultAttackVariant,
+            attackVariants,
+            skillAttackVariants);
     }
 
     private static bool AnimatorHasParameter(Animator animator, string parameterName)
@@ -240,9 +246,22 @@ public sealed partial class HexTacticsPrototype
         return false;
     }
 
-    private static string BuildBaseLayerStatePath(AnimationClip clip)
+    private static string ResolvePlayableStatePath(Animator animator, AnimationClip clip)
     {
-        return clip != null ? $"Base Layer.{clip.name}" : string.Empty;
+        if (animator == null || clip == null || string.IsNullOrWhiteSpace(clip.name))
+        {
+            return string.Empty;
+        }
+
+        var baseLayerPath = $"Base Layer.{clip.name}";
+        if (animator.HasState(0, Animator.StringToHash(baseLayerPath)))
+        {
+            return baseLayerPath;
+        }
+
+        return animator.HasState(0, Animator.StringToHash(clip.name))
+            ? clip.name
+            : string.Empty;
     }
 
     private static AnimationClip ChoosePreferredAnimationClip(IEnumerable<AnimationClip> clips, System.Func<string, int> scoreSelector)
@@ -277,14 +296,260 @@ public sealed partial class HexTacticsPrototype
         return bestClip;
     }
 
+    private static List<AttackAnimationVariant> ResolveAttackVariants(Animator animator, IEnumerable<AnimationClip> clips)
+    {
+        var variants = new List<AttackAnimationVariant>();
+        if (animator == null || clips == null)
+        {
+            return variants;
+        }
+
+        var seenClips = new HashSet<AnimationClip>();
+        foreach (var clip in clips)
+        {
+            if (clip == null || !IsAttackClip(clip) || !seenClips.Add(clip))
+            {
+                continue;
+            }
+
+            variants.Add(new AttackAnimationVariant(
+                ClassifyAttackAnimationPresentation(clip.name),
+                ResolvePlayableStatePath(animator, clip),
+                clip,
+                GetAttackVariantScore(clip.name)));
+        }
+
+        variants.Sort((left, right) =>
+        {
+            var scoreComparison = right.Score.CompareTo(left.Score);
+            if (scoreComparison != 0)
+            {
+                return scoreComparison;
+            }
+
+            var statePathComparison = right.HasStatePath.CompareTo(left.HasStatePath);
+            if (statePathComparison != 0)
+            {
+                return statePathComparison;
+            }
+
+            return string.CompareOrdinal(left.Clip != null ? left.Clip.name : string.Empty, right.Clip != null ? right.Clip.name : string.Empty);
+        });
+
+        return variants;
+    }
+
+    private static AttackAnimationVariant[] ResolveAttackVariantsForSkills(
+        List<AttackAnimationVariant> attackVariants,
+        List<HexTacticsSkillConfig> skills)
+    {
+        var resolvedVariants = new AttackAnimationVariant[skills != null ? skills.Count : 0];
+        if (attackVariants == null || attackVariants.Count == 0 || skills == null || skills.Count == 0)
+        {
+            return resolvedVariants;
+        }
+
+        var meleeVariants = CollectAttackVariants(attackVariants, AttackAnimationPresentation.Melee);
+        var rangedVariants = CollectAttackVariants(attackVariants, AttackAnimationPresentation.Ranged);
+        var neutralVariants = CollectAttackVariants(attackVariants, AttackAnimationPresentation.Neutral);
+        var hasMeleeSkills = false;
+        var hasRangedSkills = false;
+        foreach (var skill in skills)
+        {
+            if (UsesRangedAttackPresentation(skill))
+            {
+                hasRangedSkills = true;
+            }
+            else
+            {
+                hasMeleeSkills = true;
+            }
+        }
+
+        var meleeOrdinal = 0;
+        var rangedOrdinal = 0;
+        for (var i = 0; i < skills.Count; i++)
+        {
+            var desiredPresentation = UsesRangedAttackPresentation(skills[i])
+                ? AttackAnimationPresentation.Ranged
+                : AttackAnimationPresentation.Melee;
+            var ordinal = desiredPresentation == AttackAnimationPresentation.Ranged
+                ? rangedOrdinal++
+                : meleeOrdinal++;
+
+            resolvedVariants[i] = ChooseAttackVariantForSkill(
+                attackVariants,
+                neutralVariants,
+                meleeVariants,
+                rangedVariants,
+                desiredPresentation,
+                ordinal,
+                hasMeleeSkills,
+                hasRangedSkills);
+        }
+
+        return resolvedVariants;
+    }
+
+    private static List<AttackAnimationVariant> CollectAttackVariants(
+        List<AttackAnimationVariant> attackVariants,
+        AttackAnimationPresentation presentation)
+    {
+        var matches = new List<AttackAnimationVariant>();
+        if (attackVariants == null)
+        {
+            return matches;
+        }
+
+        foreach (var variant in attackVariants)
+        {
+            if (variant != null && variant.Presentation == presentation)
+            {
+                matches.Add(variant);
+            }
+        }
+
+        return matches;
+    }
+
+    private static AttackAnimationVariant ResolveDefaultAttackVariant(
+        List<AttackAnimationVariant> attackVariants,
+        AttackAnimationVariant[] skillAttackVariants)
+    {
+        if (skillAttackVariants != null)
+        {
+            foreach (var variant in skillAttackVariants)
+            {
+                if (variant != null)
+                {
+                    return variant;
+                }
+            }
+        }
+
+        return attackVariants != null && attackVariants.Count > 0
+            ? attackVariants[0]
+            : null;
+    }
+
+    private static AttackAnimationVariant ChooseAttackVariantForSkill(
+        List<AttackAnimationVariant> attackVariants,
+        List<AttackAnimationVariant> neutralVariants,
+        List<AttackAnimationVariant> meleeVariants,
+        List<AttackAnimationVariant> rangedVariants,
+        AttackAnimationPresentation desiredPresentation,
+        int ordinal,
+        bool hasMeleeSkills,
+        bool hasRangedSkills)
+    {
+        var dedicatedVariants = desiredPresentation == AttackAnimationPresentation.Ranged
+            ? rangedVariants
+            : meleeVariants;
+        if (dedicatedVariants.Count > 0)
+        {
+            return dedicatedVariants[ordinal % dedicatedVariants.Count];
+        }
+
+        if (neutralVariants.Count > 0)
+        {
+            var index = ordinal % neutralVariants.Count;
+            if (hasMeleeSkills && hasRangedSkills && neutralVariants.Count > 1 && desiredPresentation == AttackAnimationPresentation.Ranged)
+            {
+                index = (index + 1) % neutralVariants.Count;
+            }
+
+            return neutralVariants[index];
+        }
+
+        var fallbackVariants = desiredPresentation == AttackAnimationPresentation.Ranged
+            ? meleeVariants
+            : rangedVariants;
+        if (fallbackVariants.Count > 0)
+        {
+            return fallbackVariants[ordinal % fallbackVariants.Count];
+        }
+
+        return attackVariants[ordinal % attackVariants.Count];
+    }
+
+    private static AttackAnimationPresentation ClassifyAttackAnimationPresentation(string clipName)
+    {
+        var normalizedName = NormalizeAnimationName(clipName);
+        if (string.IsNullOrWhiteSpace(normalizedName))
+        {
+            return AttackAnimationPresentation.Neutral;
+        }
+
+        var rangedScore = 0;
+        if (ContainsAny(normalizedName, "rpt", "shoot", "shot", "bolt", "projectile", "missile", "beam", "laser", "throw", "toss"))
+        {
+            rangedScore += 4;
+        }
+
+        if (ContainsAny(normalizedName, "fireball", "firebreath", "breath", "spit", "cast", "magic", "orb", "ball", "wave"))
+        {
+            rangedScore += 6;
+        }
+
+        var meleeScore = 0;
+        if (ContainsAny(normalizedName, "bite", "claw", "slash", "tail", "wing", "paw", "stomp", "stump"))
+        {
+            meleeScore += 6;
+        }
+
+        if (ContainsAny(normalizedName, "bash", "strike", "swing", "rush", "dive", "stab", "punch", "kick"))
+        {
+            meleeScore += 4;
+        }
+
+        if (rangedScore > meleeScore && rangedScore > 0)
+        {
+            return AttackAnimationPresentation.Ranged;
+        }
+
+        if (meleeScore > 0)
+        {
+            return AttackAnimationPresentation.Melee;
+        }
+
+        return AttackAnimationPresentation.Neutral;
+    }
+
+    private static int GetAttackVariantScore(string clipName)
+    {
+        var score = GetAttackClipScore(clipName);
+        var presentation = ClassifyAttackAnimationPresentation(clipName);
+        if (presentation != AttackAnimationPresentation.Neutral)
+        {
+            score += 24;
+        }
+
+        var normalizedName = NormalizeAnimationName(clipName);
+        if (normalizedName.Contains("attack03"))
+        {
+            score += 18;
+        }
+        else if (normalizedName.Contains("attack3"))
+        {
+            score += 12;
+        }
+
+        if (normalizedName.Contains("combo"))
+        {
+            score += 6;
+        }
+
+        return score;
+    }
+
     private static int GetIdleClipScore(string clipName)
     {
-        if (string.IsNullOrWhiteSpace(clipName))
+        var normalizedName = NormalizeAnimationName(clipName);
+        if (string.IsNullOrWhiteSpace(normalizedName))
         {
             return 0;
         }
 
-        var normalizedName = clipName.Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
         if (normalizedName.Contains("idlebattle"))
         {
             return 320;
@@ -305,12 +570,12 @@ public sealed partial class HexTacticsPrototype
 
     private static int GetMoveClipScore(string clipName)
     {
-        if (string.IsNullOrWhiteSpace(clipName))
+        var normalizedName = NormalizeAnimationName(clipName);
+        if (string.IsNullOrWhiteSpace(normalizedName))
         {
             return 0;
         }
 
-        var normalizedName = clipName.Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
         if (normalizedName.Contains("runfwd"))
         {
             return 320;
@@ -336,12 +601,12 @@ public sealed partial class HexTacticsPrototype
 
     private static int GetAttackClipScore(string clipName)
     {
-        if (string.IsNullOrWhiteSpace(clipName))
+        var normalizedName = NormalizeAnimationName(clipName);
+        if (string.IsNullOrWhiteSpace(normalizedName))
         {
             return 0;
         }
 
-        var normalizedName = clipName.Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
         if (normalizedName.Contains("attack01"))
         {
             return 320;
@@ -354,12 +619,22 @@ public sealed partial class HexTacticsPrototype
 
         if (normalizedName.Contains("attack02"))
         {
-            return 240;
+            return 260;
         }
 
         if (normalizedName.Contains("attack2"))
         {
+            return 240;
+        }
+
+        if (normalizedName.Contains("attack03"))
+        {
             return 220;
+        }
+
+        if (normalizedName.Contains("attack3"))
+        {
+            return 200;
         }
 
         if (normalizedName.Contains("attack"))
@@ -367,17 +642,19 @@ public sealed partial class HexTacticsPrototype
             return 160;
         }
 
-        return 0;
+        return ContainsAny(normalizedName, "shoot", "shot", "fire", "breath", "cast", "bite", "claw", "slash", "tail", "wing")
+            ? 120
+            : 0;
     }
 
     private static int GetDamagedClipScore(string clipName)
     {
-        if (string.IsNullOrWhiteSpace(clipName))
+        var normalizedName = NormalizeAnimationName(clipName);
+        if (string.IsNullOrWhiteSpace(normalizedName))
         {
             return 0;
         }
 
-        var normalizedName = clipName.Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
         if (normalizedName.Contains("gethit"))
         {
             return 320;
@@ -398,12 +675,12 @@ public sealed partial class HexTacticsPrototype
 
     private static int GetDeathClipScore(string clipName)
     {
-        if (string.IsNullOrWhiteSpace(clipName))
+        var normalizedName = NormalizeAnimationName(clipName);
+        if (string.IsNullOrWhiteSpace(normalizedName))
         {
             return 0;
         }
 
-        var normalizedName = clipName.Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
         if (normalizedName.Contains("death"))
         {
             return 320;
@@ -420,6 +697,34 @@ public sealed partial class HexTacticsPrototype
         }
 
         return 0;
+    }
+
+    private static string NormalizeAnimationName(string clipName)
+    {
+        return string.IsNullOrWhiteSpace(clipName)
+            ? string.Empty
+            : clipName.Replace("_", string.Empty)
+                .Replace(" ", string.Empty)
+                .Replace("-", string.Empty)
+                .ToLowerInvariant();
+    }
+
+    private static bool ContainsAny(string normalizedName, params string[] keywords)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedName) || keywords == null)
+        {
+            return false;
+        }
+
+        foreach (var keyword in keywords)
+        {
+            if (!string.IsNullOrWhiteSpace(keyword) && normalizedName.Contains(keyword))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private GameObject LoadUnitVisualPrefab(HexTacticsCharacterConfig definition)

@@ -97,6 +97,13 @@ public sealed class HexTacticsCharacterConfig : ScriptableObject
         attackImpactNormalizedTime = 0.45f;
     }
 
+    public void ConfigureRuntimeVisual(GameObject newBattleUnitPrefab, float newVisualHeightScale, Sprite newAvatar = null)
+    {
+        battleUnitPrefab = newBattleUnitPrefab;
+        visualHeightScale = Mathf.Max(0.4f, newVisualHeightScale);
+        avatar = newAvatar;
+    }
+
     public float ResolveAttackImpactNormalizedTime(AnimationClip attackClip)
     {
         if (attackImpactFrame > 0 && attackClip != null && attackClip.frameRate > 0.01f && attackClip.length > 0.01f)

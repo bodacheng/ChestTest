@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: c325c7408c33dc54eb1879737ed7891f
+labels:
+- AllCreature
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  preprocessorOverride: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 137816
+  packageName: Elemental Dragon
+  packageVersion: 3.9a
+  assetPath: Assets/Malbers Animations/Common/Shaders/Mask4Realistic.shader
+  uploadId: 639884

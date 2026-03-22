@@ -7,12 +7,6 @@ public static class HexTacticsCharacterBalanceTuner
 {
     private static readonly Dictionary<string, int> MoveRangeByAssetName = new()
     {
-        ["StagVanguard"] = 1,
-        ["DoeRider"] = 2,
-        ["ElkGuardian"] = 1,
-        ["FawnScout"] = 2,
-        ["TigerFighter"] = 1,
-        ["WhiteTigerHunter"] = 2,
         ["Bat"] = 2,
         ["BattleBee"] = 2,
         ["Beholder"] = 1,
@@ -33,14 +27,19 @@ public static class HexTacticsCharacterBalanceTuner
         ["MushroomAngry"] = 1,
         ["MushroomSmile"] = 1,
         ["NagaWizard"] = 1,
+        ["NatureDragon"] = 2,
         ["Orc"] = 1,
         ["RatAssassin"] = 2,
+        ["RockDragon"] = 1,
         ["Salamander"] = 2,
         ["Skeleton"] = 2,
         ["Slime"] = 1,
         ["Specter"] = 2,
         ["Spider"] = 2,
         ["StingRay"] = 2,
+        ["LavaDragon"] = 1,
+        ["IceDragon"] = 2,
+        ["CrystalDragon"] = 1,
         ["TurtleShell"] = 1,
         ["Werewolf"] = 2,
         ["WormMonster"] = 1

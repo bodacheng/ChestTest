@@ -61,6 +61,9 @@ public sealed partial class HexTacticsPrototype
             PlannedEnemyTargetUnit = null;
             PlannedSkillIndex = -1;
             PlannedAttackTiming = AttackTiming.BeforeMove;
+            DesiredRotation = transform != null ? transform.rotation : Quaternion.identity;
+            RotationSharpness = 0f;
+            HasDesiredRotation = transform != null;
         }
 
         public int Id { get; }
@@ -103,6 +106,9 @@ public sealed partial class HexTacticsPrototype
         public int DamagedAnimationRevision { get; set; }
         public int HitShakeRevision { get; set; }
         public UnitAnimationBinding AnimationBinding { get; set; }
+        public Quaternion DesiredRotation { get; set; }
+        public float RotationSharpness { get; set; }
+        public bool HasDesiredRotation { get; set; }
         public List<HexCoord> PlannedPath { get; } = new();
 
         public int SkillCount => Skills.Count;
@@ -140,6 +146,34 @@ public sealed partial class HexTacticsPrototype
         }
     }
 
+    private enum AttackAnimationPresentation
+    {
+        Neutral,
+        Melee,
+        Ranged
+    }
+
+    private sealed class AttackAnimationVariant
+    {
+        public AttackAnimationVariant(
+            AttackAnimationPresentation presentation,
+            string statePath,
+            AnimationClip clip,
+            int score)
+        {
+            Presentation = presentation;
+            StatePath = statePath;
+            Clip = clip;
+            Score = score;
+        }
+
+        public AttackAnimationPresentation Presentation { get; }
+        public string StatePath { get; }
+        public AnimationClip Clip { get; }
+        public int Score { get; }
+        public bool HasStatePath => !string.IsNullOrWhiteSpace(StatePath);
+    }
+
     private sealed class UnitAnimationBinding
     {
         public UnitAnimationBinding(
@@ -153,7 +187,10 @@ public sealed partial class HexTacticsPrototype
             AnimationClip moveClip,
             AnimationClip attackClip,
             AnimationClip damagedClip,
-            AnimationClip deathClip)
+            AnimationClip deathClip,
+            AttackAnimationVariant defaultAttackVariant,
+            List<AttackAnimationVariant> attackVariants,
+            AttackAnimationVariant[] skillAttackVariants)
         {
             UsesParameterDriver = usesParameterDriver;
             IdleStatePath = idleStatePath;
@@ -166,6 +203,9 @@ public sealed partial class HexTacticsPrototype
             AttackClip = attackClip;
             DamagedClip = damagedClip;
             DeathClip = deathClip;
+            DefaultAttackVariant = defaultAttackVariant;
+            AttackVariants = attackVariants ?? new List<AttackAnimationVariant>();
+            SkillAttackVariants = skillAttackVariants ?? new AttackAnimationVariant[0];
         }
 
         public bool UsesParameterDriver { get; }
@@ -179,6 +219,29 @@ public sealed partial class HexTacticsPrototype
         public AnimationClip AttackClip { get; }
         public AnimationClip DamagedClip { get; }
         public AnimationClip DeathClip { get; }
+        public AttackAnimationVariant DefaultAttackVariant { get; }
+        public List<AttackAnimationVariant> AttackVariants { get; }
+        public AttackAnimationVariant[] SkillAttackVariants { get; }
+
+        public AttackAnimationVariant ResolveAttackVariant(int skillIndex)
+        {
+            if (SkillAttackVariants != null &&
+                skillIndex >= 0 &&
+                skillIndex < SkillAttackVariants.Length &&
+                SkillAttackVariants[skillIndex] != null)
+            {
+                return SkillAttackVariants[skillIndex];
+            }
+
+            if (DefaultAttackVariant != null)
+            {
+                return DefaultAttackVariant;
+            }
+
+            return AttackVariants != null && AttackVariants.Count > 0
+                ? AttackVariants[0]
+                : null;
+        }
     }
 
     private sealed class CameraFocusOverride

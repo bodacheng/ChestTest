@@ -54,6 +54,19 @@ public static class HexTacticsAddressables
             initializationHandle.WaitForCompletion();
             isInitialized = initializationHandle.Status == AsyncOperationStatus.Succeeded;
             initializationFailed = !isInitialized;
+            if (initializationFailed)
+            {
+                if (!initializationFailureLogged)
+                {
+                    var failureMessage = initializationHandle.OperationException?.Message;
+                    Debug.LogWarning(string.IsNullOrWhiteSpace(failureMessage)
+                        ? "[HexTacticsAddressables] Addressables initialization did not succeed."
+                        : $"[HexTacticsAddressables] Addressables initialization did not succeed: {failureMessage}");
+                    initializationFailureLogged = true;
+                }
+
+                ReleaseHandle(ref initializationHandle);
+            }
         }
         catch (Exception exception)
         {
@@ -63,6 +76,7 @@ public static class HexTacticsAddressables
                 initializationFailureLogged = true;
             }
 
+            ReleaseHandle(ref initializationHandle);
             isInitialized = false;
             initializationFailed = true;
         }
@@ -100,18 +114,14 @@ public static class HexTacticsAddressables
             return null;
         }
 
-        AsyncOperationHandle<T> handle;
+        AsyncOperationHandle<T> handle = default;
         try
         {
             handle = Addressables.LoadAssetAsync<T>(address);
             var asset = handle.WaitForCompletion();
             if (handle.Status != AsyncOperationStatus.Succeeded || asset == null)
             {
-                if (handle.IsValid())
-                {
-                    Addressables.Release(handle);
-                }
-
+                ReleaseHandle(ref handle);
                 return null;
             }
 
@@ -121,6 +131,7 @@ public static class HexTacticsAddressables
         }
         catch (Exception exception)
         {
+            ReleaseHandle(ref handle);
             Debug.LogWarning($"[HexTacticsAddressables] Failed to load '{address}': {exception.Message}");
             return null;
         }
@@ -128,102 +139,38 @@ public static class HexTacticsAddressables
 
     public static List<HexTacticsCharacterConfig> LoadCharacterConfigs()
     {
-        if (cachedCharacterConfigs != null)
-        {
-            return new List<HexTacticsCharacterConfig>(cachedCharacterConfigs);
-        }
-
-        cachedCharacterConfigs = new List<HexTacticsCharacterConfig>();
 #if UNITY_EDITOR
         if (Application.isEditor)
         {
-            cachedCharacterConfigs.AddRange(LoadCharacterConfigsFromEditor());
+            cachedCharacterConfigs ??= LoadCharacterConfigsFromEditor();
             return new List<HexTacticsCharacterConfig>(cachedCharacterConfigs);
         }
 #endif
 
-        if (!EnsureInitialized())
-        {
-            return new List<HexTacticsCharacterConfig>();
-        }
-
-        try
-        {
-            characterConfigsHandle = Addressables.LoadAssetsAsync<HexTacticsCharacterConfig>(HexTacticsAssetPaths.CharacterConfigsLabel, null);
-            var assets = characterConfigsHandle.WaitForCompletion();
-            if (characterConfigsHandle.Status != AsyncOperationStatus.Succeeded || assets == null)
-            {
-                if (characterConfigsHandle.IsValid())
-                {
-                    Addressables.Release(characterConfigsHandle);
-                    characterConfigsHandle = default;
-                }
-
-                cachedCharacterConfigs.Clear();
-                return new List<HexTacticsCharacterConfig>();
-            }
-
-            cachedCharacterConfigs.AddRange(assets);
-            cachedCharacterConfigs.RemoveAll(config => config == null);
-            cachedCharacterConfigs.Sort((left, right) => string.CompareOrdinal(left.DisplayName, right.DisplayName));
-            return new List<HexTacticsCharacterConfig>(cachedCharacterConfigs);
-        }
-        catch (Exception exception)
-        {
-            Debug.LogWarning($"[HexTacticsAddressables] Failed to load character configs: {exception.Message}");
-            cachedCharacterConfigs.Clear();
-            return new List<HexTacticsCharacterConfig>();
-        }
+        return LoadConfigList(
+            ref cachedCharacterConfigs,
+            ref characterConfigsHandle,
+            HexTacticsAssetPaths.CharacterConfigsLabel,
+            config => config.DisplayName,
+            "character configs");
     }
 
     public static List<HexTacticsSkillConfig> LoadSkillConfigs()
     {
-        if (cachedSkillConfigs != null)
-        {
-            return new List<HexTacticsSkillConfig>(cachedSkillConfigs);
-        }
-
-        cachedSkillConfigs = new List<HexTacticsSkillConfig>();
 #if UNITY_EDITOR
         if (Application.isEditor)
         {
-            cachedSkillConfigs.AddRange(LoadSkillConfigsFromEditor());
+            cachedSkillConfigs ??= LoadSkillConfigsFromEditor();
             return new List<HexTacticsSkillConfig>(cachedSkillConfigs);
         }
 #endif
 
-        if (!EnsureInitialized())
-        {
-            return new List<HexTacticsSkillConfig>();
-        }
-
-        try
-        {
-            skillConfigsHandle = Addressables.LoadAssetsAsync<HexTacticsSkillConfig>(HexTacticsAssetPaths.SkillConfigsLabel, null);
-            var assets = skillConfigsHandle.WaitForCompletion();
-            if (skillConfigsHandle.Status != AsyncOperationStatus.Succeeded || assets == null)
-            {
-                if (skillConfigsHandle.IsValid())
-                {
-                    Addressables.Release(skillConfigsHandle);
-                    skillConfigsHandle = default;
-                }
-
-                cachedSkillConfigs.Clear();
-                return new List<HexTacticsSkillConfig>();
-            }
-
-            cachedSkillConfigs.AddRange(assets);
-            cachedSkillConfigs.RemoveAll(config => config == null);
-            cachedSkillConfigs.Sort((left, right) => string.CompareOrdinal(left.name, right.name));
-            return new List<HexTacticsSkillConfig>(cachedSkillConfigs);
-        }
-        catch (Exception exception)
-        {
-            Debug.LogWarning($"[HexTacticsAddressables] Failed to load skill configs: {exception.Message}");
-            cachedSkillConfigs.Clear();
-            return new List<HexTacticsSkillConfig>();
-        }
+        return LoadConfigList(
+            ref cachedSkillConfigs,
+            ref skillConfigsHandle,
+            HexTacticsAssetPaths.SkillConfigsLabel,
+            config => config.name,
+            "skill configs");
     }
 
     public static void ReleaseAll()
@@ -239,31 +186,77 @@ public static class HexTacticsAddressables
         AssetHandles.Clear();
         AssetCache.Clear();
 
-        if (characterConfigsHandle.IsValid())
-        {
-            Addressables.Release(characterConfigsHandle);
-            characterConfigsHandle = default;
-        }
-
+        ReleaseHandle(ref characterConfigsHandle);
         cachedCharacterConfigs = null;
 
-        if (skillConfigsHandle.IsValid())
-        {
-            Addressables.Release(skillConfigsHandle);
-            skillConfigsHandle = default;
-        }
-
+        ReleaseHandle(ref skillConfigsHandle);
         cachedSkillConfigs = null;
 
-        if (initializationHandle.IsValid())
-        {
-            Addressables.Release(initializationHandle);
-            initializationHandle = default;
-        }
-
+        ReleaseHandle(ref initializationHandle);
         isInitialized = false;
         initializationFailed = false;
         initializationFailureLogged = false;
+    }
+
+    private static List<TConfig> LoadConfigList<TConfig>(
+        ref List<TConfig> cachedConfigs,
+        ref AsyncOperationHandle<IList<TConfig>> configsHandle,
+        string label,
+        Func<TConfig, string> sortKeySelector,
+        string logLabel) where TConfig : Object
+    {
+        if (cachedConfigs != null)
+        {
+            return new List<TConfig>(cachedConfigs);
+        }
+
+        if (!EnsureInitialized())
+        {
+            return new List<TConfig>();
+        }
+
+        try
+        {
+            configsHandle = Addressables.LoadAssetsAsync<TConfig>(label, null);
+            var assets = configsHandle.WaitForCompletion();
+            if (configsHandle.Status != AsyncOperationStatus.Succeeded || assets == null)
+            {
+                ReleaseHandle(ref configsHandle);
+                return new List<TConfig>();
+            }
+
+            cachedConfigs = new List<TConfig>(assets);
+            cachedConfigs.RemoveAll(config => config == null);
+            cachedConfigs.Sort((left, right) => string.CompareOrdinal(sortKeySelector(left), sortKeySelector(right)));
+            return new List<TConfig>(cachedConfigs);
+        }
+        catch (Exception exception)
+        {
+            ReleaseHandle(ref configsHandle);
+            cachedConfigs = null;
+            Debug.LogWarning($"[HexTacticsAddressables] Failed to load {logLabel}: {exception.Message}");
+            return new List<TConfig>();
+        }
+    }
+
+    private static void ReleaseHandle<T>(ref AsyncOperationHandle<T> handle)
+    {
+        if (handle.IsValid())
+        {
+            Addressables.Release(handle);
+        }
+
+        handle = default;
+    }
+
+    private static void ReleaseHandle(ref AsyncOperationHandle handle)
+    {
+        if (handle.IsValid())
+        {
+            Addressables.Release(handle);
+        }
+
+        handle = default;
     }
 
 #if UNITY_EDITOR
