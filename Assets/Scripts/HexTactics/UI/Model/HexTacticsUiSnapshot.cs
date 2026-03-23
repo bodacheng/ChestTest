@@ -33,6 +33,7 @@ public sealed class HexTacticsUiSnapshot
     public string TurnTypeLabel = string.Empty;
     public string SelectedUnitSummary = string.Empty;
     public string VictorySummary = string.Empty;
+    public string VictoryStats = string.Empty;
     public Vector2 SkillPopupScreenPosition;
     public readonly List<HexTacticsRosterEntryUiData> RosterEntries = new();
     public readonly List<HexTacticsSelectionEntryUiData> PlayerSelectionEntries = new();

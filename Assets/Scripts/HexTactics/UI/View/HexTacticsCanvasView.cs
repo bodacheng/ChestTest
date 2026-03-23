@@ -219,7 +219,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         modeSelectScreen.gameObject.SetActive(snapshot.FlowState == HexTacticsUiFlowState.ModeSelect);
         teamBuilderScreen.gameObject.SetActive(snapshot.FlowState == HexTacticsUiFlowState.TeamBuilder);
         planningScreen.gameObject.SetActive(snapshot.FlowState == HexTacticsUiFlowState.Planning);
-        resolvingScreen.gameObject.SetActive(snapshot.FlowState == HexTacticsUiFlowState.Resolving || snapshot.FlowState == HexTacticsUiFlowState.Victory);
+        resolvingScreen.gameObject.SetActive(snapshot.FlowState == HexTacticsUiFlowState.Resolving);
         victoryOverlay.gameObject.SetActive(snapshot.FlowState == HexTacticsUiFlowState.Victory);
         worldLabelLayer.gameObject.SetActive(
             snapshot.FlowState == HexTacticsUiFlowState.Planning ||

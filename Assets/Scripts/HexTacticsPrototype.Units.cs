@@ -655,22 +655,64 @@ public sealed partial class HexTacticsPrototype
             return 0;
         }
 
+        var score = 0;
         if (normalizedName.Contains("gethit"))
         {
-            return 320;
+            score = 360;
         }
-
-        if (normalizedName.Contains("hit"))
+        else if (ContainsAny(normalizedName, "damage", "damaged"))
         {
-            return 240;
+            score = 340;
         }
-
-        if (normalizedName.Contains("damage"))
+        else if (ContainsAny(normalizedName, "hurt", "injured", "injury"))
         {
-            return 200;
+            score = 320;
+        }
+        else if (ContainsAny(normalizedName, "stagger", "flinch", "impact", "recoil"))
+        {
+            score = 260;
+        }
+        else if (normalizedName.Contains("hit"))
+        {
+            score = 200;
         }
 
-        return 0;
+        if (score <= 0)
+        {
+            return 0;
+        }
+
+        if (normalizedName.Contains("front"))
+        {
+            score += 8;
+        }
+
+        if (ContainsAny(normalizedName, "left", "right", "back"))
+        {
+            score += 6;
+        }
+
+        if (normalizedName.Contains("mask"))
+        {
+            score -= 160;
+        }
+
+        if (normalizedName.Contains("recover"))
+        {
+            score -= 80;
+        }
+
+        if (normalizedName.Contains("fall"))
+        {
+            score -= 120;
+        }
+
+        if (normalizedName.Contains("fly"))
+        {
+            score -= 60;
+        }
+
+        return Mathf.Max(0, score);
     }
 
     private static int GetDeathClipScore(string clipName)

@@ -30,7 +30,8 @@ public sealed partial class HexTacticsPrototype
             CanStartBattle = playerDeploymentEntries.Count > 0 && playerUsedCost <= playerTeamCostLimit,
             SelectedUnitSummary = BuildSelectedUnitSummary(),
             SkillPopupScreenPosition = skillPopupScreenPosition,
-            VictorySummary = winningTeam.HasValue ? $"{TeamDisplayName(winningTeam.Value)}完成歼灭" : string.Empty
+            VictorySummary = BuildVictorySummary(),
+            VictoryStats = BuildVictoryStats()
         };
 
         for (var i = 0; i < characterRoster.Count; i++)
@@ -312,6 +313,114 @@ public sealed partial class HexTacticsPrototype
         var selectedSkill = selectedUnit.SelectedSkill;
         var skillSummary = BuildCompactSkillSummary(selectedSkill);
         return $"{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  EN {selectedUnit.CurrentEnergy}/{selectedUnit.MaxEnergy}  {skillSummary}  {assignmentSummary}";
+    }
+
+    private string BuildVictorySummary()
+    {
+        return winningTeam.HasValue
+            ? $"{TeamDisplayName(winningTeam.Value)}胜利"
+            : string.Empty;
+    }
+
+    private string BuildVictoryStats()
+    {
+        if (!winningTeam.HasValue)
+        {
+            return string.Empty;
+        }
+
+        var blueAliveCount = CountAliveUnits(Team.Blue);
+        var redAliveCount = CountAliveUnits(Team.Red);
+        var blueInitialCount = Mathf.Max(blueAliveCount, CountInitialTeamUnitCount(Team.Blue));
+        var redInitialCount = Mathf.Max(redAliveCount, CountInitialTeamUnitCount(Team.Red));
+        var blueCurrentHealth = CountCurrentTeamHealth(Team.Blue);
+        var redCurrentHealth = CountCurrentTeamHealth(Team.Red);
+        var blueInitialHealth = Mathf.Max(blueCurrentHealth, CountInitialTeamHealth(Team.Blue));
+        var redInitialHealth = Mathf.Max(redCurrentHealth, CountInitialTeamHealth(Team.Red));
+        var blueLossCount = Mathf.Max(0, blueInitialCount - blueAliveCount);
+        var redLossCount = Mathf.Max(0, redInitialCount - redAliveCount);
+
+        return
+            $"本场回合  第 {planningRoundNumber} 轮\n" +
+            $"存活单位  蓝方 {blueAliveCount}/{blueInitialCount}  ·  红方 {redAliveCount}/{redInitialCount}\n" +
+            $"剩余生命  蓝方 {blueCurrentHealth}/{blueInitialHealth}  ·  红方 {redCurrentHealth}/{redInitialHealth}\n" +
+            $"累计减员  蓝方 {blueLossCount}  ·  红方 {redLossCount}";
+    }
+
+    private int CountCurrentTeamHealth(Team team)
+    {
+        var total = 0;
+        foreach (var unit in units)
+        {
+            if (unit != null && unit.Team == team)
+            {
+                total += Mathf.Max(0, unit.CurrentHealth);
+            }
+        }
+
+        return total;
+    }
+
+    private int CountInitialTeamUnitCount(Team team)
+    {
+        if (team == Team.Blue)
+        {
+            var total = 0;
+            foreach (var entry in playerDeploymentEntries)
+            {
+                if (entry.Definition != null)
+                {
+                    total++;
+                }
+            }
+
+            return total;
+        }
+
+        var count = 0;
+        foreach (var rosterIndex in cpuTeamSelection)
+        {
+            if (IsValidRosterIndex(rosterIndex) && characterRoster[rosterIndex] != null)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private int CountInitialTeamHealth(Team team)
+    {
+        if (team == Team.Blue)
+        {
+            var total = 0;
+            foreach (var entry in playerDeploymentEntries)
+            {
+                if (entry.Definition != null)
+                {
+                    total += Mathf.Max(0, entry.Definition.MaxHealth);
+                }
+            }
+
+            return total;
+        }
+
+        var totalHealth = 0;
+        foreach (var rosterIndex in cpuTeamSelection)
+        {
+            if (!IsValidRosterIndex(rosterIndex))
+            {
+                continue;
+            }
+
+            var config = characterRoster[rosterIndex];
+            if (config != null)
+            {
+                totalHealth += Mathf.Max(0, config.MaxHealth);
+            }
+        }
+
+        return totalHealth;
     }
 
     private bool ShouldShowSkillPopup()
