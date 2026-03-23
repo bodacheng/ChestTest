@@ -30,5 +30,11 @@ public static class HexTacticsAssetPaths
     public const string DefaultRangedHitLightAssetPath = HitEffectsVariantFolder + "/ErbHit19.prefab";
     public const string DefaultRangedHitMediumAssetPath = HitEffectsVariantFolder + "/ErbHit04.prefab";
     public const string DefaultRangedHitHeavyAssetPath = HitEffectsVariantFolder + "/ErbHit25.prefab";
+    public const string DefeatImpactPrimaryAssetPath = HitEffectsVariantFolder + "/HovlImpactHeavyCrimson.prefab";
+    public const string DefeatImpactSecondaryAssetPath = HitEffectsVariantFolder + "/HovlImpactHeavyEmber.prefab";
+    public const string DefeatImpactTertiaryAssetPath = HitEffectsVariantFolder + "/HovlImpactRangedNova.prefab";
     public const string HitEffectCatalogAddress = "Effects/HitEffects/HexTacticsHitEffectCatalog";
+    public const string DefeatImpactPrimaryAddress = "Effects/HitEffects/Variants/HovlImpactHeavyCrimson";
+    public const string DefeatImpactSecondaryAddress = "Effects/HitEffects/Variants/HovlImpactHeavyEmber";
+    public const string DefeatImpactTertiaryAddress = "Effects/HitEffects/Variants/HovlImpactRangedNova";
 }

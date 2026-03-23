@@ -54,6 +54,10 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     [Header("Hit Feel")]
     [SerializeField, Range(0f, 0.3f)] private float hitShakeDistanceNormalized = 0.16f;
     [SerializeField, Min(0.02f)] private float hitShakeDuration = 0.12f;
+    [SerializeField, Range(1f, 2.4f)] private float defeatHitShakeDistanceMultiplier = 2.2f;
+    [SerializeField, Range(1f, 2.6f)] private float defeatHitShakeDurationMultiplier = 1.9f;
+    [SerializeField, Range(0.8f, 2.2f)] private float defeatImpactScaleMultiplier = 2.05f;
+    [SerializeField, Range(0.02f, 0.12f)] private float defeatImpactEchoDelay = 0.045f;
 
     [Header("Roster")]
     [SerializeField] private List<HexTacticsCharacterConfig> characterRoster = new();
@@ -140,6 +144,9 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     private CameraFocusOverride activeCameraFocusOverride;
     private HexTacticsHitEffectCatalog hitEffectCatalog;
     private GameObject rangedWaveEffectPrefab;
+    private GameObject defeatImpactPrimaryPrefab;
+    private GameObject defeatImpactSecondaryPrefab;
+    private GameObject defeatImpactTertiaryPrefab;
     private int nextHitEffectVariantIndex;
     private bool isPlanningPointerPressed;
     private bool planningPointerStartedOverUi;

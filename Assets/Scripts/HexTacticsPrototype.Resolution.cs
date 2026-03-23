@@ -426,6 +426,11 @@ public sealed partial class HexTacticsPrototype
 
     private void PlayUnitHitShake(HexUnit unit, HexUnit attacker)
     {
+        PlayUnitHitShake(unit, attacker, 1f, 1f);
+    }
+
+    private void PlayUnitHitShake(HexUnit unit, HexUnit attacker, float distanceMultiplier, float durationMultiplier)
+    {
         if (unit?.VisualRoot == null || hitShakeDuration <= 0.01f || hitShakeDistanceNormalized <= 0.001f)
         {
             return;
@@ -454,10 +459,15 @@ public sealed partial class HexTacticsPrototype
         }
 
         localDirection.Normalize();
-        StartCoroutine(AnimateUnitHitShake(unit, unit.HitShakeRevision, localDirection));
+        StartCoroutine(AnimateUnitHitShake(
+            unit,
+            unit.HitShakeRevision,
+            localDirection,
+            Mathf.Max(0.25f, distanceMultiplier),
+            Mathf.Max(0.25f, durationMultiplier)));
     }
 
-    private IEnumerator AnimateUnitHitShake(HexUnit unit, int revision, Vector3 localDirection)
+    private IEnumerator AnimateUnitHitShake(HexUnit unit, int revision, Vector3 localDirection, float distanceMultiplier, float durationMultiplier)
     {
         if (unit?.VisualRoot == null)
         {
@@ -465,7 +475,7 @@ public sealed partial class HexTacticsPrototype
         }
 
         var baseLocalPosition = unit.VisualBaseLocalPosition;
-        var amplitude = Mathf.Clamp(unit.SelectionRadius * hitShakeDistanceNormalized, 0.02f, hexRadius * 0.14f);
+        var amplitude = Mathf.Clamp(unit.SelectionRadius * hitShakeDistanceNormalized * distanceMultiplier, 0.02f, hexRadius * 0.22f);
         var sideDirection = Vector3.Cross(Vector3.up, localDirection);
         if (sideDirection.sqrMagnitude < 0.0001f)
         {
@@ -473,7 +483,7 @@ public sealed partial class HexTacticsPrototype
         }
 
         sideDirection.Normalize();
-        var duration = Mathf.Max(0.02f, hitShakeDuration);
+        var duration = Mathf.Max(0.02f, hitShakeDuration * durationMultiplier);
         var elapsed = 0f;
         while (elapsed < duration)
         {
@@ -485,9 +495,9 @@ public sealed partial class HexTacticsPrototype
             elapsed += Time.deltaTime;
             var normalizedTime = Mathf.Clamp01(elapsed / duration);
             var envelope = 1f - Mathf.SmoothStep(0f, 1f, normalizedTime);
-            var recoil = Mathf.Sin(normalizedTime * Mathf.PI * 2.35f);
-            var lateral = Mathf.Sin(normalizedTime * Mathf.PI * 5.4f) * 0.18f;
-            var vertical = Mathf.Sin(normalizedTime * Mathf.PI * 4.6f) * 0.08f;
+            var recoil = Mathf.Sin(normalizedTime * Mathf.PI * 2.1f);
+            var lateral = Mathf.Sin(normalizedTime * Mathf.PI * 5.1f) * 0.18f;
+            var vertical = Mathf.Sin(normalizedTime * Mathf.PI * 4.1f) * 0.08f;
             var offset =
                 localDirection * (recoil * amplitude * envelope) +
                 sideDirection * (lateral * amplitude * envelope) +
@@ -965,10 +975,16 @@ public sealed partial class HexTacticsPrototype
         FaceUnitTowards(defender, attacker.Transform.position, immediate: false);
         defender.CurrentHealth = Mathf.Max(0, defender.CurrentHealth - skill.Power);
         GainSkillEnergy(attacker, skill);
-        SpawnHitEffect(attacker, defender, skill);
-        PlayUnitHitShake(defender, attacker);
-        if (defender.CurrentHealth > 0)
+        var defeated = defender.CurrentHealth <= 0;
+        if (defeated)
         {
+            SpawnDefeatHitEffect(attacker, defender, skill);
+            PlayUnitHitShake(defender, attacker, defeatHitShakeDistanceMultiplier, defeatHitShakeDurationMultiplier);
+        }
+        else
+        {
+            SpawnHitEffect(attacker, defender, skill);
+            PlayUnitHitShake(defender, attacker);
             ApplySkillCollisionOnHit(attacker, defender, skill);
             PlayUnitDamaged(defender);
         }
