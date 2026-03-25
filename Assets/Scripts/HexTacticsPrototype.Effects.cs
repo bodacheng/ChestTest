@@ -10,6 +10,11 @@ public sealed partial class HexTacticsPrototype
     private const float DefeatImpactNovaHeightNormalized = 0.34f;
     private const float DefeatImpactEchoHeightOffset = 0.06f;
     private const float ImpactEchoHeightOffset = 0.035f;
+    private const float ImpactCenterHeightOffsetWeight = 0.35f;
+    private const float ImpactCenterForwardOffsetWeight = 0.16f;
+    private const float ImpactConfiguredScaleBlend = 0.42f;
+    private const float ImpactScaleCompensationMin = 0.82f;
+    private const float ImpactScaleCompensationMax = 1.18f;
 
     private void SpawnAttackReleaseEffect(HexUnit attacker, HexUnit defender, float travelDuration, HexTacticsSkillConfig skill)
     {
@@ -64,8 +69,16 @@ public sealed partial class HexTacticsPrototype
         if (skill.ImpactEffectPrefab != null)
         {
             var effectPosition = ResolveConfiguredHitEffectPosition(attacker, defender, skill);
-            SpawnTransientEffect(skill.ImpactEffectPrefab, effectPosition, effectRotation, skill.ImpactEffectScale, skill.ImpactEffectPrefab.name);
-            TrySpawnImpactEcho(skill.ImpactEffectPrefab, effectPosition, effectRotation, skill.ImpactEffectScale, defender, skill);
+            var effectScale = ResolveConfiguredImpactEffectScale(skill.ImpactEffectScale);
+            SpawnTransientEffect(
+                skill.ImpactEffectPrefab,
+                effectPosition,
+                effectRotation,
+                effectScale,
+                skill.ImpactEffectPrefab.name,
+                alignVisualCenter: true,
+                targetVisualExtent: ResolveImpactTargetVisualExtent(defender));
+            TrySpawnImpactEcho(skill.ImpactEffectPrefab, effectPosition, effectRotation, effectScale, defender, skill);
             TrySpawnDedicatedSkillHitAccent(attacker, defender, skill, effectPosition, effectRotation);
             return;
         }
@@ -82,8 +95,15 @@ public sealed partial class HexTacticsPrototype
         }
 
         var autoEffectPosition = ResolveHitEffectPosition(attacker, defender, entry);
-        var autoScale = Mathf.Max(0.1f, entry.Scale);
-        SpawnTransientEffect(entry.Prefab, autoEffectPosition, effectRotation, autoScale, entry.DisplayName);
+        var autoScale = ResolveConfiguredImpactEffectScale(entry.Scale);
+        SpawnTransientEffect(
+            entry.Prefab,
+            autoEffectPosition,
+            effectRotation,
+            autoScale,
+            entry.DisplayName,
+            alignVisualCenter: true,
+            targetVisualExtent: ResolveImpactTargetVisualExtent(defender));
         TrySpawnImpactEcho(entry.Prefab, autoEffectPosition, effectRotation, autoScale, defender, skill);
     }
 
@@ -213,7 +233,15 @@ public sealed partial class HexTacticsPrototype
 
         var echoPosition = position + Vector3.up * Mathf.Max(ImpactEchoHeightOffset, defender.VisualHeight * 0.025f);
         var echoRotation = rotation * Quaternion.Euler(0f, 10f, 0f);
-        StartCoroutine(SpawnDelayedTransientEffect(effectPrefab, echoPosition, echoRotation, echoScale, echoDelay, effectPrefab.name + "_Echo"));
+        StartCoroutine(SpawnDelayedTransientEffect(
+            effectPrefab,
+            echoPosition,
+            echoRotation,
+            echoScale,
+            echoDelay,
+            effectPrefab.name + "_Echo",
+            alignVisualCenter: true,
+            targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 0.86f));
     }
 
     private static bool ShouldSpawnImpactEcho(HexTacticsSkillConfig skill)
@@ -267,20 +295,41 @@ public sealed partial class HexTacticsPrototype
         {
             if (defeatImpactPrimaryPrefab != null)
             {
-                SpawnTransientEffect(defeatImpactPrimaryPrefab, effectPosition, effectRotation, primaryScale, defeatImpactPrimaryPrefab.name + "_Defeat");
+                SpawnTransientEffect(
+                    defeatImpactPrimaryPrefab,
+                    effectPosition,
+                    effectRotation,
+                    primaryScale,
+                    defeatImpactPrimaryPrefab.name + "_Defeat",
+                    alignVisualCenter: true,
+                    targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 1.18f);
             }
 
             if (defeatImpactSecondaryPrefab != null)
             {
                 var secondaryRotation = effectRotation * Quaternion.Euler(0f, 28f, 0f);
                 var secondaryPosition = effectPosition + Vector3.up * Mathf.Max(0.06f, defender.VisualHeight * 0.05f);
-                SpawnTransientEffect(defeatImpactSecondaryPrefab, secondaryPosition, secondaryRotation, secondaryScale, defeatImpactSecondaryPrefab.name + "_Defeat");
+                SpawnTransientEffect(
+                    defeatImpactSecondaryPrefab,
+                    secondaryPosition,
+                    secondaryRotation,
+                    secondaryScale,
+                    defeatImpactSecondaryPrefab.name + "_Defeat",
+                    alignVisualCenter: true,
+                    targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 1.08f);
             }
 
             if (defeatImpactTertiaryPrefab != null)
             {
                 var novaPosition = ResolveDefeatNovaEffectPosition(attacker, defender);
-                SpawnTransientEffect(defeatImpactTertiaryPrefab, novaPosition, effectRotation, novaScale, defeatImpactTertiaryPrefab.name + "_Defeat");
+                SpawnTransientEffect(
+                    defeatImpactTertiaryPrefab,
+                    novaPosition,
+                    effectRotation,
+                    novaScale,
+                    defeatImpactTertiaryPrefab.name + "_Defeat",
+                    alignVisualCenter: true,
+                    targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 1.22f);
                 StartCoroutine(SpawnDelayedDefeatImpactEcho(defeatImpactTertiaryPrefab, novaPosition, effectRotation, novaScale * 0.78f));
             }
 
@@ -298,7 +347,14 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        SpawnTransientEffect(entry.Prefab, effectPosition, effectRotation, Mathf.Max(primaryScale, entry.Scale * 1.35f), entry.DisplayName + "_Defeat");
+        SpawnTransientEffect(
+            entry.Prefab,
+            effectPosition,
+            effectRotation,
+            Mathf.Max(primaryScale, entry.Scale * 1.35f),
+            entry.DisplayName + "_Defeat",
+            alignVisualCenter: true,
+            targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 1.18f);
     }
 
     private IEnumerator SpawnDelayedDefeatImpactEcho(GameObject effectPrefab, Vector3 position, Quaternion rotation, float scale)
@@ -311,7 +367,13 @@ public sealed partial class HexTacticsPrototype
         yield return new WaitForSeconds(defeatImpactEchoDelay);
         var echoPosition = position + Vector3.up * DefeatImpactEchoHeightOffset;
         var echoRotation = rotation * Quaternion.Euler(0f, 14f, 0f);
-        SpawnTransientEffect(effectPrefab, echoPosition, echoRotation, Mathf.Max(0.1f, scale), effectPrefab.name + "_DefeatEcho");
+        SpawnTransientEffect(
+            effectPrefab,
+            echoPosition,
+            echoRotation,
+            Mathf.Max(0.1f, scale),
+            effectPrefab.name + "_DefeatEcho",
+            alignVisualCenter: true);
     }
 
     private IEnumerator SpawnDelayedTransientEffect(
@@ -320,7 +382,9 @@ public sealed partial class HexTacticsPrototype
         Quaternion rotation,
         float scale,
         float delay,
-        string instanceName)
+        string instanceName,
+        bool alignVisualCenter = false,
+        float targetVisualExtent = 0f)
     {
         if (effectPrefab == null || delay <= 0.001f)
         {
@@ -328,40 +392,43 @@ public sealed partial class HexTacticsPrototype
         }
 
         yield return new WaitForSeconds(delay);
-        SpawnTransientEffect(effectPrefab, position, rotation, scale, instanceName);
+        SpawnTransientEffect(
+            effectPrefab,
+            position,
+            rotation,
+            scale,
+            instanceName,
+            alignVisualCenter,
+            targetVisualExtent);
     }
 
     private Vector3 ResolveHitEffectPosition(HexUnit attacker, HexUnit defender, HexTacticsHitEffectEntry entry)
     {
-        var direction = ResolvePlanarDirection(attacker, defender, defender.Transform.forward);
         var heightFactor = Mathf.Max(0.2f, entry.HeightNormalized);
-        var height = Mathf.Max(unitHoverHeight * 0.85f, defender.VisualHeight * Mathf.Lerp(hitEffectHeightNormalized, heightFactor, 0.75f));
-        var forwardOffset = defender.SelectionRadius * Mathf.Max(hitEffectForwardOffset, entry.ForwardOffset);
-        return defender.Transform.position + Vector3.up * height + direction * forwardOffset;
+        return ResolveCenteredImpactEffectPosition(
+            attacker,
+            defender,
+            Mathf.Lerp(hitEffectHeightNormalized, heightFactor, 0.75f),
+            Mathf.Max(hitEffectForwardOffset, entry.ForwardOffset));
     }
 
     private Vector3 ResolveConfiguredHitEffectPosition(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
     {
-        var direction = ResolvePlanarDirection(attacker, defender, defender.Transform.forward);
-        var height = Mathf.Max(unitHoverHeight * 0.85f, defender.VisualHeight * skill.ImpactHeightNormalized);
-        var forwardOffset = defender.SelectionRadius * Mathf.Max(hitEffectForwardOffset, skill.ImpactForwardOffset);
-        return defender.Transform.position + Vector3.up * height + direction * forwardOffset;
+        return ResolveCenteredImpactEffectPosition(
+            attacker,
+            defender,
+            skill.ImpactHeightNormalized,
+            Mathf.Max(hitEffectForwardOffset, skill.ImpactForwardOffset));
     }
 
     private Vector3 ResolveDefeatHitEffectPosition(HexUnit attacker, HexUnit defender)
     {
-        var direction = ResolvePlanarDirection(attacker, defender, defender.Transform.forward);
-        var height = Mathf.Max(unitHoverHeight, defender.VisualHeight * DefeatImpactHeightNormalized);
-        var forwardOffset = defender.SelectionRadius * DefeatImpactForwardOffsetNormalized;
-        return defender.Transform.position + Vector3.up * height + direction * forwardOffset;
+        return ResolveCenteredImpactEffectPosition(attacker, defender, DefeatImpactHeightNormalized, DefeatImpactForwardOffsetNormalized);
     }
 
     private Vector3 ResolveDefeatNovaEffectPosition(HexUnit attacker, HexUnit defender)
     {
-        var direction = ResolvePlanarDirection(attacker, defender, defender.Transform.forward);
-        var height = Mathf.Max(unitHoverHeight * 0.7f, defender.VisualHeight * DefeatImpactNovaHeightNormalized);
-        var forwardOffset = defender.SelectionRadius * 0.02f;
-        return defender.Transform.position + Vector3.up * height + direction * forwardOffset;
+        return ResolveCenteredImpactEffectPosition(attacker, defender, DefeatImpactNovaHeightNormalized, 0.02f);
     }
 
     private Vector3 ResolveRangedWaveStartPosition(HexUnit attacker, HexUnit defender)
@@ -668,8 +735,15 @@ public sealed partial class HexTacticsPrototype
 
         var catalogEffectPosition = ResolveHitEffectPosition(attacker, defender, entry);
         var accentPosition = Vector3.Lerp(configuredEffectPosition, catalogEffectPosition, 0.4f);
-        var accentScale = ResolveDedicatedSkillHitAccentScale(skill, entry);
-        SpawnTransientEffect(entry.Prefab, accentPosition, effectRotation, accentScale, entry.DisplayName + "_Accent");
+        var accentScale = ResolveConfiguredImpactEffectScale(ResolveDedicatedSkillHitAccentScale(skill, entry));
+        SpawnTransientEffect(
+            entry.Prefab,
+            accentPosition,
+            effectRotation,
+            accentScale,
+            entry.DisplayName + "_Accent",
+            alignVisualCenter: true,
+            targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 0.92f);
     }
 
     private static bool ShouldSpawnDedicatedSkillHitAccent(HexTacticsSkillConfig skill)
@@ -697,7 +771,9 @@ public sealed partial class HexTacticsPrototype
         Vector3 position,
         Quaternion rotation,
         float scale,
-        string instanceName)
+        string instanceName,
+        bool alignVisualCenter = false,
+        float targetVisualExtent = 0f)
     {
         if (effectPrefab == null || effectsRoot == null)
         {
@@ -712,6 +788,187 @@ public sealed partial class HexTacticsPrototype
             effectInstance.AddComponent<HexTacticsTransientEffect>();
         }
 
+        if (alignVisualCenter)
+        {
+            NormalizeImpactEffectVisualScale(effectInstance.transform, targetVisualExtent);
+            AlignEffectVisualCenter(effectInstance.transform, position);
+        }
+
         return effectInstance;
+    }
+
+    private Vector3 ResolveCenteredImpactEffectPosition(HexUnit attacker, HexUnit defender, float normalizedHeight, float normalizedForwardOffset)
+    {
+        var direction = ResolvePlanarDirection(attacker, defender, defender != null ? defender.Transform.forward : Vector3.forward);
+        var bodyCenter = ResolveUnitBodyCenter(defender);
+        var heightOffset = ResolveImpactCenterHeightOffset(defender, normalizedHeight);
+        var forwardOffset = ResolveImpactCenterForwardOffset(defender, normalizedForwardOffset);
+        return bodyCenter + Vector3.up * heightOffset + direction * forwardOffset;
+    }
+
+    private Vector3 ResolveUnitBodyCenter(HexUnit unit)
+    {
+        if (unit?.Transform == null)
+        {
+            return Vector3.zero;
+        }
+
+        return unit.Transform.position + Vector3.up * ResolveUnitBodyCenterHeight(unit);
+    }
+
+    private float ResolveUnitBodyCenterHeight(HexUnit unit)
+    {
+        if (unit == null)
+        {
+            return unitHoverHeight;
+        }
+
+        var visualHeight = Mathf.Max(unitHoverHeight, unit.VisualHeight);
+        var fallbackCenterHeight = visualHeight * 0.52f;
+        var centerHeight = unit.VisualCenterHeight > 0.001f
+            ? unit.VisualCenterHeight
+            : fallbackCenterHeight;
+        return Mathf.Clamp(centerHeight, unitHoverHeight * 0.8f, visualHeight * 0.84f);
+    }
+
+    private float ResolveImpactCenterHeightOffset(HexUnit defender, float normalizedHeight)
+    {
+        if (defender == null)
+        {
+            return 0f;
+        }
+
+        var visualHeight = Mathf.Max(unitHoverHeight, defender.VisualHeight);
+        var centerNormalized = ResolveUnitBodyCenterHeight(defender) / visualHeight;
+        var normalizedDelta = Mathf.Clamp(normalizedHeight - centerNormalized, -0.28f, 0.28f);
+        return visualHeight * normalizedDelta * ImpactCenterHeightOffsetWeight;
+    }
+
+    private static float ResolveImpactCenterForwardOffset(HexUnit defender, float normalizedForwardOffset)
+    {
+        if (defender == null)
+        {
+            return 0f;
+        }
+
+        var reducedOffset = defender.SelectionRadius * Mathf.Max(0f, normalizedForwardOffset) * ImpactCenterForwardOffsetWeight;
+        return Mathf.Min(reducedOffset, defender.SelectionRadius * 0.08f);
+    }
+
+    private float ResolveImpactTargetVisualExtent(HexUnit defender)
+    {
+        if (defender == null)
+        {
+            return Mathf.Max(hexRadius * 0.2f, baseUnitVisualHeight * 0.22f);
+        }
+
+        var basedOnRadius = defender.SelectionRadius * 0.96f;
+        var basedOnHeight = defender.VisualHeight * 0.22f;
+        return Mathf.Clamp(
+            Mathf.Max(basedOnRadius, basedOnHeight),
+            hexRadius * 0.2f,
+            hexRadius * 0.38f);
+    }
+
+    private static float ResolveConfiguredImpactEffectScale(float requestedScale)
+    {
+        var safeScale = Mathf.Max(0.1f, requestedScale);
+        return Mathf.Lerp(1f, safeScale, ImpactConfiguredScaleBlend);
+    }
+
+    private static void AlignEffectVisualCenter(Transform effectTransform, Vector3 desiredPosition)
+    {
+        if (effectTransform == null || !TryGetEffectVisualBounds(effectTransform, out var bounds))
+        {
+            return;
+        }
+
+        var delta = desiredPosition - bounds.center;
+        if (delta.sqrMagnitude <= 0.000001f)
+        {
+            return;
+        }
+
+        effectTransform.position += delta;
+    }
+
+    private static void NormalizeImpactEffectVisualScale(Transform effectTransform, float targetVisualExtent)
+    {
+        if (effectTransform == null ||
+            targetVisualExtent <= 0.001f ||
+            !TryGetEffectVisualBounds(effectTransform, out var bounds))
+        {
+            return;
+        }
+
+        var currentExtent = Mathf.Max(bounds.extents.x, Mathf.Max(bounds.extents.y, bounds.extents.z));
+        if (currentExtent <= 0.001f)
+        {
+            return;
+        }
+
+        var scaleAdjustment = Mathf.Clamp(
+            targetVisualExtent / currentExtent,
+            ImpactScaleCompensationMin,
+            ImpactScaleCompensationMax);
+        effectTransform.localScale *= scaleAdjustment;
+    }
+
+    private static bool TryGetEffectVisualBounds(Transform root, out Bounds bounds)
+    {
+        bounds = default;
+        if (root == null)
+        {
+            return false;
+        }
+
+        var hasBounds = false;
+        foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+        {
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            var rendererBounds = renderer.bounds;
+            if (rendererBounds.size.sqrMagnitude <= 0.0001f)
+            {
+                rendererBounds = new Bounds(renderer.transform.position, Vector3.zero);
+            }
+
+            if (!hasBounds)
+            {
+                bounds = rendererBounds;
+                hasBounds = true;
+                continue;
+            }
+
+            bounds.Encapsulate(rendererBounds);
+        }
+
+        if (hasBounds)
+        {
+            return true;
+        }
+
+        foreach (var particleSystem in root.GetComponentsInChildren<ParticleSystem>(true))
+        {
+            if (particleSystem == null || !particleSystem.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            var pointBounds = new Bounds(particleSystem.transform.position, Vector3.zero);
+            if (!hasBounds)
+            {
+                bounds = pointBounds;
+                hasBounds = true;
+                continue;
+            }
+
+            bounds.Encapsulate(pointBounds);
+        }
+
+        return hasBounds;
     }
 }

@@ -96,6 +96,7 @@ public sealed partial class HexTacticsPrototype
             definition.StartingEnergy);
 
         unit.VisualHeight = baseUnitVisualHeight;
+        unit.VisualCenterHeight = baseUnitVisualHeight * 0.52f;
         unit.LabelHeight = baseUnitVisualHeight + worldLabelPadding;
         unit.SelectionRadius = hexRadius * 0.42f;
 
@@ -814,6 +815,7 @@ public sealed partial class HexTacticsPrototype
         head.GetComponent<MeshRenderer>().sharedMaterial = teamAccentMaterial;
 
         unit.VisualHeight = 1.78f;
+        unit.VisualCenterHeight = 0.94f;
         unit.LabelHeight = 2.12f;
         unit.SelectionRadius = hexRadius * 0.42f;
 
@@ -1020,6 +1022,10 @@ public sealed partial class HexTacticsPrototype
     private void UpdateUnitPresentationMetrics(HexUnit unit, Bounds bounds)
     {
         unit.VisualHeight = Mathf.Max(baseUnitVisualHeight * 0.75f, bounds.max.y - unit.Transform.position.y);
+        unit.VisualCenterHeight = Mathf.Clamp(
+            bounds.center.y - unit.Transform.position.y,
+            unitHoverHeight * 0.8f,
+            Mathf.Max(unitHoverHeight * 0.82f, unit.VisualHeight * 0.84f));
         unit.LabelHeight = unit.VisualHeight + worldLabelPadding;
         unit.SelectionRadius = Mathf.Clamp(
             Mathf.Max(bounds.extents.x, bounds.extents.z) * selectionFootprintPadding,

@@ -101,6 +101,7 @@ public sealed partial class HexTacticsPrototype
         public HexTacticsAnimationEventRelay AnimationEventRelay { get; set; }
         public HexTacticsEffectAnchorMap EffectAnchorMap { get; set; }
         public float VisualHeight { get; set; }
+        public float VisualCenterHeight { get; set; }
         public float LabelHeight { get; set; }
         public float SelectionRadius { get; set; }
         public Vector3 VisualBaseLocalPosition { get; set; }
