@@ -15,6 +15,11 @@ public sealed class HexTacticsSkillConfig : ScriptableObject
     [Header("Effects")]
     [SerializeField] private GameObject projectileEffectPrefab;
     [SerializeField, Min(0.1f)] private float projectileEffectScale = 1f;
+    [SerializeField] private GameObject releaseEffectPrefab;
+    [SerializeField, Min(0.1f)] private float releaseEffectScale = 0.66f;
+    [SerializeField, Min(0f)] private float projectileArcHeight = 0.14f;
+    [SerializeField, Min(0f)] private float projectileLateralSway = 0.03f;
+    [SerializeField, Min(0f)] private float projectileSpinDegreesPerSecond = 240f;
     [SerializeField] private GameObject impactEffectPrefab;
     [SerializeField, Min(0.1f)] private float impactEffectScale = 1f;
     [SerializeField, Range(0.2f, 1.4f)] private float impactHeightNormalized = 0.58f;
@@ -32,11 +37,17 @@ public sealed class HexTacticsSkillConfig : ScriptableObject
     public HexTacticsSelfMovementAttribute SelfMovementAttribute => selfMovementAttribute;
     public GameObject ProjectileEffectPrefab => projectileEffectPrefab;
     public float ProjectileEffectScale => Mathf.Max(0.1f, projectileEffectScale);
+    public GameObject ReleaseEffectPrefab => releaseEffectPrefab;
+    public float ReleaseEffectScale => Mathf.Max(0.1f, releaseEffectScale);
+    public float ProjectileArcHeight => Mathf.Max(0f, projectileArcHeight);
+    public float ProjectileLateralSway => Mathf.Max(0f, projectileLateralSway);
+    public float ProjectileSpinDegreesPerSecond => Mathf.Max(0f, projectileSpinDegreesPerSecond);
     public GameObject ImpactEffectPrefab => impactEffectPrefab;
     public float ImpactEffectScale => Mathf.Max(0.1f, impactEffectScale);
     public float ImpactHeightNormalized => Mathf.Clamp(impactHeightNormalized, 0.2f, 1.4f);
     public float ImpactForwardOffset => Mathf.Max(0f, impactForwardOffset);
     public bool HasProjectileEffect => projectileEffectPrefab != null;
+    public bool HasReleaseEffect => releaseEffectPrefab != null;
     public bool HasImpactEffect => impactEffectPrefab != null;
     public bool RequiresDedicatedRangedEffects => AttackReach >= 2;
 
@@ -58,6 +69,11 @@ public sealed class HexTacticsSkillConfig : ScriptableObject
         selfMovementAttribute = HexTacticsSelfMovementAttribute.None;
         projectileEffectPrefab = null;
         projectileEffectScale = 1f;
+        releaseEffectPrefab = null;
+        releaseEffectScale = 0.66f;
+        projectileArcHeight = 0.14f;
+        projectileLateralSway = 0.03f;
+        projectileSpinDegreesPerSecond = 240f;
         impactEffectPrefab = null;
         impactEffectScale = 1f;
         impactHeightNormalized = 0.58f;

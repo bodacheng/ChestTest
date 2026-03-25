@@ -9,6 +9,7 @@ public sealed partial class HexTacticsPrototype
     private const float DefeatImpactForwardOffsetNormalized = 0.04f;
     private const float DefeatImpactNovaHeightNormalized = 0.34f;
     private const float DefeatImpactEchoHeightOffset = 0.06f;
+    private const float ImpactEchoHeightOffset = 0.035f;
 
     private void SpawnAttackReleaseEffect(HexUnit attacker, HexUnit defender, float travelDuration, HexTacticsSkillConfig skill)
     {
@@ -17,17 +18,19 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        var releaseEffectPrefab = ResolveProjectileEffectPrefab(skill);
-        if (releaseEffectPrefab == null)
+        var projectileEffectPrefab = ResolveProjectileEffectPrefab(skill);
+        if (projectileEffectPrefab == null)
         {
             return;
         }
 
         var startPosition = ResolveRangedWaveStartPosition(attacker, defender);
-        var endPosition = ResolveRangedWaveEndPosition(attacker, defender);
+        var endPosition = ResolveRangedWaveEndPosition(attacker, defender, skill);
         var effectRotation = ResolveHitEffectRotation(attacker, defender);
-        var effectInstance = Instantiate(releaseEffectPrefab, startPosition, effectRotation, effectsRoot);
-        effectInstance.name = releaseEffectPrefab.name;
+        SpawnProjectileReleaseBurst(attacker, defender, skill, startPosition, effectRotation);
+
+        var effectInstance = Instantiate(projectileEffectPrefab, startPosition, effectRotation, effectsRoot);
+        effectInstance.name = projectileEffectPrefab.name;
         effectInstance.transform.localScale *= ResolveRangedWaveScale(attacker, defender) * ResolveProjectileEffectScale(skill);
 
         var travelEffect = effectInstance.GetComponent<HexTacticsTravelingEffect>();
@@ -41,7 +44,13 @@ public sealed partial class HexTacticsPrototype
             effectInstance.AddComponent<HexTacticsTransientEffect>();
         }
 
-        travelEffect.Initialize(startPosition, endPosition, Mathf.Max(0.06f, travelDuration));
+        travelEffect.Initialize(
+            startPosition,
+            endPosition,
+            Mathf.Max(0.06f, travelDuration),
+            ResolveProjectileArcHeight(attacker, defender, skill),
+            ResolveProjectileLateralSway(attacker, defender, skill),
+            skill != null ? skill.ProjectileSpinDegreesPerSecond : 0f);
     }
 
     private void SpawnHitEffect(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
@@ -56,8 +65,8 @@ public sealed partial class HexTacticsPrototype
         {
             var effectPosition = ResolveConfiguredHitEffectPosition(attacker, defender, skill);
             SpawnTransientEffect(skill.ImpactEffectPrefab, effectPosition, effectRotation, skill.ImpactEffectScale, skill.ImpactEffectPrefab.name);
+            TrySpawnImpactEcho(skill.ImpactEffectPrefab, effectPosition, effectRotation, skill.ImpactEffectScale, defender, skill);
             TrySpawnDedicatedSkillHitAccent(attacker, defender, skill, effectPosition, effectRotation);
-
             return;
         }
 
@@ -73,7 +82,9 @@ public sealed partial class HexTacticsPrototype
         }
 
         var autoEffectPosition = ResolveHitEffectPosition(attacker, defender, entry);
-        SpawnTransientEffect(entry.Prefab, autoEffectPosition, effectRotation, Mathf.Max(0.1f, entry.Scale), entry.DisplayName);
+        var autoScale = Mathf.Max(0.1f, entry.Scale);
+        SpawnTransientEffect(entry.Prefab, autoEffectPosition, effectRotation, autoScale, entry.DisplayName);
+        TrySpawnImpactEcho(entry.Prefab, autoEffectPosition, effectRotation, autoScale, defender, skill);
     }
 
     private bool TryEnsureHitEffectCatalogLoaded()
@@ -129,9 +140,114 @@ public sealed partial class HexTacticsPrototype
         return rangedWaveEffectPrefab;
     }
 
+    private GameObject ResolveReleaseEffectPrefab(HexTacticsSkillConfig skill)
+    {
+        if (skill?.ReleaseEffectPrefab != null)
+        {
+            return skill.ReleaseEffectPrefab;
+        }
+
+        if (skill != null &&
+            skill.IsEnergyConsuming &&
+            TryEnsureRangedWaveEffectLoaded())
+        {
+            return rangedWaveEffectPrefab;
+        }
+
+        return null;
+    }
+
     private static float ResolveProjectileEffectScale(HexTacticsSkillConfig skill)
     {
         return skill != null ? skill.ProjectileEffectScale : 1f;
+    }
+
+    private static float ResolveReleaseEffectScale(HexTacticsSkillConfig skill)
+    {
+        if (skill == null)
+        {
+            return 0.66f;
+        }
+
+        return skill.HasReleaseEffect
+            ? skill.ReleaseEffectScale
+            : Mathf.Clamp(skill.ProjectileEffectScale * 0.62f, 0.42f, 0.86f);
+    }
+
+    private void SpawnProjectileReleaseBurst(
+        HexUnit attacker,
+        HexUnit defender,
+        HexTacticsSkillConfig skill,
+        Vector3 startPosition,
+        Quaternion effectRotation)
+    {
+        var releaseEffectPrefab = ResolveReleaseEffectPrefab(skill);
+        if (releaseEffectPrefab == null)
+        {
+            return;
+        }
+
+        var releaseScale = ResolveRangedWaveScale(attacker, defender) * ResolveReleaseEffectScale(skill);
+        SpawnTransientEffect(releaseEffectPrefab, startPosition, effectRotation, releaseScale, releaseEffectPrefab.name + "_Release");
+    }
+
+    private void TrySpawnImpactEcho(
+        GameObject effectPrefab,
+        Vector3 position,
+        Quaternion rotation,
+        float baseScale,
+        HexUnit defender,
+        HexTacticsSkillConfig skill)
+    {
+        if (effectPrefab == null || defender == null || !ShouldSpawnImpactEcho(skill))
+        {
+            return;
+        }
+
+        var echoScale = Mathf.Max(0.1f, baseScale * ResolveImpactEchoScale(skill));
+        var echoDelay = ResolveImpactEchoDelay(skill);
+        if (echoDelay <= 0.001f)
+        {
+            return;
+        }
+
+        var echoPosition = position + Vector3.up * Mathf.Max(ImpactEchoHeightOffset, defender.VisualHeight * 0.025f);
+        var echoRotation = rotation * Quaternion.Euler(0f, 10f, 0f);
+        StartCoroutine(SpawnDelayedTransientEffect(effectPrefab, echoPosition, echoRotation, echoScale, echoDelay, effectPrefab.name + "_Echo"));
+    }
+
+    private static bool ShouldSpawnImpactEcho(HexTacticsSkillConfig skill)
+    {
+        return skill != null &&
+               (skill.AttackRange > 0 || skill.IsEnergyConsuming || skill.Power >= 6 || skill.CollisionAttribute != HexTacticsCollisionAttribute.None);
+    }
+
+    private static float ResolveImpactEchoScale(HexTacticsSkillConfig skill)
+    {
+        var echoScale = skill != null && skill.AttackRange > 0 ? 0.58f : 0.46f;
+        if (skill != null && skill.IsEnergyConsuming)
+        {
+            echoScale += 0.08f;
+        }
+
+        if (skill != null && skill.CollisionAttribute != HexTacticsCollisionAttribute.None)
+        {
+            echoScale += 0.04f;
+        }
+
+        return Mathf.Clamp(echoScale, 0.36f, 0.74f);
+    }
+
+    private static float ResolveImpactEchoDelay(HexTacticsSkillConfig skill)
+    {
+        if (skill == null)
+        {
+            return 0f;
+        }
+
+        return skill.AttackRange > 0
+            ? 0.03f
+            : 0.045f;
     }
 
     private void SpawnDefeatHitEffect(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
@@ -198,16 +314,26 @@ public sealed partial class HexTacticsPrototype
         SpawnTransientEffect(effectPrefab, echoPosition, echoRotation, Mathf.Max(0.1f, scale), effectPrefab.name + "_DefeatEcho");
     }
 
-    private Vector3 ResolveHitEffectPosition(HexUnit attacker, HexUnit defender, HexTacticsHitEffectEntry entry)
+    private IEnumerator SpawnDelayedTransientEffect(
+        GameObject effectPrefab,
+        Vector3 position,
+        Quaternion rotation,
+        float scale,
+        float delay,
+        string instanceName)
     {
-        var direction = defender.Transform.position - attacker.Transform.position;
-        direction.y = 0f;
-        if (direction.sqrMagnitude < 0.0001f)
+        if (effectPrefab == null || delay <= 0.001f)
         {
-            direction = defender.Transform.forward;
+            yield break;
         }
 
-        direction.Normalize();
+        yield return new WaitForSeconds(delay);
+        SpawnTransientEffect(effectPrefab, position, rotation, scale, instanceName);
+    }
+
+    private Vector3 ResolveHitEffectPosition(HexUnit attacker, HexUnit defender, HexTacticsHitEffectEntry entry)
+    {
+        var direction = ResolvePlanarDirection(attacker, defender, defender.Transform.forward);
         var heightFactor = Mathf.Max(0.2f, entry.HeightNormalized);
         var height = Mathf.Max(unitHoverHeight * 0.85f, defender.VisualHeight * Mathf.Lerp(hitEffectHeightNormalized, heightFactor, 0.75f));
         var forwardOffset = defender.SelectionRadius * Mathf.Max(hitEffectForwardOffset, entry.ForwardOffset);
@@ -216,14 +342,7 @@ public sealed partial class HexTacticsPrototype
 
     private Vector3 ResolveConfiguredHitEffectPosition(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
     {
-        var direction = defender.Transform.position - attacker.Transform.position;
-        direction.y = 0f;
-        if (direction.sqrMagnitude < 0.0001f)
-        {
-            direction = defender.Transform.forward;
-        }
-
-        direction.Normalize();
+        var direction = ResolvePlanarDirection(attacker, defender, defender.Transform.forward);
         var height = Mathf.Max(unitHoverHeight * 0.85f, defender.VisualHeight * skill.ImpactHeightNormalized);
         var forwardOffset = defender.SelectionRadius * Mathf.Max(hitEffectForwardOffset, skill.ImpactForwardOffset);
         return defender.Transform.position + Vector3.up * height + direction * forwardOffset;
@@ -231,14 +350,7 @@ public sealed partial class HexTacticsPrototype
 
     private Vector3 ResolveDefeatHitEffectPosition(HexUnit attacker, HexUnit defender)
     {
-        var direction = defender.Transform.position - attacker.Transform.position;
-        direction.y = 0f;
-        if (direction.sqrMagnitude < 0.0001f)
-        {
-            direction = defender.Transform.forward;
-        }
-
-        direction.Normalize();
+        var direction = ResolvePlanarDirection(attacker, defender, defender.Transform.forward);
         var height = Mathf.Max(unitHoverHeight, defender.VisualHeight * DefeatImpactHeightNormalized);
         var forwardOffset = defender.SelectionRadius * DefeatImpactForwardOffsetNormalized;
         return defender.Transform.position + Vector3.up * height + direction * forwardOffset;
@@ -246,14 +358,7 @@ public sealed partial class HexTacticsPrototype
 
     private Vector3 ResolveDefeatNovaEffectPosition(HexUnit attacker, HexUnit defender)
     {
-        var direction = defender.Transform.position - attacker.Transform.position;
-        direction.y = 0f;
-        if (direction.sqrMagnitude < 0.0001f)
-        {
-            direction = defender.Transform.forward;
-        }
-
-        direction.Normalize();
+        var direction = ResolvePlanarDirection(attacker, defender, defender.Transform.forward);
         var height = Mathf.Max(unitHoverHeight * 0.7f, defender.VisualHeight * DefeatImpactNovaHeightNormalized);
         var forwardOffset = defender.SelectionRadius * 0.02f;
         return defender.Transform.position + Vector3.up * height + direction * forwardOffset;
@@ -261,38 +366,62 @@ public sealed partial class HexTacticsPrototype
 
     private Vector3 ResolveRangedWaveStartPosition(HexUnit attacker, HexUnit defender)
     {
-        var direction = defender.Transform.position - attacker.Transform.position;
-        direction.y = 0f;
-        if (direction.sqrMagnitude < 0.0001f)
+        var direction = ResolvePlanarDirection(attacker, defender, attacker.Transform.forward);
+        var preferredAnchor = attacker?.CharacterConfig != null
+            ? attacker.CharacterConfig.ProjectileSourceAnchor
+            : HexTacticsEffectAnchorKind.Auto;
+        var anchor = preferredAnchor == HexTacticsEffectAnchorKind.CenterMass
+            ? null
+            : ResolveUnitEffectAnchor(attacker, preferredAnchor);
+        if (anchor != null)
         {
-            direction = attacker.Transform.forward;
+            var sourceOffset = attacker.CharacterConfig != null
+                ? attacker.CharacterConfig.ProjectileSourceOffset
+                : Vector3.zero;
+            return anchor.position + ResolveDirectionalOffset(direction, sourceOffset);
         }
 
-        direction.Normalize();
         var height = Mathf.Max(unitHoverHeight * 0.8f, attacker.VisualHeight * 0.48f);
         var forwardOffset = Mathf.Max(hexRadius * 0.18f, attacker.SelectionRadius * 0.42f);
         return attacker.Transform.position + Vector3.up * height + direction * forwardOffset;
     }
 
-    private Vector3 ResolveRangedWaveEndPosition(HexUnit attacker, HexUnit defender)
+    private Vector3 ResolveRangedWaveEndPosition(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
     {
-        var direction = defender.Transform.position - attacker.Transform.position;
-        direction.y = 0f;
-        if (direction.sqrMagnitude < 0.0001f)
-        {
-            direction = Vector3.forward;
-        }
-
-        direction.Normalize();
+        var direction = ResolvePlanarDirection(attacker, defender, Vector3.forward);
         var height = Mathf.Max(unitHoverHeight * 0.8f, defender.VisualHeight * 0.5f);
         var backwardOffset = Mathf.Max(hexRadius * 0.12f, defender.SelectionRadius * 0.18f);
-        return defender.Transform.position + Vector3.up * height - direction * backwardOffset;
+        var endPosition = defender.Transform.position + Vector3.up * height - direction * backwardOffset;
+        if (skill != null && skill.HasImpactEffect)
+        {
+            var configuredPosition = ResolveConfiguredHitEffectPosition(attacker, defender, skill);
+            endPosition = Vector3.Lerp(endPosition, configuredPosition, 0.55f);
+        }
+
+        return endPosition;
     }
 
     private float ResolveRangedWaveScale(HexUnit attacker, HexUnit defender)
     {
         var distance = Vector3.Distance(attacker.Transform.position, defender.Transform.position);
         return Mathf.Clamp(0.8f + distance * 0.08f, 0.85f, 1.18f);
+    }
+
+    private float ResolveProjectileArcHeight(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
+    {
+        var distance = attacker != null && defender != null
+            ? Vector3.Distance(attacker.Transform.position, defender.Transform.position)
+            : 0f;
+        return Mathf.Max(0f, (skill != null ? skill.ProjectileArcHeight : 0f) + distance * 0.018f);
+    }
+
+    private float ResolveProjectileLateralSway(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
+    {
+        var distance = attacker != null && defender != null
+            ? Vector3.Distance(attacker.Transform.position, defender.Transform.position)
+            : 0f;
+        var baseSway = skill != null ? skill.ProjectileLateralSway : 0f;
+        return Mathf.Max(0f, baseSway * Mathf.Lerp(0.9f, 1.35f, Mathf.InverseLerp(1.2f, 6f, distance)));
     }
 
     private static bool UsesRangedAttackPresentation(HexTacticsSkillConfig skill)
@@ -302,14 +431,220 @@ public sealed partial class HexTacticsPrototype
 
     private static Quaternion ResolveHitEffectRotation(HexUnit attacker, HexUnit defender)
     {
-        var direction = defender.Transform.position - attacker.Transform.position;
+        var direction = ResolvePlanarDirection(attacker, defender, Vector3.forward);
+        return Quaternion.LookRotation(direction, Vector3.up);
+    }
+
+    private static Vector3 ResolvePlanarDirection(HexUnit attacker, HexUnit defender, Vector3 fallback)
+    {
+        var direction = defender != null && attacker != null
+            ? defender.Transform.position - attacker.Transform.position
+            : fallback;
         direction.y = 0f;
+        if (direction.sqrMagnitude < 0.0001f)
+        {
+            direction = fallback;
+            direction.y = 0f;
+        }
+
         if (direction.sqrMagnitude < 0.0001f)
         {
             direction = Vector3.forward;
         }
 
-        return Quaternion.LookRotation(direction.normalized, Vector3.up);
+        return direction.normalized;
+    }
+
+    private static Vector3 ResolveDirectionalOffset(Vector3 forwardDirection, Vector3 directionalOffset)
+    {
+        var planarForward = forwardDirection;
+        planarForward.y = 0f;
+        if (planarForward.sqrMagnitude < 0.0001f)
+        {
+            planarForward = Vector3.forward;
+        }
+
+        planarForward.Normalize();
+        var side = Vector3.Cross(Vector3.up, planarForward);
+        if (side.sqrMagnitude < 0.0001f)
+        {
+            side = Vector3.right;
+        }
+
+        side.Normalize();
+        return side * directionalOffset.x +
+               Vector3.up * directionalOffset.y +
+               planarForward * directionalOffset.z;
+    }
+
+    private Transform ResolveUnitEffectAnchor(HexUnit unit, HexTacticsEffectAnchorKind preferredAnchor)
+    {
+        if (unit == null)
+        {
+            return null;
+        }
+
+        if (preferredAnchor == HexTacticsEffectAnchorKind.Auto)
+        {
+            return ResolveAutoUnitEffectAnchor(unit);
+        }
+
+        var anchor = TryResolveExactUnitEffectAnchor(unit, preferredAnchor);
+        return anchor != null ? anchor : ResolveAutoUnitEffectAnchor(unit, preferredAnchor);
+    }
+
+    private Transform ResolveAutoUnitEffectAnchor(HexUnit unit, HexTacticsEffectAnchorKind? excludedKind = null)
+    {
+        var orderedKinds = new[]
+        {
+            HexTacticsEffectAnchorKind.Weapon,
+            HexTacticsEffectAnchorKind.Mouth,
+            HexTacticsEffectAnchorKind.RightHand,
+            HexTacticsEffectAnchorKind.LeftHand,
+            HexTacticsEffectAnchorKind.Head
+        };
+
+        for (var i = 0; i < orderedKinds.Length; i++)
+        {
+            if (excludedKind.HasValue && orderedKinds[i] == excludedKind.Value)
+            {
+                continue;
+            }
+
+            var anchor = TryResolveExactUnitEffectAnchor(unit, orderedKinds[i]);
+            if (anchor != null)
+            {
+                return anchor;
+            }
+        }
+
+        return unit.VisualRoot != null ? unit.VisualRoot : unit.Transform;
+    }
+
+    private Transform TryResolveExactUnitEffectAnchor(HexUnit unit, HexTacticsEffectAnchorKind anchorKind)
+    {
+        if (unit == null)
+        {
+            return null;
+        }
+
+        if (unit.EffectAnchorMap != null &&
+            unit.EffectAnchorMap.TryResolve(anchorKind, out var mappedAnchor) &&
+            mappedAnchor != null)
+        {
+            return mappedAnchor;
+        }
+
+        var humanoidAnchor = TryResolveHumanoidAnchor(unit, anchorKind);
+        if (humanoidAnchor != null)
+        {
+            return humanoidAnchor;
+        }
+
+        return anchorKind switch
+        {
+            HexTacticsEffectAnchorKind.Mouth => FindNamedAnchor(unit, "mouth", "jaw", "upperjaw", "snout", "muzzle", "beak"),
+            HexTacticsEffectAnchorKind.Head => FindNamedAnchor(unit, "head", "skull", "neck"),
+            HexTacticsEffectAnchorKind.RightHand => FindNamedAnchor(unit, "righthand", "handright", "handr", "rightpalm", "palmright"),
+            HexTacticsEffectAnchorKind.LeftHand => FindNamedAnchor(unit, "lefthand", "handleft", "handl", "leftpalm", "palmleft"),
+            HexTacticsEffectAnchorKind.Weapon => FindNamedAnchor(unit, "weapon", "staff", "wand", "rod", "bow", "spear", "gun", "blade"),
+            _ => null
+        };
+    }
+
+    private static Transform TryResolveHumanoidAnchor(HexUnit unit, HexTacticsEffectAnchorKind anchorKind)
+    {
+        if (unit?.Animator == null || !unit.Animator.isHuman)
+        {
+            return null;
+        }
+
+        return anchorKind switch
+        {
+            HexTacticsEffectAnchorKind.Head => unit.Animator.GetBoneTransform(HumanBodyBones.Head),
+            HexTacticsEffectAnchorKind.RightHand => unit.Animator.GetBoneTransform(HumanBodyBones.RightHand),
+            HexTacticsEffectAnchorKind.LeftHand => unit.Animator.GetBoneTransform(HumanBodyBones.LeftHand),
+            _ => null
+        };
+    }
+
+    private static Transform FindNamedAnchor(HexUnit unit, params string[] keywords)
+    {
+        var searchRoot = unit?.VisualRoot;
+        if (searchRoot == null || keywords == null || keywords.Length == 0)
+        {
+            return null;
+        }
+
+        Transform bestTransform = null;
+        var bestScore = 0;
+        foreach (var candidate in searchRoot.GetComponentsInChildren<Transform>(true))
+        {
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            var score = ScoreNamedAnchor(candidate.name, keywords);
+            if (score <= bestScore)
+            {
+                continue;
+            }
+
+            bestScore = score;
+            bestTransform = candidate;
+        }
+
+        return bestTransform;
+    }
+
+    private static int ScoreNamedAnchor(string candidateName, params string[] keywords)
+    {
+        var normalizedName = NormalizeAnimationName(candidateName);
+        if (string.IsNullOrWhiteSpace(normalizedName) || keywords == null || keywords.Length == 0)
+        {
+            return 0;
+        }
+
+        var bestScore = 0;
+        for (var i = 0; i < keywords.Length; i++)
+        {
+            var normalizedKeyword = NormalizeAnimationName(keywords[i]);
+            if (string.IsNullOrWhiteSpace(normalizedKeyword))
+            {
+                continue;
+            }
+
+            if (normalizedName == normalizedKeyword)
+            {
+                bestScore = Mathf.Max(bestScore, 140);
+                continue;
+            }
+
+            if (normalizedName.StartsWith(normalizedKeyword))
+            {
+                bestScore = Mathf.Max(bestScore, 110);
+                continue;
+            }
+
+            if (normalizedName.EndsWith(normalizedKeyword))
+            {
+                bestScore = Mathf.Max(bestScore, 104);
+                continue;
+            }
+
+            if (normalizedName.Contains(normalizedKeyword))
+            {
+                bestScore = Mathf.Max(bestScore, 86);
+            }
+        }
+
+        if (bestScore <= 0)
+        {
+            return 0;
+        }
+
+        return bestScore + Mathf.Clamp(24 - normalizedName.Length, 0, 18);
     }
 
     private void TrySpawnDedicatedSkillHitAccent(

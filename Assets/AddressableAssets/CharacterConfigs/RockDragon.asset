@@ -28,6 +28,8 @@ MonoBehaviour:
   avatar: {fileID: 21300000, guid: 9d5752e164c4e489d93ed440dc352ef3, type: 3}
   battleUnitPrefab: {fileID: 1272289719001990063, guid: 19ec7982980c98b449577d8ede74a545, type: 3}
   visualHeightScale: 1.17
+  projectileSourceAnchor: 3
+  projectileSourceOffset: {x: 0, y: 0.03, z: 0.24}
   attackImpactFrame: 32
   attackImpactNormalizedTime: 0.58
   attackPower: 3

@@ -54,6 +54,9 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     [Header("Hit Feel")]
     [SerializeField, Range(0f, 0.3f)] private float hitShakeDistanceNormalized = 0.16f;
     [SerializeField, Min(0.02f)] private float hitShakeDuration = 0.12f;
+    [SerializeField, Range(0f, 18f)] private float hitShakeAngle = 9f;
+    [SerializeField, Range(0f, 0.2f)] private float attackRecoilDistanceNormalized = 0.075f;
+    [SerializeField, Min(0.02f)] private float attackRecoilDuration = 0.09f;
     [SerializeField, Range(1f, 2.4f)] private float defeatHitShakeDistanceMultiplier = 2.2f;
     [SerializeField, Range(1f, 2.6f)] private float defeatHitShakeDurationMultiplier = 1.9f;
     [SerializeField, Range(0.8f, 2.2f)] private float defeatImpactScaleMultiplier = 2.05f;

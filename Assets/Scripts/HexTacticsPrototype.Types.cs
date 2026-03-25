@@ -99,10 +99,12 @@ public sealed partial class HexTacticsPrototype
         public Transform VisualRoot { get; set; }
         public Animator Animator { get; set; }
         public HexTacticsAnimationEventRelay AnimationEventRelay { get; set; }
+        public HexTacticsEffectAnchorMap EffectAnchorMap { get; set; }
         public float VisualHeight { get; set; }
         public float LabelHeight { get; set; }
         public float SelectionRadius { get; set; }
         public Vector3 VisualBaseLocalPosition { get; set; }
+        public Quaternion VisualBaseLocalRotation { get; set; }
         public int DamagedAnimationRevision { get; set; }
         public int HitShakeRevision { get; set; }
         public UnitAnimationBinding AnimationBinding { get; set; }

@@ -20,6 +20,11 @@ MonoBehaviour:
   energyGainOnHit: 1
   projectileEffectPrefab: {fileID: 2763477782707023762, guid: c868d637a2fff4b28bfcb4936311eb49, type: 3}
   projectileEffectScale: 0.88
+  releaseEffectPrefab: {fileID: 6578762456537280539, guid: a62a3a7f920834664a7cccf76b7d9582, type: 3}
+  releaseEffectScale: 0.56
+  projectileArcHeight: 0.08
+  projectileLateralSway: 0.02
+  projectileSpinDegreesPerSecond: 220
   impactEffectPrefab: {fileID: 883488728520371439, guid: 8f4d06e2a24eb4f9eadad97f2b55edd6, type: 3}
   impactEffectScale: 1
   impactHeightNormalized: 0.58

@@ -431,6 +431,33 @@ public sealed partial class HexTacticsPrototype
 
     private void PlayUnitHitShake(HexUnit unit, HexUnit attacker, float distanceMultiplier, float durationMultiplier)
     {
+        var worldDirection = unit?.Transform != null
+            ? unit.Transform.position - (attacker?.Transform != null
+                ? attacker.Transform.position
+                : unit.Transform.position - unit.Transform.forward)
+            : Vector3.forward;
+        PlayUnitCombatShake(unit, worldDirection, distanceMultiplier, durationMultiplier, 1f);
+    }
+
+    private void PlayUnitAttackRecoil(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
+    {
+        if (attacker?.Transform == null || defender?.Transform == null || attackRecoilDuration <= 0.01f || attackRecoilDistanceNormalized <= 0.001f)
+        {
+            return;
+        }
+
+        var worldDirection = UsesRangedAttackPresentation(skill)
+            ? attacker.Transform.position - defender.Transform.position
+            : defender.Transform.position - attacker.Transform.position;
+        var distanceMultiplier = attackRecoilDistanceNormalized / Mathf.Max(0.001f, hitShakeDistanceNormalized);
+        distanceMultiplier *= UsesRangedAttackPresentation(skill) ? 0.95f : 1.08f;
+        distanceMultiplier *= Mathf.Lerp(0.92f, 1.18f, Mathf.InverseLerp(1f, 8f, skill != null ? skill.Power : 1f));
+        var durationMultiplier = attackRecoilDuration / Mathf.Max(0.02f, hitShakeDuration);
+        PlayUnitCombatShake(attacker, worldDirection, distanceMultiplier, durationMultiplier, 0.68f);
+    }
+
+    private void PlayUnitCombatShake(HexUnit unit, Vector3 worldDirection, float distanceMultiplier, float durationMultiplier, float angleMultiplier)
+    {
         if (unit?.VisualRoot == null || hitShakeDuration <= 0.01f || hitShakeDistanceNormalized <= 0.001f)
         {
             return;
@@ -438,13 +465,11 @@ public sealed partial class HexTacticsPrototype
 
         unit.HitShakeRevision++;
         unit.VisualRoot.localPosition = unit.VisualBaseLocalPosition;
+        unit.VisualRoot.localRotation = unit.VisualBaseLocalRotation;
 
         var localDirection = Vector3.forward;
         if (unit.Transform != null)
         {
-            var worldDirection = unit.Transform.position - (attacker?.Transform != null
-                ? attacker.Transform.position
-                : unit.Transform.position - unit.Transform.forward);
             worldDirection.y = 0f;
             if (worldDirection.sqrMagnitude >= 0.0001f)
             {
@@ -464,10 +489,11 @@ public sealed partial class HexTacticsPrototype
             unit.HitShakeRevision,
             localDirection,
             Mathf.Max(0.25f, distanceMultiplier),
-            Mathf.Max(0.25f, durationMultiplier)));
+            Mathf.Max(0.25f, durationMultiplier),
+            Mathf.Max(0.2f, angleMultiplier)));
     }
 
-    private IEnumerator AnimateUnitHitShake(HexUnit unit, int revision, Vector3 localDirection, float distanceMultiplier, float durationMultiplier)
+    private IEnumerator AnimateUnitHitShake(HexUnit unit, int revision, Vector3 localDirection, float distanceMultiplier, float durationMultiplier, float angleMultiplier)
     {
         if (unit?.VisualRoot == null)
         {
@@ -475,6 +501,7 @@ public sealed partial class HexTacticsPrototype
         }
 
         var baseLocalPosition = unit.VisualBaseLocalPosition;
+        var baseLocalRotation = unit.VisualBaseLocalRotation;
         var amplitude = Mathf.Clamp(unit.SelectionRadius * hitShakeDistanceNormalized * distanceMultiplier, 0.02f, hexRadius * 0.22f);
         var sideDirection = Vector3.Cross(Vector3.up, localDirection);
         if (sideDirection.sqrMagnitude < 0.0001f)
@@ -502,13 +529,19 @@ public sealed partial class HexTacticsPrototype
                 localDirection * (recoil * amplitude * envelope) +
                 sideDirection * (lateral * amplitude * envelope) +
                 Vector3.up * (vertical * amplitude * envelope);
+            var tiltAmount = hitShakeAngle * angleMultiplier * envelope;
+            var pitch = -localDirection.z * recoil * tiltAmount * 0.72f;
+            var yaw = lateral * tiltAmount * 0.24f;
+            var roll = localDirection.x * recoil * tiltAmount + lateral * tiltAmount * 0.38f;
             unit.VisualRoot.localPosition = baseLocalPosition + offset;
+            unit.VisualRoot.localRotation = baseLocalRotation * Quaternion.Euler(pitch, yaw, roll);
             yield return null;
         }
 
         if (unit?.VisualRoot != null && unit.HitShakeRevision == revision)
         {
             unit.VisualRoot.localPosition = baseLocalPosition;
+            unit.VisualRoot.localRotation = baseLocalRotation;
         }
     }
 
@@ -624,6 +657,18 @@ public sealed partial class HexTacticsPrototype
             case HexTacticsSelfMovementAttribute.Advance:
                 TryMoveUnitRelativeToOther(attacker, defender, towardOther: true);
                 break;
+        }
+    }
+
+    private void ApplySkillMovementAfterImpact(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
+    {
+        if (attacker == null || defender == null || skill == null)
+        {
+            return;
+        }
+
+        switch (skill.SelfMovementAttribute)
+        {
             case HexTacticsSelfMovementAttribute.Retreat:
                 TryMoveUnitRelativeToOther(attacker, defender, towardOther: false);
                 break;
@@ -840,6 +885,7 @@ public sealed partial class HexTacticsPrototype
         }
 
         attacker.Transform.localPosition = attackerStart;
+        ApplySkillMovementAfterImpact(attacker, defender, skill);
         StopUnitAttack(attacker);
 
         if (attacker.CurrentHealth > 0)
@@ -869,7 +915,7 @@ public sealed partial class HexTacticsPrototype
                CanUseSkill(attack.Attacker, attack.Skill) &&
                attack.Attacker.Transform != null &&
                attack.Defender.Transform != null &&
-               IsWithinAttackRange(attack.Attacker, attack.Defender, attack.Skill);
+               CanSelectAttackTargetFromOrigin(attack.Attacker, attack.Attacker.Coord, attack.Defender.Coord, attack.Skill);
     }
 
     private static int CompareAttackEventsByInitiative(AttackEvent left, AttackEvent right)
@@ -975,6 +1021,7 @@ public sealed partial class HexTacticsPrototype
         FaceUnitTowards(defender, attacker.Transform.position, immediate: false);
         defender.CurrentHealth = Mathf.Max(0, defender.CurrentHealth - skill.Power);
         GainSkillEnergy(attacker, skill);
+        PlayUnitAttackRecoil(attacker, defender, skill);
         var defeated = defender.CurrentHealth <= 0;
         if (defeated)
         {
@@ -2303,7 +2350,70 @@ public sealed partial class HexTacticsPrototype
             return false;
         }
 
-        return IsWithinAttackRange(origin, target, skill);
+        return IsWithinAttackRange(origin, target, skill) &&
+               !WouldAttackThreatenFriendlyUnit(unit, origin, target, skill);
+    }
+
+    private bool WouldAttackThreatenFriendlyUnit(HexUnit attacker, HexCoord origin, HexCoord target, HexTacticsSkillConfig skill)
+    {
+        if (attacker == null || skill == null || !TryGetAttackLineStep(origin, target, out var step))
+        {
+            return false;
+        }
+
+        var attackReach = GetAttackReach(skill);
+        for (var distance = 1; distance <= attackReach; distance++)
+        {
+            var coord = new HexCoord(origin.Q + step.Q * distance, origin.R + step.R * distance);
+            if (!cells.TryGetValue(coord, out var cell))
+            {
+                break;
+            }
+
+            var occupant = cell.Occupant;
+            if (occupant == null || occupant == attacker || occupant.CurrentHealth <= 0)
+            {
+                continue;
+            }
+
+            if (occupant.Team == attacker.Team)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryGetAttackLineStep(HexCoord origin, HexCoord target, out HexCoord step)
+    {
+        step = default;
+        var dq = target.Q - origin.Q;
+        var dr = target.R - origin.R;
+        if (dq == 0 && dr == 0)
+        {
+            return false;
+        }
+
+        if (dq == 0)
+        {
+            step = new HexCoord(0, dr > 0 ? 1 : -1);
+            return true;
+        }
+
+        if (dr == 0)
+        {
+            step = new HexCoord(dq > 0 ? 1 : -1, 0);
+            return true;
+        }
+
+        if (dq + dr == 0)
+        {
+            step = new HexCoord(dq > 0 ? 1 : -1, dr > 0 ? 1 : -1);
+            return true;
+        }
+
+        return false;
     }
 
     private void ClearMoveCommand(HexUnit unit)

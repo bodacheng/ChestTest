@@ -22,6 +22,11 @@ MonoBehaviour:
   selfMovementAttribute: 0
   projectileEffectPrefab: {fileID: 2763477782707023762, guid: c868d637a2fff4b28bfcb4936311eb49, type: 3}
   projectileEffectScale: 0.92
+  releaseEffectPrefab: {fileID: 6578762456537280539, guid: a62a3a7f920834664a7cccf76b7d9582, type: 3}
+  releaseEffectScale: 0.62
+  projectileArcHeight: 0.1
+  projectileLateralSway: 0.025
+  projectileSpinDegreesPerSecond: 240
   impactEffectPrefab: {fileID: 1201779783587195980, guid: 67128ef0d92f44323971938b2548e3d3, type: 3}
   impactEffectScale: 1.06
   impactHeightNormalized: 0.54

@@ -166,7 +166,9 @@ public sealed partial class HexTacticsPrototype
 
         unit.VisualRoot = visualInstance.transform;
         unit.VisualBaseLocalPosition = visualInstance.transform.localPosition;
+        unit.VisualBaseLocalRotation = visualInstance.transform.localRotation;
         unit.Animator = visualInstance.GetComponentInChildren<Animator>(true);
+        unit.EffectAnchorMap = visualInstance.GetComponentInChildren<HexTacticsEffectAnchorMap>(true);
         unit.AnimationBinding = ResolveAnimationBinding(unit.Animator, unit.Skills);
         ConfigureAnimator(unit);
         if (unit.Animator != null)
@@ -795,6 +797,7 @@ public sealed partial class HexTacticsPrototype
         fallbackRoot.transform.localScale = Vector3.one;
         unit.VisualRoot = fallbackRoot.transform;
         unit.VisualBaseLocalPosition = fallbackRoot.transform.localPosition;
+        unit.VisualBaseLocalRotation = fallbackRoot.transform.localRotation;
 
         var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
         body.name = "Body";

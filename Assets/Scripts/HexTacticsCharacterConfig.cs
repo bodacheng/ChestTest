@@ -20,6 +20,9 @@ public sealed class HexTacticsCharacterConfig : ScriptableObject
     [Header("Battle Visual")]
     [SerializeField] private GameObject battleUnitPrefab;
     [SerializeField, Min(0.4f)] private float visualHeightScale = 1f;
+    [Header("Projectile Launch")]
+    [SerializeField] private HexTacticsEffectAnchorKind projectileSourceAnchor = HexTacticsEffectAnchorKind.Auto;
+    [SerializeField] private Vector3 projectileSourceOffset = new(0f, 0.03f, 0.16f);
     [Header("Attack Sync")]
     [SerializeField, Min(0), Tooltip("1-based attack impact frame. Set to 0 to use normalized impact time instead.")]
     private int attackImpactFrame = 0;
@@ -53,6 +56,8 @@ public sealed class HexTacticsCharacterConfig : ScriptableObject
     public Sprite Avatar => avatar;
     public GameObject BattleUnitPrefab => battleUnitPrefab;
     public float VisualHeightScale => visualHeightScale;
+    public HexTacticsEffectAnchorKind ProjectileSourceAnchor => projectileSourceAnchor;
+    public Vector3 ProjectileSourceOffset => projectileSourceOffset;
     public int AttackImpactFrame => attackImpactFrame;
     public float AttackImpactNormalizedTime => attackImpactNormalizedTime;
 
@@ -93,6 +98,8 @@ public sealed class HexTacticsCharacterConfig : ScriptableObject
         avatar = null;
         battleUnitPrefab = null;
         visualHeightScale = 1f;
+        projectileSourceAnchor = HexTacticsEffectAnchorKind.Auto;
+        projectileSourceOffset = new Vector3(0f, 0.03f, 0.16f);
         attackImpactFrame = 0;
         attackImpactNormalizedTime = 0.45f;
     }
