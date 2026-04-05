@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &4407432065497636610
+--- !u!1 &6146681366052672575
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,8 +8,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2774187119217250238}
-  - component: {fileID: 8821935633894314231}
+  - component: {fileID: 13287361236678087}
+  - component: {fileID: 6972034308015317128}
   m_Layer: 0
   m_Name: HexTacticsCanvasRoot
   m_TagString: Untagged
@@ -17,13 +17,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!224 &2774187119217250238
+--- !u!224 &13287361236678087
 RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4407432065497636610}
+  m_GameObject: {fileID: 6146681366052672575}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -36,13 +36,13 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8821935633894314231
+--- !u!114 &6972034308015317128
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4407432065497636610}
+  m_GameObject: {fileID: 6146681366052672575}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 32ee9a8839b947a4a66a109df0baf67d, type: 3}
@@ -55,9 +55,11 @@ MonoBehaviour:
   rootLayer: {fileID: 0}
   safeAreaLayer: {fileID: 0}
   worldLabelLayer: {fileID: 0}
-  modeSelectScreenPrefab: {fileID: 3938357629852496165, guid: 2b335df1e226b40968fb08f4f4caf7f1, type: 3}
-  teamBuilderScreenPrefab: {fileID: 2357907948107415211, guid: 565b845c6685f489ebfece515bbbe686, type: 3}
-  planningScreenPrefab: {fileID: 379873814394439813, guid: 8eeefd06d2815442eb17fa6503771612, type: 3}
-  resolvingScreenPrefab: {fileID: 3127287774679664723, guid: 4893e513ae6d442129a233db602b91b9, type: 3}
-  victoryOverlayPrefab: {fileID: 33277775208291505, guid: 55f42c26eff7c41178b12294dc0cf438, type: 3}
-  worldLabelPrefab: {fileID: 2769756678451055263, guid: 4baabd013d0994b59ad350a5025fd5ec, type: 3}
+  floatingHudLayer: {fileID: 0}
+  modeSelectScreenPrefab: {fileID: 0}
+  teamBuilderScreenPrefab: {fileID: 0}
+  planningScreenPrefab: {fileID: 0}
+  resolvingScreenPrefab: {fileID: 0}
+  victoryOverlayPrefab: {fileID: 0}
+  worldLabelPrefab: {fileID: 0}
+  skillPopupPrefab: {fileID: 0}

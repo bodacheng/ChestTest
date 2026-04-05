@@ -37,4 +37,11 @@ public static class HexTacticsAssetPaths
     public const string DefeatImpactPrimaryAddress = "Effects/HitEffects/Variants/HovlImpactHeavyCrimson";
     public const string DefeatImpactSecondaryAddress = "Effects/HitEffects/Variants/HovlImpactHeavyEmber";
     public const string DefeatImpactTertiaryAddress = "Effects/HitEffects/Variants/HovlImpactRangedNova";
+    public const string HovlImpactLightRoseAddress = "Effects/HitEffects/Variants/HovlImpactLightRose";
+    public const string HovlImpactLightVerdantAddress = "Effects/HitEffects/Variants/HovlImpactLightVerdant";
+    public const string HovlImpactMediumAzureAddress = "Effects/HitEffects/Variants/HovlImpactMediumAzure";
+    public const string HovlImpactHeavyEmberAddress = "Effects/HitEffects/Variants/HovlImpactHeavyEmber";
+    public const string HovlImpactHeavyCrimsonAddress = "Effects/HitEffects/Variants/HovlImpactHeavyCrimson";
+    public const string HovlImpactRangedMistAddress = "Effects/HitEffects/Variants/HovlImpactRangedMist";
+    public const string HovlImpactRangedNovaAddress = "Effects/HitEffects/Variants/HovlImpactRangedNova";
 }

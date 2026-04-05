@@ -630,7 +630,9 @@ public static class HexTacticsModernUiSkin
 
     private static Sprite CreateSprite(string name, int width, int height, Color[] pixels, Vector4 border)
     {
-        var texture = new Texture2D(width, height, TextureFormat.RGBA32, mipChain: false, linear: true)
+        // UI skin textures should be created in sRGB space so their grayscale ramps
+        // match Image tinting in Linear projects after Unity upgrades.
+        var texture = new Texture2D(width, height, TextureFormat.RGBA32, mipChain: false, linear: false)
         {
             name = name + "_Texture",
             filterMode = FilterMode.Bilinear,

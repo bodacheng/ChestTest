@@ -15,14 +15,23 @@ public sealed class HexTacticsHitEffectCatalog : ScriptableObject
     public bool TryResolveAutoEffect(int attackPower, int cycleIndex, out HexTacticsHitEffectEntry entry)
     {
         var preferredStyle = ResolvePreferredStyle(attackPower);
-        return TryResolveEffect(preferredStyle, autoSelectOnly: true, cycleIndex, out entry) ||
-               TryResolveEffect(preferredStyle, autoSelectOnly: false, cycleIndex, out entry) ||
-               TryResolveEffect(HexTacticsHitEffectStyle.Medium, autoSelectOnly: true, cycleIndex, out entry) ||
-               TryResolveEffect(HexTacticsHitEffectStyle.Light, autoSelectOnly: true, cycleIndex, out entry) ||
-               TryResolveEffect(HexTacticsHitEffectStyle.Heavy, autoSelectOnly: true, cycleIndex, out entry) ||
-               TryResolveEffect(HexTacticsHitEffectStyle.Medium, autoSelectOnly: false, cycleIndex, out entry) ||
-               TryResolveEffect(HexTacticsHitEffectStyle.Light, autoSelectOnly: false, cycleIndex, out entry) ||
-               TryResolveEffect(HexTacticsHitEffectStyle.Heavy, autoSelectOnly: false, cycleIndex, out entry);
+        return TryResolveEffect(preferredStyle, cycleIndex, autoSelectOnly: true, out entry) ||
+               TryResolveEffect(preferredStyle, cycleIndex, autoSelectOnly: false, out entry) ||
+               TryResolveEffect(HexTacticsHitEffectStyle.Medium, cycleIndex, autoSelectOnly: true, out entry) ||
+               TryResolveEffect(HexTacticsHitEffectStyle.Light, cycleIndex, autoSelectOnly: true, out entry) ||
+               TryResolveEffect(HexTacticsHitEffectStyle.Heavy, cycleIndex, autoSelectOnly: true, out entry) ||
+               TryResolveEffect(HexTacticsHitEffectStyle.Medium, cycleIndex, autoSelectOnly: false, out entry) ||
+               TryResolveEffect(HexTacticsHitEffectStyle.Light, cycleIndex, autoSelectOnly: false, out entry) ||
+               TryResolveEffect(HexTacticsHitEffectStyle.Heavy, cycleIndex, autoSelectOnly: false, out entry);
+    }
+
+    public bool TryResolveEffect(
+        HexTacticsHitEffectStyle style,
+        int cycleIndex,
+        bool autoSelectOnly,
+        out HexTacticsHitEffectEntry entry)
+    {
+        return TryResolveEffectInternal(style, autoSelectOnly, cycleIndex, out entry);
     }
 
     public void ReplaceEntries(List<HexTacticsHitEffectEntry> entries)
@@ -41,7 +50,7 @@ public sealed class HexTacticsHitEffectCatalog : ScriptableObject
         return HexTacticsAddressables.LoadAsset<HexTacticsHitEffectCatalog>(HexTacticsAssetPaths.HitEffectCatalogAddress);
     }
 
-    private bool TryResolveEffect(
+    private bool TryResolveEffectInternal(
         HexTacticsHitEffectStyle style,
         bool autoSelectOnly,
         int cycleIndex,

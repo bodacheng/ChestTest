@@ -3,8 +3,6 @@ using UnityEngine;
 
 public sealed partial class HexTacticsPrototype
 {
-    private const float SkillImpactAccentScaleMin = 0.42f;
-    private const float SkillImpactAccentScaleMax = 0.82f;
     private const float DefeatImpactHeightNormalized = 0.56f;
     private const float DefeatImpactForwardOffsetNormalized = 0.04f;
     private const float DefeatImpactNovaHeightNormalized = 0.34f;
@@ -15,6 +13,14 @@ public sealed partial class HexTacticsPrototype
     private const float ImpactConfiguredScaleBlend = 0.42f;
     private const float ImpactScaleCompensationMin = 0.82f;
     private const float ImpactScaleCompensationMax = 1.18f;
+    private const float ComplementaryImpactAccentHeightWeight = 0.06f;
+    private const float ComplementaryImpactAccentForwardWeight = 0.04f;
+    private const float ComplementaryImpactAccentSideWeight = 0.14f;
+    private const float ComplementaryImpactAccentDelayMelee = 0.028f;
+    private const float ComplementaryImpactAccentDelayRanged = 0.018f;
+    private const float ImpactAftershockBaseHeightNormalized = 0.42f;
+    private const float ImpactAftershockDelayMelee = 0.038f;
+    private const float ImpactAftershockDelayRanged = 0.024f;
 
     private void SpawnAttackReleaseEffect(HexUnit attacker, HexUnit defender, float travelDuration, HexTacticsSkillConfig skill)
     {
@@ -79,7 +85,8 @@ public sealed partial class HexTacticsPrototype
                 alignVisualCenter: true,
                 targetVisualExtent: ResolveImpactTargetVisualExtent(defender));
             TrySpawnImpactEcho(skill.ImpactEffectPrefab, effectPosition, effectRotation, effectScale, defender, skill);
-            TrySpawnDedicatedSkillHitAccent(attacker, defender, skill, effectPosition, effectRotation);
+            TrySpawnComplementaryImpactAccent(attacker, defender, skill, skill.ImpactEffectPrefab, effectPosition, effectRotation, effectScale);
+            TrySpawnImpactAftershock(attacker, defender, skill, skill.ImpactEffectPrefab, effectPosition, effectRotation, effectScale);
             return;
         }
 
@@ -105,6 +112,8 @@ public sealed partial class HexTacticsPrototype
             alignVisualCenter: true,
             targetVisualExtent: ResolveImpactTargetVisualExtent(defender));
         TrySpawnImpactEcho(entry.Prefab, autoEffectPosition, effectRotation, autoScale, defender, skill);
+        TrySpawnComplementaryImpactAccent(attacker, defender, skill, entry.Prefab, autoEffectPosition, effectRotation, autoScale);
+        TrySpawnImpactAftershock(attacker, defender, skill, entry.Prefab, autoEffectPosition, effectRotation, autoScale);
     }
 
     private bool TryEnsureHitEffectCatalogLoaded()
@@ -714,49 +723,444 @@ public sealed partial class HexTacticsPrototype
         return bestScore + Mathf.Clamp(24 - normalizedName.Length, 0, 18);
     }
 
-    private void TrySpawnDedicatedSkillHitAccent(
+    private void TrySpawnComplementaryImpactAccent(
         HexUnit attacker,
         HexUnit defender,
         HexTacticsSkillConfig skill,
-        Vector3 configuredEffectPosition,
-        Quaternion effectRotation)
+        GameObject primaryEffectPrefab,
+        Vector3 primaryEffectPosition,
+        Quaternion effectRotation,
+        float primaryScale)
     {
-        if (!ShouldSpawnDedicatedSkillHitAccent(skill) || !TryEnsureHitEffectCatalogLoaded())
+        if (!ShouldSpawnComplementaryImpactAccent(skill))
         {
             return;
         }
 
-        var accentPower = skill.Power + skill.EnergyCost + (skill.CollisionAttribute != HexTacticsCollisionAttribute.None ? 1 : 0);
-        if (!hitEffectCatalog.TryResolveAutoEffect(accentPower, nextHitEffectVariantIndex++, out var entry) ||
-            entry?.Prefab == null)
+        if (IsHovlImpactEffect(primaryEffectPrefab))
+        {
+            TrySpawnCatalogImpactAccent(attacker, defender, skill, primaryEffectPrefab, primaryEffectPosition, effectRotation, primaryScale);
+            return;
+        }
+
+        if (TrySpawnHovlImpactAccent(attacker, defender, skill, primaryEffectPrefab, primaryEffectPosition, effectRotation, primaryScale))
         {
             return;
         }
 
-        var catalogEffectPosition = ResolveHitEffectPosition(attacker, defender, entry);
-        var accentPosition = Vector3.Lerp(configuredEffectPosition, catalogEffectPosition, 0.4f);
-        var accentScale = ResolveConfiguredImpactEffectScale(ResolveDedicatedSkillHitAccentScale(skill, entry));
-        SpawnTransientEffect(
-            entry.Prefab,
-            accentPosition,
+        TrySpawnCatalogImpactAccent(attacker, defender, skill, primaryEffectPrefab, primaryEffectPosition, effectRotation, primaryScale);
+    }
+
+    private static bool ShouldSpawnComplementaryImpactAccent(HexTacticsSkillConfig skill)
+    {
+        return skill != null;
+    }
+
+    private bool TrySpawnCatalogImpactAccent(
+        HexUnit attacker,
+        HexUnit defender,
+        HexTacticsSkillConfig skill,
+        GameObject primaryEffectPrefab,
+        Vector3 primaryEffectPosition,
+        Quaternion effectRotation,
+        float primaryScale)
+    {
+        if (!TryEnsureHitEffectCatalogLoaded())
+        {
+            return false;
+        }
+
+        var accentStyle = ResolveImpactAccentStyle(skill);
+        if (!hitEffectCatalog.TryResolveEffect(accentStyle, nextHitEffectVariantIndex++, autoSelectOnly: false, out var entry) ||
+            entry?.Prefab == null ||
+            entry.Prefab == primaryEffectPrefab)
+        {
+            return false;
+        }
+
+        var accentPosition = Vector3.Lerp(
+            primaryEffectPosition,
+            ResolveHitEffectPosition(attacker, defender, entry),
+            0.38f);
+        accentPosition = OffsetLayeredImpactPosition(attacker, defender, skill, accentPosition, 1f);
+
+        var accentScale = Mathf.Max(
+            0.1f,
+            entry.Scale * ResolveCatalogImpactAccentScaleMultiplier(skill) * Mathf.Lerp(0.92f, 1.08f, Mathf.InverseLerp(0.8f, 1.24f, primaryScale)));
+        var accentDelay = ResolveComplementaryImpactAccentDelay(skill);
+        if (accentDelay <= 0.001f)
+        {
+            SpawnTransientEffect(
+                entry.Prefab,
+                accentPosition,
+                effectRotation,
+                accentScale,
+                entry.DisplayName + "_Accent",
+                alignVisualCenter: true,
+                targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 0.88f);
+        }
+        else
+        {
+            StartCoroutine(SpawnDelayedTransientEffect(
+                entry.Prefab,
+                accentPosition,
+                effectRotation,
+                accentScale,
+                accentDelay,
+                entry.DisplayName + "_Accent",
+                alignVisualCenter: true,
+                targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 0.88f));
+        }
+
+        return true;
+    }
+
+    private bool TrySpawnHovlImpactAccent(
+        HexUnit attacker,
+        HexUnit defender,
+        HexTacticsSkillConfig skill,
+        GameObject primaryEffectPrefab,
+        Vector3 primaryEffectPosition,
+        Quaternion effectRotation,
+        float primaryScale)
+    {
+        var accentAddress = ResolveHovlImpactAccentAddress(skill, primaryEffectPrefab);
+        if (string.IsNullOrWhiteSpace(accentAddress))
+        {
+            return false;
+        }
+
+        var accentPrefab = HexTacticsAddressables.LoadAsset<GameObject>(accentAddress);
+        if (accentPrefab == null || accentPrefab == primaryEffectPrefab)
+        {
+            return false;
+        }
+
+        var accentPosition = OffsetLayeredImpactPosition(attacker, defender, skill, primaryEffectPosition, -1f);
+        var accentScale = Mathf.Max(0.1f, primaryScale * ResolveHovlImpactAccentScaleMultiplier(skill));
+        var accentDelay = ResolveComplementaryImpactAccentDelay(skill) * 0.82f;
+        if (accentDelay <= 0.001f)
+        {
+            SpawnTransientEffect(
+                accentPrefab,
+                accentPosition,
+                effectRotation,
+                accentScale,
+                accentPrefab.name + "_Accent",
+                alignVisualCenter: true,
+                targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 0.94f);
+        }
+        else
+        {
+            StartCoroutine(SpawnDelayedTransientEffect(
+                accentPrefab,
+                accentPosition,
+                effectRotation,
+                accentScale,
+                accentDelay,
+                accentPrefab.name + "_Accent",
+                alignVisualCenter: true,
+                targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 0.94f));
+        }
+
+        return true;
+    }
+
+    private void TrySpawnImpactAftershock(
+        HexUnit attacker,
+        HexUnit defender,
+        HexTacticsSkillConfig skill,
+        GameObject primaryEffectPrefab,
+        Vector3 primaryEffectPosition,
+        Quaternion effectRotation,
+        float primaryScale)
+    {
+        if (!ShouldSpawnImpactAftershock(skill))
+        {
+            return;
+        }
+
+        var aftershockAddress = ResolveImpactAftershockAddress(skill, primaryEffectPrefab);
+        if (string.IsNullOrWhiteSpace(aftershockAddress))
+        {
+            return;
+        }
+
+        var aftershockPrefab = HexTacticsAddressables.LoadAsset<GameObject>(aftershockAddress);
+        if (aftershockPrefab == null || aftershockPrefab == primaryEffectPrefab)
+        {
+            return;
+        }
+
+        var aftershockPosition = ResolveImpactAftershockPosition(attacker, defender, skill, primaryEffectPosition);
+        var aftershockScale = Mathf.Max(0.1f, primaryScale * ResolveImpactAftershockScaleMultiplier(skill));
+        var aftershockDelay = ResolveImpactAftershockDelay(skill);
+        StartCoroutine(SpawnDelayedTransientEffect(
+            aftershockPrefab,
+            aftershockPosition,
             effectRotation,
-            accentScale,
-            entry.DisplayName + "_Accent",
+            aftershockScale,
+            aftershockDelay,
+            aftershockPrefab.name + "_Aftershock",
             alignVisualCenter: true,
-            targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 0.92f);
+            targetVisualExtent: ResolveImpactTargetVisualExtent(defender) * 1.02f));
     }
 
-    private static bool ShouldSpawnDedicatedSkillHitAccent(HexTacticsSkillConfig skill)
+    private static bool ShouldSpawnImpactAftershock(HexTacticsSkillConfig skill)
     {
-        return skill != null && skill.HasImpactEffect && skill.IsEnergyConsuming;
+        return skill != null &&
+               (skill.AttackRange > 0 ||
+                skill.IsEnergyConsuming ||
+                skill.Power >= 5 ||
+                skill.CollisionAttribute != HexTacticsCollisionAttribute.None ||
+                skill.SelfMovementAttribute != HexTacticsSelfMovementAttribute.None);
     }
 
-    private static float ResolveDedicatedSkillHitAccentScale(HexTacticsSkillConfig skill, HexTacticsHitEffectEntry entry)
+    private static HexTacticsHitEffectStyle ResolveImpactAccentStyle(HexTacticsSkillConfig skill)
     {
-        var energyBoost = skill != null ? skill.EnergyCost * 0.08f : 0f;
-        var powerBoost = skill != null ? skill.Power * 0.02f : 0f;
-        var normalizedScale = Mathf.Clamp(SkillImpactAccentScaleMin + energyBoost + powerBoost, SkillImpactAccentScaleMin, SkillImpactAccentScaleMax);
-        return Mathf.Max(0.1f, entry.Scale * normalizedScale);
+        var accentPower = Mathf.Max(1, skill != null ? skill.Power + skill.EnergyCost + (skill.CollisionAttribute != HexTacticsCollisionAttribute.None ? 1 : 0) : 1);
+        if (accentPower <= 3)
+        {
+            return HexTacticsHitEffectStyle.Light;
+        }
+
+        if (accentPower <= 5)
+        {
+            return HexTacticsHitEffectStyle.Medium;
+        }
+
+        return HexTacticsHitEffectStyle.Heavy;
+    }
+
+    private static float ResolveCatalogImpactAccentScaleMultiplier(HexTacticsSkillConfig skill)
+    {
+        var scale = 0.52f;
+        if (skill != null)
+        {
+            scale += Mathf.InverseLerp(2f, 8f, skill.Power) * 0.12f;
+            scale += skill.AttackRange > 0 ? 0.08f : 0f;
+            scale += skill.IsEnergyConsuming ? 0.05f : 0f;
+            scale += skill.CollisionAttribute != HexTacticsCollisionAttribute.None ? 0.04f : 0f;
+        }
+
+        return Mathf.Clamp(scale, 0.5f, 0.84f);
+    }
+
+    private static float ResolveHovlImpactAccentScaleMultiplier(HexTacticsSkillConfig skill)
+    {
+        var scale = 0.58f;
+        if (skill != null)
+        {
+            scale += Mathf.InverseLerp(2f, 8f, skill.Power) * 0.14f;
+            scale += skill.AttackRange > 0 ? 0.1f : 0f;
+            scale += skill.IsEnergyConsuming ? 0.06f : 0f;
+            scale += skill.CollisionAttribute != HexTacticsCollisionAttribute.None ? 0.04f : 0f;
+        }
+
+        return Mathf.Clamp(scale, 0.56f, 0.94f);
+    }
+
+    private static float ResolveImpactAftershockScaleMultiplier(HexTacticsSkillConfig skill)
+    {
+        var scale = skill != null && skill.AttackRange > 0 ? 0.74f : 0.64f;
+        if (skill != null)
+        {
+            scale += skill.IsEnergyConsuming ? 0.06f : 0f;
+            scale += skill.CollisionAttribute != HexTacticsCollisionAttribute.None ? 0.08f : 0f;
+            scale += Mathf.InverseLerp(4f, 8f, skill.Power) * 0.12f;
+        }
+
+        return Mathf.Clamp(scale, 0.62f, 0.96f);
+    }
+
+    private static float ResolveComplementaryImpactAccentDelay(HexTacticsSkillConfig skill)
+    {
+        if (skill == null)
+        {
+            return 0f;
+        }
+
+        var delay = skill.AttackRange > 0 ? ComplementaryImpactAccentDelayRanged : ComplementaryImpactAccentDelayMelee;
+        if (skill.IsEnergyConsuming)
+        {
+            delay *= 0.8f;
+        }
+
+        return Mathf.Max(0f, delay);
+    }
+
+    private static float ResolveImpactAftershockDelay(HexTacticsSkillConfig skill)
+    {
+        if (skill == null)
+        {
+            return 0f;
+        }
+
+        var delay = skill.AttackRange > 0 ? ImpactAftershockDelayRanged : ImpactAftershockDelayMelee;
+        if (skill.CollisionAttribute != HexTacticsCollisionAttribute.None)
+        {
+            delay *= 0.76f;
+        }
+
+        return Mathf.Max(0.012f, delay);
+    }
+
+    private Vector3 OffsetLayeredImpactPosition(
+        HexUnit attacker,
+        HexUnit defender,
+        HexTacticsSkillConfig skill,
+        Vector3 basePosition,
+        float lateralDirectionSign)
+    {
+        var direction = ResolvePlanarDirection(attacker, defender, Vector3.forward);
+        var side = Vector3.Cross(Vector3.up, direction);
+        if (side.sqrMagnitude < 0.0001f)
+        {
+            side = Vector3.right;
+        }
+
+        side.Normalize();
+        var sideOffset = side * lateralDirectionSign * Mathf.Max(0.025f, defender != null ? defender.SelectionRadius * ComplementaryImpactAccentSideWeight : 0.04f);
+        var heightOffset = Vector3.up * Mathf.Max(0.02f, defender != null ? defender.VisualHeight * ComplementaryImpactAccentHeightWeight : 0.04f);
+        var forwardOffset = direction * Mathf.Max(
+            0.015f,
+            defender != null
+                ? defender.SelectionRadius * ComplementaryImpactAccentForwardWeight * (skill != null && skill.AttackRange > 0 ? 1.1f : 0.92f)
+                : 0.03f);
+        return basePosition + sideOffset + heightOffset - forwardOffset;
+    }
+
+    private Vector3 ResolveImpactAftershockPosition(
+        HexUnit attacker,
+        HexUnit defender,
+        HexTacticsSkillConfig skill,
+        Vector3 primaryEffectPosition)
+    {
+        var heightNormalized = skill != null
+            ? Mathf.Clamp(skill.ImpactHeightNormalized - 0.16f, ImpactAftershockBaseHeightNormalized, 0.54f)
+            : ImpactAftershockBaseHeightNormalized;
+        var forwardOffset = skill != null
+            ? skill.ImpactForwardOffset * 0.45f
+            : hitEffectForwardOffset * 0.45f;
+        var centeredPosition = ResolveCenteredImpactEffectPosition(attacker, defender, heightNormalized, forwardOffset);
+        return Vector3.Lerp(primaryEffectPosition, centeredPosition, 0.72f);
+    }
+
+    private static bool IsHovlImpactEffect(GameObject effectPrefab)
+    {
+        return effectPrefab != null &&
+               effectPrefab.name.IndexOf("HovlImpact", System.StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static string ResolveHovlImpactAccentAddress(HexTacticsSkillConfig skill, GameObject primaryEffectPrefab)
+    {
+        var preferredAddress = HexTacticsAssetPaths.HovlImpactLightRoseAddress;
+        if (skill != null)
+        {
+            if (skill.AttackRange > 0)
+            {
+                preferredAddress = skill.IsEnergyConsuming || skill.Power >= 6
+                    ? HexTacticsAssetPaths.HovlImpactRangedNovaAddress
+                    : HexTacticsAssetPaths.HovlImpactRangedMistAddress;
+            }
+            else if (skill.CollisionAttribute != HexTacticsCollisionAttribute.None)
+            {
+                preferredAddress = skill.Power >= 7
+                    ? HexTacticsAssetPaths.HovlImpactHeavyCrimsonAddress
+                    : HexTacticsAssetPaths.HovlImpactHeavyEmberAddress;
+            }
+            else if (skill.Power >= 6)
+            {
+                preferredAddress = HexTacticsAssetPaths.HovlImpactHeavyEmberAddress;
+            }
+            else if (skill.Power >= 4)
+            {
+                preferredAddress = HexTacticsAssetPaths.HovlImpactMediumAzureAddress;
+            }
+            else if (skill.IsEnergyConsuming)
+            {
+                preferredAddress = HexTacticsAssetPaths.HovlImpactLightVerdantAddress;
+            }
+        }
+
+        if (!EffectAddressMatchesPrefab(primaryEffectPrefab, preferredAddress))
+        {
+            return preferredAddress;
+        }
+
+        return ResolveAlternateHovlImpactAddress(skill, preferredAddress);
+    }
+
+    private static string ResolveImpactAftershockAddress(HexTacticsSkillConfig skill, GameObject primaryEffectPrefab)
+    {
+        var preferredAddress = HexTacticsAssetPaths.HovlImpactMediumAzureAddress;
+        if (skill != null)
+        {
+            if (skill.AttackRange > 0)
+            {
+                preferredAddress = skill.IsEnergyConsuming || skill.Power >= 6
+                    ? HexTacticsAssetPaths.HovlImpactRangedNovaAddress
+                    : HexTacticsAssetPaths.HovlImpactRangedMistAddress;
+            }
+            else if (skill.CollisionAttribute != HexTacticsCollisionAttribute.None || skill.Power >= 7)
+            {
+                preferredAddress = HexTacticsAssetPaths.HovlImpactHeavyCrimsonAddress;
+            }
+            else if (skill.Power >= 5 || skill.SelfMovementAttribute != HexTacticsSelfMovementAttribute.None)
+            {
+                preferredAddress = HexTacticsAssetPaths.HovlImpactHeavyEmberAddress;
+            }
+        }
+
+        if (!EffectAddressMatchesPrefab(primaryEffectPrefab, preferredAddress))
+        {
+            return preferredAddress;
+        }
+
+        return ResolveAlternateHovlImpactAddress(skill, preferredAddress);
+    }
+
+    private static string ResolveAlternateHovlImpactAddress(HexTacticsSkillConfig skill, string attemptedAddress)
+    {
+        if (skill != null && skill.AttackRange > 0)
+        {
+            return attemptedAddress == HexTacticsAssetPaths.HovlImpactRangedNovaAddress
+                ? HexTacticsAssetPaths.HovlImpactRangedMistAddress
+                : HexTacticsAssetPaths.HovlImpactRangedNovaAddress;
+        }
+
+        if (attemptedAddress == HexTacticsAssetPaths.HovlImpactHeavyCrimsonAddress)
+        {
+            return HexTacticsAssetPaths.HovlImpactHeavyEmberAddress;
+        }
+
+        if (attemptedAddress == HexTacticsAssetPaths.HovlImpactHeavyEmberAddress)
+        {
+            return HexTacticsAssetPaths.HovlImpactMediumAzureAddress;
+        }
+
+        if (attemptedAddress == HexTacticsAssetPaths.HovlImpactMediumAzureAddress)
+        {
+            return skill != null && skill.IsEnergyConsuming
+                ? HexTacticsAssetPaths.HovlImpactLightVerdantAddress
+                : HexTacticsAssetPaths.HovlImpactLightRoseAddress;
+        }
+
+        return HexTacticsAssetPaths.HovlImpactMediumAzureAddress;
+    }
+
+    private static bool EffectAddressMatchesPrefab(GameObject effectPrefab, string effectAddress)
+    {
+        if (effectPrefab == null || string.IsNullOrWhiteSpace(effectAddress))
+        {
+            return false;
+        }
+
+        var slashIndex = effectAddress.LastIndexOf('/');
+        var assetName = slashIndex >= 0 && slashIndex < effectAddress.Length - 1
+            ? effectAddress.Substring(slashIndex + 1)
+            : effectAddress;
+        return effectPrefab.name.Equals(assetName, System.StringComparison.OrdinalIgnoreCase);
     }
 
     private float ResolveDefeatImpactScale(HexUnit defender, HexTacticsSkillConfig skill, float baseMultiplier)
