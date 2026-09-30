@@ -36,19 +36,28 @@ public sealed partial class HexTacticsPrototype
         platform.transform.localPosition = new Vector3(0f, -tileHeight * 0.72f, 0f);
 
         var platformFilter = platform.AddComponent<MeshFilter>();
-        platformFilter.sharedMesh = BuildHexPrismMesh(hexRadius * (boardRadius * 1.9f + 1.5f), tileHeight * 1.25f);
+        platformFilter.sharedMesh = boardTopology == BoardTopology.Square
+            ? BuildSquarePrismMesh(
+                boardRadius * SquareCellSpacing + SquareCellHalfExtent * 1.35f,
+                boardRadius * SquareCellSpacing + SquareCellHalfExtent * 1.35f,
+                tileHeight * 1.25f)
+            : BuildHexPrismMesh(hexRadius * (boardRadius * 1.9f + 1.5f), tileHeight * 1.25f);
         var platformRenderer = platform.AddComponent<MeshRenderer>();
         platformRenderer.sharedMaterial = platformMaterial;
 
         for (var q = -boardRadius; q <= boardRadius; q++)
         {
-            var minR = Mathf.Max(-boardRadius, -q - boardRadius);
-            var maxR = Mathf.Min(boardRadius, -q + boardRadius);
+            var minR = boardTopology == BoardTopology.Square
+                ? -boardRadius
+                : Mathf.Max(-boardRadius, -q - boardRadius);
+            var maxR = boardTopology == BoardTopology.Square
+                ? boardRadius
+                : Mathf.Min(boardRadius, -q + boardRadius);
 
             for (var r = minR; r <= maxR; r++)
             {
                 var coord = new HexCoord(q, r);
-                var cellObject = new GameObject($"Hex {q},{r}");
+                var cellObject = new GameObject($"{(boardTopology == BoardTopology.Square ? "Square" : "Hex")} {q},{r}");
                 cellObject.transform.SetParent(boardRoot, false);
                 cellObject.transform.localPosition = HexToWorld(coord);
 
@@ -273,6 +282,17 @@ public sealed partial class HexTacticsPrototype
 
     private void StartCpuMode()
     {
+        StartCpuMode(BoardTopology.Hex);
+    }
+
+    private void StartCpuMode(BoardTopology topology)
+    {
+        if (boardTopology != topology)
+        {
+            boardTopology = topology;
+            BuildPrototype();
+        }
+
         currentFlowState = FlowState.TeamBuilder;
         builderStatus = string.Empty;
         ReturnToNonBattleBoardState();

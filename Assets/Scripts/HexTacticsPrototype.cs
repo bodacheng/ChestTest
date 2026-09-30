@@ -10,6 +10,7 @@ using UnityEditor;
 public sealed partial class HexTacticsPrototype : MonoBehaviour
 {
     [Header("Board")]
+    [SerializeField] private BoardTopology boardTopology = BoardTopology.Hex;
     [SerializeField, Range(2, 6)] private int boardRadius = 2;
     [SerializeField, Min(0.6f)] private float hexRadius = 1.15f;
     [SerializeField, Min(0.1f)] private float tileHeight = 0.28f;
@@ -65,7 +66,7 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     [Header("Roster")]
     [SerializeField] private List<HexTacticsCharacterConfig> characterRoster = new();
 
-    private static readonly HexCoord[] NeighborDirections =
+    private static readonly HexCoord[] HexNeighborDirections =
     {
         new(-1, 0),
         new(0, -1),
@@ -73,6 +74,14 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         new(1, 0),
         new(0, 1),
         new(-1, 1)
+    };
+
+    private static readonly HexCoord[] SquareNeighborDirections =
+    {
+        new(0, -1),
+        new(1, 0),
+        new(0, 1),
+        new(-1, 0)
     };
 
     private static readonly int VerticalHash = Animator.StringToHash("Vertical");
@@ -161,6 +170,10 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     private Vector2 skillPopupScreenPosition;
     private int skillPopupHoveredSkillIndex = -1;
 
+    private IReadOnlyList<HexCoord> NeighborDirections => boardTopology == BoardTopology.Square ? SquareNeighborDirections : HexNeighborDirections;
+    private float SquareCellHalfExtent => hexRadius * 0.86f;
+    private float SquareCellSpacing => SquareCellHalfExtent * 2f;
+
     private void Awake()
     {
         BuildPrototype();
@@ -185,68 +198,91 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
             HandlePlanningPointerInput();
         }
 
-        if (Keyboard.current == null || selectedUnit == null || selectedUnit.Team != Team.Blue)
+        var keyboard = Keyboard.current;
+        if (keyboard == null || selectedUnit == null || selectedUnit.Team != Team.Blue)
         {
             return;
         }
 
-        if (Keyboard.current.backspaceKey.wasPressedThisFrame || Keyboard.current.deleteKey.wasPressedThisFrame)
+        if (keyboard.backspaceKey.wasPressedThisFrame || keyboard.deleteKey.wasPressedThisFrame)
         {
             SetUnitWaitCommand(selectedUnit);
             return;
         }
 
-        if (Keyboard.current.rKey.wasPressedThisFrame)
+        if (keyboard.rKey.wasPressedThisFrame)
         {
             CycleUnitSkill(selectedUnit);
             return;
         }
 
-        if (Keyboard.current.digit1Key.wasPressedThisFrame)
+        if (keyboard.digit1Key.wasPressedThisFrame)
         {
             UiSelectSelectedUnitSkill(0);
             return;
         }
 
-        if (Keyboard.current.digit2Key.wasPressedThisFrame)
+        if (keyboard.digit2Key.wasPressedThisFrame)
         {
             UiSelectSelectedUnitSkill(1);
             return;
         }
 
-        if (Keyboard.current.digit3Key.wasPressedThisFrame)
+        if (keyboard.digit3Key.wasPressedThisFrame)
         {
             UiSelectSelectedUnitSkill(2);
             return;
         }
 
-        if (Keyboard.current.digit4Key.wasPressedThisFrame)
+        if (keyboard.digit4Key.wasPressedThisFrame)
         {
             UiSelectSelectedUnitSkill(3);
             return;
         }
 
-        if (Keyboard.current.qKey.wasPressedThisFrame)
+        if (boardTopology == BoardTopology.Square)
+        {
+            if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
+            {
+                AssignDirectionalCommand(selectedUnit, new HexCoord(0, -1));
+            }
+            else if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame)
+            {
+                AssignDirectionalCommand(selectedUnit, new HexCoord(1, 0));
+            }
+            else if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
+            {
+                AssignDirectionalCommand(selectedUnit, new HexCoord(0, 1));
+            }
+            else if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
+            {
+                AssignDirectionalCommand(selectedUnit, new HexCoord(-1, 0));
+            }
+
+            return;
+        }
+
+        if (keyboard.qKey.wasPressedThisFrame)
         {
             AssignDirectionalCommand(selectedUnit, new HexCoord(-1, 0));
         }
-        else if (Keyboard.current.wKey.wasPressedThisFrame)
+        else if (keyboard.wKey.wasPressedThisFrame)
         {
             AssignDirectionalCommand(selectedUnit, new HexCoord(0, -1));
         }
-        else if (Keyboard.current.eKey.wasPressedThisFrame)
+        else if (keyboard.eKey.wasPressedThisFrame)
         {
             AssignDirectionalCommand(selectedUnit, new HexCoord(1, -1));
         }
-        else if (Keyboard.current.dKey.wasPressedThisFrame)
+        else if (keyboard.dKey.wasPressedThisFrame)
         {
             AssignDirectionalCommand(selectedUnit, new HexCoord(1, 0));
         }
-        else if (Keyboard.current.sKey.wasPressedThisFrame)
+        else if (keyboard.sKey.wasPressedThisFrame)
         {
             AssignDirectionalCommand(selectedUnit, new HexCoord(0, 1));
         }
-        else if (Keyboard.current.aKey.wasPressedThisFrame)
+        else if (keyboard.aKey.wasPressedThisFrame)
         {
             AssignDirectionalCommand(selectedUnit, new HexCoord(-1, 1));
         }
@@ -311,7 +347,9 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
 
         EnsureCharacterRoster();
         BuildMaterials();
-        cellMesh = BuildHexPrismMesh(hexRadius, tileHeight);
+        cellMesh = boardTopology == BoardTopology.Square
+            ? BuildSquarePrismMesh(SquareCellHalfExtent, SquareCellHalfExtent, tileHeight)
+            : BuildHexPrismMesh(hexRadius, tileHeight);
 
         BuildBoard();
         CacheDeploySlots();

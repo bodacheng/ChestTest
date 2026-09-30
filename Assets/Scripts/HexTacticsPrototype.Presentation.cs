@@ -90,6 +90,11 @@ public sealed partial class HexTacticsPrototype
 
     private Vector3 HexToWorld(HexCoord coord)
     {
+        if (boardTopology == BoardTopology.Square)
+        {
+            return new Vector3(coord.Q * SquareCellSpacing, 0f, coord.R * SquareCellSpacing);
+        }
+
         var x = hexRadius * Mathf.Sqrt(3f) * (coord.Q + coord.R * 0.5f);
         var z = hexRadius * 1.5f * coord.R;
         return new Vector3(x, 0f, z);
@@ -106,11 +111,22 @@ public sealed partial class HexTacticsPrototype
             points.Add(center);
             points.Add(center + Vector3.up * boardTopHeight);
 
-            for (var i = 0; i < 6; i++)
+            if (boardTopology == BoardTopology.Square)
             {
-                var radians = (60f * i + 30f) * Mathf.Deg2Rad;
-                var cornerOffset = new Vector3(Mathf.Cos(radians) * hexRadius, 0f, Mathf.Sin(radians) * hexRadius);
-                points.Add(center + cornerOffset);
+                var halfExtent = SquareCellHalfExtent;
+                points.Add(center + new Vector3(-halfExtent, 0f, -halfExtent));
+                points.Add(center + new Vector3(-halfExtent, 0f, halfExtent));
+                points.Add(center + new Vector3(halfExtent, 0f, halfExtent));
+                points.Add(center + new Vector3(halfExtent, 0f, -halfExtent));
+            }
+            else
+            {
+                for (var i = 0; i < 6; i++)
+                {
+                    var radians = (60f * i + 30f) * Mathf.Deg2Rad;
+                    var cornerOffset = new Vector3(Mathf.Cos(radians) * hexRadius, 0f, Mathf.Sin(radians) * hexRadius);
+                    points.Add(center + cornerOffset);
+                }
             }
         }
 
@@ -261,6 +277,50 @@ public sealed partial class HexTacticsPrototype
         return mesh;
     }
 
+    private static Mesh BuildSquarePrismMesh(float halfExtentX, float halfExtentZ, float height)
+    {
+        var topY = height * 0.5f;
+        var bottomY = -topY;
+        var topCorners = new[]
+        {
+            new Vector3(-halfExtentX, topY, -halfExtentZ),
+            new Vector3(halfExtentX, topY, -halfExtentZ),
+            new Vector3(halfExtentX, topY, halfExtentZ),
+            new Vector3(-halfExtentX, topY, halfExtentZ)
+        };
+        var bottomCorners = new[]
+        {
+            new Vector3(-halfExtentX, bottomY, -halfExtentZ),
+            new Vector3(halfExtentX, bottomY, -halfExtentZ),
+            new Vector3(halfExtentX, bottomY, halfExtentZ),
+            new Vector3(-halfExtentX, bottomY, halfExtentZ)
+        };
+
+        var vertices = new List<Vector3>();
+        var triangles = new List<int>();
+        var normals = new List<Vector3>();
+
+        AddFace(vertices, triangles, normals, Vector3.up * topY, topCorners, true);
+        AddFace(vertices, triangles, normals, Vector3.up * bottomY, bottomCorners, false);
+
+        for (var i = 0; i < 4; i++)
+        {
+            var next = (i + 1) % 4;
+            AddQuad(vertices, triangles, normals, topCorners[i], topCorners[next], bottomCorners[next], bottomCorners[i]);
+        }
+
+        var mesh = new Mesh
+        {
+            name = $"SquarePrism_{halfExtentX:0.00}_{halfExtentZ:0.00}_{height:0.00}"
+        };
+
+        mesh.SetVertices(vertices);
+        mesh.SetNormals(normals);
+        mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
     private static void AddFace(
         List<Vector3> vertices,
         List<int> triangles,
@@ -320,7 +380,7 @@ public sealed partial class HexTacticsPrototype
         triangles.Add(start + 2);
     }
 
-    private static bool AreAdjacent(HexCoord a, HexCoord b)
+    private bool AreAdjacent(HexCoord a, HexCoord b)
     {
         foreach (var direction in NeighborDirections)
         {
@@ -338,33 +398,39 @@ public sealed partial class HexTacticsPrototype
         return skill != null ? Mathf.Max(1, skill.AttackReach) : 1;
     }
 
-    private static bool IsOnAttackLine(HexCoord origin, HexCoord target)
+    private bool IsOnAttackLine(HexCoord origin, HexCoord target)
     {
         var dq = target.Q - origin.Q;
         var dr = target.R - origin.R;
-        return dq == 0 || dr == 0 || dq + dr == 0;
+        return boardTopology == BoardTopology.Square
+            ? dq == 0 || dr == 0
+            : dq == 0 || dr == 0 || dq + dr == 0;
     }
 
-    private static bool IsWithinAttackRange(HexCoord origin, HexCoord target, HexTacticsSkillConfig skill)
+    private bool IsWithinAttackRange(HexCoord origin, HexCoord target, HexTacticsSkillConfig skill)
     {
-        // Attacks can only travel along one of the six edge-sharing directions.
         return skill != null &&
                origin != target &&
                IsOnAttackLine(origin, target) &&
                HexDistance(origin, target) <= GetAttackReach(skill);
     }
 
-    private static bool IsWithinAttackRange(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
+    private bool IsWithinAttackRange(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
     {
         return attacker != null &&
                defender != null &&
                IsWithinAttackRange(attacker.Coord, defender.Coord, skill);
     }
 
-    private static int HexDistance(HexCoord a, HexCoord b)
+    private int HexDistance(HexCoord a, HexCoord b)
     {
         var dq = a.Q - b.Q;
         var dr = a.R - b.R;
+        if (boardTopology == BoardTopology.Square)
+        {
+            return Mathf.Abs(dq) + Mathf.Abs(dr);
+        }
+
         return (Mathf.Abs(dq) + Mathf.Abs(dr) + Mathf.Abs(dq + dr)) / 2;
     }
 

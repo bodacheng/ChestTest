@@ -157,6 +157,16 @@ public sealed partial class HexTacticsPrototype
         StartCpuMode();
     }
 
+    public void UiStartCpuHexMode()
+    {
+        StartCpuMode(BoardTopology.Hex);
+    }
+
+    public void UiStartCpuSquareMode()
+    {
+        StartCpuMode(BoardTopology.Square);
+    }
+
     public void UiReturnToModeSelect()
     {
         ReturnToModeSelect();

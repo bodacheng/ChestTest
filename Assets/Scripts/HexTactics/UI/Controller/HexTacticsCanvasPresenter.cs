@@ -27,7 +27,8 @@ public sealed class HexTacticsCanvasPresenter : MonoBehaviour
         }
 
         view.Render(prototype.BuildUiSnapshot(), new HexTacticsCanvasView.Actions(
-            prototype.UiStartCpuMode,
+            prototype.UiStartCpuHexMode,
+            prototype.UiStartCpuSquareMode,
             prototype.UiReturnToModeSelect,
             prototype.UiAddCharacterToPlayerTeam,
             prototype.UiPlaceRosterCharacterAt,

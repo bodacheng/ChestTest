@@ -1599,7 +1599,7 @@ public sealed partial class HexTacticsPrototype
         return desiredAttackReach > 0 ? HexDistance(coord, goal) <= desiredAttackReach : coord == goal;
     }
 
-    private static int GetPathGoalDistance(HexCoord coord, HexCoord goal, int desiredAttackReach)
+    private int GetPathGoalDistance(HexCoord coord, HexCoord goal, int desiredAttackReach)
     {
         var distance = HexDistance(coord, goal);
         return desiredAttackReach > 0 ? Mathf.Max(0, distance - desiredAttackReach) : distance;
@@ -2385,7 +2385,7 @@ public sealed partial class HexTacticsPrototype
         return false;
     }
 
-    private static bool TryGetAttackLineStep(HexCoord origin, HexCoord target, out HexCoord step)
+    private bool TryGetAttackLineStep(HexCoord origin, HexCoord target, out HexCoord step)
     {
         step = default;
         var dq = target.Q - origin.Q;
@@ -2407,7 +2407,7 @@ public sealed partial class HexTacticsPrototype
             return true;
         }
 
-        if (dq + dr == 0)
+        if (boardTopology == BoardTopology.Hex && dq + dr == 0)
         {
             step = new HexCoord(dq > 0 ? 1 : -1, dr > 0 ? 1 : -1);
             return true;

@@ -50,7 +50,8 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
     public readonly struct Actions
     {
         public Actions(
-            Action startCpuMode,
+            Action startHexMode,
+            Action startSquareMode,
             Action returnToModeSelect,
             Action<int> addRosterEntry,
             Action<int, Vector2> placeRosterEntryAt,
@@ -66,7 +67,8 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             Action returnToTeamBuilder,
             Action retryBattle)
         {
-            StartCpuMode = startCpuMode;
+            StartHexMode = startHexMode;
+            StartSquareMode = startSquareMode;
             ReturnToModeSelect = returnToModeSelect;
             AddRosterEntry = addRosterEntry;
             PlaceRosterEntryAt = placeRosterEntryAt;
@@ -83,7 +85,8 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             RetryBattle = retryBattle;
         }
 
-        public Action StartCpuMode { get; }
+        public Action StartHexMode { get; }
+        public Action StartSquareMode { get; }
         public Action ReturnToModeSelect { get; }
         public Action<int> AddRosterEntry { get; }
         public Action<int, Vector2> PlaceRosterEntryAt { get; }
@@ -122,7 +125,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         ApplyResponsiveLayout();
         RenderPanels(snapshot);
 
-        modeSelectScreen.Bind(actions.StartCpuMode);
+        modeSelectScreen.Bind(actions.StartHexMode, actions.StartSquareMode);
         teamBuilderScreen.Bind(snapshot, actions.ReturnToModeSelect, actions.AddRosterEntry, actions.PlaceRosterEntryAt, actions.RemoveSelectionEntry, actions.MoveSelectionEntryAt, actions.StartBattle);
         planningScreen.Bind(snapshot, actions.ClearSelection, actions.WaitSelectedUnit, actions.SelectSelectedUnitSkill, actions.SelectCommandUnit, actions.WaitCommandUnit, actions.CycleCommandUnitSkill);
         resolvingScreen.Bind(snapshot);

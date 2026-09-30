@@ -352,6 +352,12 @@ public sealed partial class HexTacticsPrototype
         Victory
     }
 
+    private enum BoardTopology
+    {
+        Hex,
+        Square
+    }
+
     private enum ActionType
     {
         Wait,
