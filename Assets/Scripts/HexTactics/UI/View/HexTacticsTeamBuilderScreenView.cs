@@ -39,7 +39,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
     private int draggingRosterIndex = -1;
     private int draggingEntryId = -1;
 
-    protected override int CurrentLayoutVersion => 14;
+    protected override int CurrentLayoutVersion => 15;
 
     protected override bool HasCurrentBindings =>
         summaryPanel != null &&
@@ -86,7 +86,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         movePlacedCharacterHandler = moveSelectionEntryTo;
 
         budgetText.text = $"预算  蓝 {snapshot.PlayerCostLimit}  ·  红 {snapshot.CpuCostLimit}";
-        selectionHintText.text = "拖角色到蓝色部署格，可拖回重排。";
+        selectionHintText.text = "拖角色到蓝色位置提示部署\n也可点击「加入」，或拖动已部署角色重排";
         costText.text = $"已部署 {snapshot.PlayerSelectionEntries.Count} 名  ·  费用 {snapshot.PlayerUsedCost}/{snapshot.PlayerCostLimit}";
         UpdateBudgetBar(snapshot.PlayerUsedCost, snapshot.PlayerCostLimit);
         if (cpuHintText != null)
@@ -198,7 +198,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         HexTacticsUiFactory.AddLayoutElement(titleChip.gameObject, preferredHeight: 34f);
         var titleChipImage = HexTacticsUiFactory.AddImage(titleChip.gameObject, new Color(0.18f, 0.30f, 0.34f, 0.96f), false);
         HexTacticsModernUiSkin.ApplyHeaderChip(titleChipImage, new Color(0.18f, 0.30f, 0.34f, 0.96f));
-        var title = HexTacticsUiFactory.CreateText(titleChip, "Title", "战前布阵", 22, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+        var title = HexTacticsUiFactory.CreateText(titleChip, "Title", "战前布阵", 20, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
         HexTacticsUiFactory.Stretch(title.rectTransform, Vector2.zero, Vector2.one);
         HexTacticsUiFactory.SetOffsets(title.rectTransform, 14f, 0f, 14f, 0f);
 
@@ -206,12 +206,12 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         budgetText.resizeTextForBestFit = true;
         budgetText.resizeTextMinSize = 11;
         budgetText.resizeTextMaxSize = 14;
-        HexTacticsUiFactory.AddLayoutElement(budgetText.gameObject, preferredHeight: 20f);
+        HexTacticsUiFactory.AddLayoutElement(budgetText.gameObject, preferredHeight: 24f);
         costText = HexTacticsUiFactory.CreateText(panel, "CostText", string.Empty, 14, TextAnchor.MiddleLeft, new Color(0.82f, 0.88f, 0.90f));
         costText.resizeTextForBestFit = true;
         costText.resizeTextMinSize = 11;
         costText.resizeTextMaxSize = 14;
-        HexTacticsUiFactory.AddLayoutElement(costText.gameObject, preferredHeight: 20f);
+        HexTacticsUiFactory.AddLayoutElement(costText.gameObject, preferredHeight: 24f);
 
         var budgetBarRoot = HexTacticsUiFactory.CreateRect("BudgetBar", panel);
         HexTacticsUiFactory.AddLayoutElement(budgetBarRoot.gameObject, preferredHeight: 12f);
@@ -229,12 +229,12 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         budgetBarFillImage = HexTacticsUiFactory.AddImage(budgetBarFillRect.gameObject, new Color(0.30f, 0.82f, 0.52f, 0.96f), false);
         HexTacticsModernUiSkin.ApplyLoadingBarFill(budgetBarFillImage, new Color(0.30f, 0.82f, 0.52f, 0.96f));
 
-        selectionHintText = HexTacticsUiFactory.CreateText(panel, "SelectionHintText", string.Empty, 11, TextAnchor.MiddleLeft, new Color(0.70f, 0.80f, 0.84f));
+        selectionHintText = HexTacticsUiFactory.CreateText(panel, "SelectionHintText", string.Empty, 12, TextAnchor.MiddleLeft, new Color(0.76f, 0.84f, 0.88f));
         selectionHintText.resizeTextForBestFit = true;
-        selectionHintText.resizeTextMinSize = 9;
-        selectionHintText.resizeTextMaxSize = 11;
+        selectionHintText.resizeTextMinSize = 12;
+        selectionHintText.resizeTextMaxSize = 12;
         selectionHintText.verticalOverflow = VerticalWrapMode.Truncate;
-        HexTacticsUiFactory.AddLayoutElement(selectionHintText.gameObject, preferredHeight: 16f);
+        HexTacticsUiFactory.AddLayoutElement(selectionHintText.gameObject, preferredHeight: 40f);
     }
 
     private void BuildLeftPanel(RectTransform leftPanel)
@@ -260,7 +260,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         title.resizeTextForBestFit = true;
         title.resizeTextMinSize = 18;
         title.resizeTextMaxSize = 22;
-        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 30f);
+        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 36f);
 
         var leftScroll = HexTacticsUiFactory.CreateRect("RosterScroll", leftPanel);
         leftScroll.anchorMin = new Vector2(0f, 0f);
@@ -295,7 +295,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         title.resizeTextForBestFit = true;
         title.resizeTextMinSize = 18;
         title.resizeTextMaxSize = 22;
-        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 30f);
+        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 36f);
         cpuHintText = HexTacticsUiFactory.CreateText(header, "CpuHintText", string.Empty, 15, TextAnchor.MiddleLeft, new Color(0.62f, 0.72f, 0.76f));
         cpuHintText.gameObject.SetActive(false);
         HexTacticsUiFactory.AddLayoutElement(cpuHintText.gameObject, preferredHeight: 0f);
@@ -313,8 +313,8 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         emptyText.rectTransform.anchorMin = new Vector2(0f, 1f);
         emptyText.rectTransform.anchorMax = new Vector2(1f, 1f);
         emptyText.rectTransform.pivot = new Vector2(0.5f, 1f);
-        emptyText.rectTransform.offsetMin = new Vector2(18f, -86f);
-        emptyText.rectTransform.offsetMax = new Vector2(-18f, -52f);
+        emptyText.rectTransform.offsetMin = new Vector2(18f, -126f);
+        emptyText.rectTransform.offsetMax = new Vector2(-18f, -92f);
 
         var footer = HexTacticsUiFactory.CreateRect("Footer", rightPanel);
         footer.anchorMin = new Vector2(0f, 0f);
@@ -353,7 +353,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         backButton = HexTacticsUiFactory.CreateButton(footerButtons, "BackButton", "返回", new Color(0.23f, 0.28f, 0.32f, 0.94f), Color.white, out _);
         HexTacticsUiFactory.AddLayoutElement(backButton.gameObject, preferredHeight: 42f);
 
-        startButton = HexTacticsUiFactory.CreateButton(footerButtons, "StartButton", "开始", new Color(0.19f, 0.46f, 0.46f, 0.94f), Color.white, out _);
+        startButton = HexTacticsUiFactory.CreateButton(footerButtons, "StartButton", "开始战斗", new Color(0.19f, 0.46f, 0.46f, 0.94f), Color.white, out _);
         HexTacticsUiFactory.AddLayoutElement(startButton.gameObject, preferredHeight: 42f);
     }
 
@@ -375,7 +375,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         layout.spacing = 8f;
         layout.childAlignment = TextAnchor.MiddleLeft;
         layout.childControlHeight = true;
-        layout.childControlWidth = false;
+        layout.childControlWidth = true;
         layout.childForceExpandWidth = false;
         layout.childForceExpandHeight = false;
 
@@ -384,7 +384,7 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         dragPreviewAvatarView = HexTacticsAvatarView.CreateStandalone(avatarRoot, "AvatarView", 3f, 16, false);
 
         dragPreviewLabel = HexTacticsUiFactory.CreateText(dragPreviewRoot, "Label", string.Empty, 15, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.AddLayoutElement(dragPreviewLabel.gameObject, flexibleWidth: 1f, preferredHeight: 22f);
+        HexTacticsUiFactory.AddLayoutElement(dragPreviewLabel.gameObject, flexibleWidth: 1f, preferredHeight: 24f);
     }
 
     private void BeginRosterDrag(HexTacticsRosterEntryUiData data, Vector2 screenPosition)
@@ -453,10 +453,11 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
         var height = Mathf.Max(1f, Root.rect.height);
         var isPortrait = height > width * 1.05f;
         var margin = Mathf.Clamp(width * 0.016f, 10f, 20f);
-        var summaryHeight = Mathf.Clamp(height * (isPortrait ? 0.14f : 0.12f), 114f, 128f);
+        var summaryHeight = 196f;
 
         if (isPortrait)
         {
+            var portraitPanelHeight = Mathf.Clamp(height * 0.30f, 360f, 520f);
             summaryPanel.anchorMin = new Vector2(0f, 1f);
             summaryPanel.anchorMax = new Vector2(1f, 1f);
             summaryPanel.pivot = new Vector2(0.5f, 1f);
@@ -465,18 +466,18 @@ public sealed class HexTacticsTeamBuilderScreenView : HexTacticsUiGeneratedView
             summaryPanel.offsetMax = new Vector2(-margin, -margin);
 
             rosterPanel.anchorMin = new Vector2(0f, 0f);
-            rosterPanel.anchorMax = new Vector2(0.5f, 1f);
+            rosterPanel.anchorMax = new Vector2(0.5f, 0f);
             rosterPanel.pivot = new Vector2(0f, 0f);
             rosterPanel.sizeDelta = Vector2.zero;
             rosterPanel.offsetMin = new Vector2(margin, margin);
-            rosterPanel.offsetMax = new Vector2(-margin * 0.5f, -(summaryHeight + margin * 2f));
+            rosterPanel.offsetMax = new Vector2(-margin * 0.5f, margin + portraitPanelHeight);
 
             selectionPanel.anchorMin = new Vector2(0.5f, 0f);
-            selectionPanel.anchorMax = new Vector2(1f, 1f);
+            selectionPanel.anchorMax = new Vector2(1f, 0f);
             selectionPanel.pivot = new Vector2(1f, 0f);
             selectionPanel.sizeDelta = Vector2.zero;
             selectionPanel.offsetMin = new Vector2(margin * 0.5f, margin);
-            selectionPanel.offsetMax = new Vector2(-margin, -(summaryHeight + margin * 2f));
+            selectionPanel.offsetMax = new Vector2(-margin, margin + portraitPanelHeight);
             return;
         }
 

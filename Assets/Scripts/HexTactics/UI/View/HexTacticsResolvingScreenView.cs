@@ -9,7 +9,7 @@ public sealed class HexTacticsResolvingScreenView : HexTacticsUiGeneratedView
     [SerializeField] private Text countText;
     [SerializeField] private Text statusText;
 
-    protected override int CurrentLayoutVersion => 4;
+    protected override int CurrentLayoutVersion => 5;
 
     protected override bool HasCurrentBindings =>
         roundText != null &&
@@ -34,7 +34,7 @@ public sealed class HexTacticsResolvingScreenView : HexTacticsUiGeneratedView
         root.anchorMin = new Vector2(0f, 1f);
         root.anchorMax = new Vector2(0f, 1f);
         root.pivot = new Vector2(0f, 1f);
-        root.sizeDelta = new Vector2(356f, 136f);
+        root.sizeDelta = new Vector2(356f, 184f);
         root.anchoredPosition = new Vector2(18f, -18f);
 
         var panel = HexTacticsUiFactory.AddImage(root.gameObject, new Color(0.04f, 0.07f, 0.08f, 0.80f));
@@ -45,7 +45,7 @@ public sealed class HexTacticsResolvingScreenView : HexTacticsUiGeneratedView
         layout.padding = new RectOffset(16, 16, 14, 14);
         layout.spacing = 4f;
         layout.childAlignment = TextAnchor.UpperLeft;
-        layout.childControlHeight = false;
+        layout.childControlHeight = true;
         layout.childControlWidth = true;
         layout.childForceExpandHeight = false;
         layout.childForceExpandWidth = true;
@@ -58,16 +58,16 @@ public sealed class HexTacticsResolvingScreenView : HexTacticsUiGeneratedView
         HexTacticsUiFactory.Stretch(chipText.rectTransform, Vector2.zero, Vector2.one);
 
         roundText = HexTacticsUiFactory.CreateText(root, "RoundText", string.Empty, 17, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.AddLayoutElement(roundText.gameObject, preferredHeight: 20f);
+        HexTacticsUiFactory.AddLayoutElement(roundText.gameObject, preferredHeight: 28f);
 
         countText = HexTacticsUiFactory.CreateText(root, "CountText", string.Empty, 14, TextAnchor.MiddleLeft, new Color(0.82f, 0.88f, 0.90f));
-        HexTacticsUiFactory.AddLayoutElement(countText.gameObject, preferredHeight: 18f);
+        HexTacticsUiFactory.AddLayoutElement(countText.gameObject, preferredHeight: 24f);
 
         statusText = HexTacticsUiFactory.CreateText(root, "StatusText", string.Empty, 14, TextAnchor.UpperLeft, new Color(0.92f, 0.94f, 0.96f));
         statusText.resizeTextForBestFit = true;
-        statusText.resizeTextMinSize = 10;
+        statusText.resizeTextMinSize = 12;
         statusText.resizeTextMaxSize = 14;
-        HexTacticsUiFactory.AddLayoutElement(statusText.gameObject, preferredHeight: 44f);
+        HexTacticsUiFactory.AddLayoutElement(statusText.gameObject, preferredHeight: 56f);
     }
 
     public static HexTacticsResolvingScreenView CreateStandalone(Transform parent)

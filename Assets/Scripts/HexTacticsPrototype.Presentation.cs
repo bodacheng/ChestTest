@@ -32,6 +32,9 @@ public sealed partial class HexTacticsPrototype
             }
 
             cell.Renderer.sharedMaterial = material;
+            // Hex cells are logical hit areas only; reveal circular hints solely
+            // while a deployment or a valid command needs a destination.
+            cell.Renderer.enabled = boardTopology == BoardTopology.Square || material != cell.BaseMaterial;
         }
 
         foreach (var unit in units)
@@ -175,6 +178,8 @@ public sealed partial class HexTacticsPrototype
 
     private void ReleaseGeneratedAssets()
     {
+        ReleaseGeneratedMesh(ref cellHintMesh);
+        ReleaseGeneratedMesh(ref platformMesh);
         if (cellMesh != null)
         {
             if (Application.isPlaying)
@@ -209,6 +214,25 @@ public sealed partial class HexTacticsPrototype
         runtimeMaterials.Clear();
     }
 
+    private static void ReleaseGeneratedMesh(ref Mesh mesh)
+    {
+        if (mesh == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Destroy(mesh);
+        }
+        else
+        {
+            DestroyImmediate(mesh);
+        }
+
+        mesh = null;
+    }
+
     private string DescribeCommand(HexUnit unit, bool compact)
     {
         if (!unit.HasAssignedCommand)
@@ -235,6 +259,32 @@ public sealed partial class HexTacticsPrototype
         return compact
             ? $"移动 -> ({unit.PlannedMoveTarget.Q},{unit.PlannedMoveTarget.R})"
             : $"移动到 ({unit.PlannedMoveTarget.Q},{unit.PlannedMoveTarget.R})";
+    }
+
+    private static Mesh BuildCellHintMesh(float radius, float thickness)
+    {
+        const int segments = 48;
+        var vertices = new List<Vector3>(segments * 6);
+        var triangles = new List<int>(segments * 6);
+        var normals = new List<Vector3>(segments * 6);
+        var innerRadius = Mathf.Max(0f, radius - thickness);
+        for (var i = 0; i < segments; i++)
+        {
+            var angle = i * Mathf.PI * 2f / segments;
+            var nextAngle = (i + 1) * Mathf.PI * 2f / segments;
+            var direction = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+            var nextDirection = new Vector3(Mathf.Cos(nextAngle), 0f, Mathf.Sin(nextAngle));
+            AddQuad(vertices, triangles, normals,
+                direction * radius, direction * innerRadius,
+                nextDirection * innerRadius, nextDirection * radius);
+        }
+
+        var mesh = new Mesh { name = "CircularActionHint" };
+        mesh.SetVertices(vertices);
+        mesh.SetNormals(normals);
+        mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateBounds();
+        return mesh;
     }
 
     private static Mesh BuildHexPrismMesh(float radius, float height)

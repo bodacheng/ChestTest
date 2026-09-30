@@ -8,6 +8,7 @@ using UnityEditor;
 
 public static class HexTacticsUiFactory
 {
+    public const string DefaultFontResourcePath = "HexTactics/Fonts/NotoSansSC-Regular";
     private static Font defaultFont;
     private static readonly string[] BuiltinFontCandidates =
     {
@@ -21,7 +22,13 @@ public static class HexTacticsUiFactory
         {
             if (defaultFont == null)
             {
-                defaultFont = LoadBuiltinFont();
+                // The bundled font keeps Chinese readable on every platform, including
+                // builds where Arial/LegacyRuntime has no CJK glyphs or OS fallback.
+                defaultFont = Resources.Load<Font>(DefaultFontResourcePath);
+                if (defaultFont == null)
+                {
+                    defaultFont = LoadBuiltinFont();
+                }
             }
 
             return defaultFont;
@@ -63,6 +70,8 @@ public static class HexTacticsUiFactory
         rect.anchorMin = min;
         rect.anchorMax = max;
         rect.pivot = new Vector2((min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
     }
 
     public static void SetOffsets(RectTransform rect, float left, float bottom, float right, float top)
@@ -115,9 +124,9 @@ public static class HexTacticsUiFactory
         text.alignment = alignment;
         text.color = color;
         text.fontStyle = fontStyle;
-        text.lineSpacing = 1.0f;
+        text.lineSpacing = 1.08f;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
+        text.verticalOverflow = VerticalWrapMode.Truncate;
         text.supportRichText = false;
         text.text = content;
         text.raycastTarget = false;
@@ -141,19 +150,22 @@ public static class HexTacticsUiFactory
         StylePanel(image, new Color(1f, 1f, 1f, 0.05f), 0f);
 
         var colors = button.colors;
-        colors.normalColor = backgroundColor;
-        colors.highlightedColor = Color.Lerp(backgroundColor, Color.white, 0.16f);
-        colors.pressedColor = Color.Lerp(backgroundColor, Color.black, 0.08f);
+        // ColorTint multiplies Image.color: tinting with the background a second
+        // time made colored controls almost black, especially disabled buttons.
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(1.12f, 1.12f, 1.12f, 1f);
+        colors.pressedColor = new Color(0.80f, 0.80f, 0.80f, 1f);
         colors.selectedColor = colors.highlightedColor;
-        colors.disabledColor = new Color(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a * 0.32f);
+        colors.disabledColor = new Color(0.68f, 0.68f, 0.68f, 0.65f);
         colors.fadeDuration = 0.08f;
         button.colors = colors;
 
         labelText = CreateText(rect, "Label", label, 18, TextAnchor.MiddleCenter, textColor, FontStyle.Bold);
         labelText.resizeTextForBestFit = true;
-        labelText.resizeTextMinSize = 8;
+        labelText.resizeTextMinSize = 12;
         labelText.resizeTextMaxSize = 18;
         Stretch(labelText.rectTransform, Vector2.zero, Vector2.one);
+        SetOffsets(labelText.rectTransform, 8f, 3f, 8f, 3f);
         return button;
     }
 
@@ -205,11 +217,13 @@ public static class HexTacticsUiFactory
         if (preferredHeight >= 0f)
         {
             element.preferredHeight = preferredHeight;
+            element.minHeight = preferredHeight;
         }
 
         if (preferredWidth >= 0f)
         {
             element.preferredWidth = preferredWidth;
+            element.minWidth = preferredWidth;
         }
 
         if (flexibleHeight >= 0f)

@@ -116,6 +116,8 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
     private Transform unitsRoot;
     private Transform effectsRoot;
     private Mesh cellMesh;
+    private Mesh cellHintMesh;
+    private Mesh platformMesh;
 
     private Material tilePrimaryMaterial;
     private Material tileSecondaryMaterial;
@@ -350,6 +352,10 @@ public sealed partial class HexTacticsPrototype : MonoBehaviour
         cellMesh = boardTopology == BoardTopology.Square
             ? BuildSquarePrismMesh(SquareCellHalfExtent, SquareCellHalfExtent, tileHeight)
             : BuildHexPrismMesh(hexRadius, tileHeight);
+        if (boardTopology == BoardTopology.Hex)
+        {
+            cellHintMesh = BuildCellHintMesh(hexRadius * 0.62f, hexRadius * 0.055f);
+        }
 
         BuildBoard();
         CacheDeploySlots();

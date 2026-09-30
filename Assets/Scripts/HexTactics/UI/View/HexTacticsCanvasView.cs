@@ -30,7 +30,7 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
     private HexTacticsVictoryOverlayView victoryOverlay;
     private HexTacticsSkillPopupView skillPopup;
 
-    protected override int CurrentLayoutVersion => 8;
+    protected override int CurrentLayoutVersion => 9;
 
     protected override bool HasCurrentBindings =>
         canvas != null &&
@@ -244,13 +244,14 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
 
     private void ApplyCanvasScale()
     {
-        if (canvasScaler == null || Screen.height <= 0)
+        var displaySize = canvas != null ? canvas.renderingDisplaySize : new Vector2(Screen.width, Screen.height);
+        if (canvasScaler == null || displaySize.y <= 0)
         {
             return;
         }
 
-        var aspect = (float)Screen.width / Screen.height;
-        if (Screen.height > Screen.width * 1.05f)
+        var aspect = displaySize.x / displaySize.y;
+        if (displaySize.y > displaySize.x * 1.05f)
         {
             canvasScaler.matchWidthOrHeight = Mathf.Lerp(0.88f, 0.76f, Mathf.InverseLerp(0.56f, 1.0f, aspect));
             return;
@@ -273,6 +274,10 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         safeAreaLayer.anchorMax = new Vector2(safeArea.xMax / width, safeArea.yMax / height);
         safeAreaLayer.offsetMin = Vector2.zero;
         safeAreaLayer.offsetMax = Vector2.zero;
+        floatingHudLayer.anchorMin = safeAreaLayer.anchorMin;
+        floatingHudLayer.anchorMax = safeAreaLayer.anchorMax;
+        floatingHudLayer.offsetMin = Vector2.zero;
+        floatingHudLayer.offsetMax = Vector2.zero;
     }
 
     private void ApplyScreenRects()
@@ -286,12 +291,12 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         var safeHeight = Mathf.Max(1f, safeAreaLayer.rect.height);
         var isPortrait = safeHeight > safeWidth * 1.05f;
         var screenMargin = Mathf.Clamp(safeWidth * 0.016f, 14f, 24f);
-        var battlePanelWidth = Mathf.Clamp(safeWidth * 0.245f, 320f, 408f);
+        var battlePanelWidth = Mathf.Min(safeWidth - screenMargin * 2f, Mathf.Clamp(safeWidth * 0.245f, 400f, 448f));
 
         ConfigureCenteredCard(
             modeSelectScreen.Root,
-            isPortrait ? Mathf.Clamp(safeWidth * 0.82f, 320f, 520f) : Mathf.Clamp(safeWidth * 0.30f, 460f, 520f),
-            isPortrait ? Mathf.Clamp(safeHeight * 0.18f, 200f, 260f) : Mathf.Clamp(safeHeight * 0.22f, 220f, 260f),
+            Mathf.Min(safeWidth - screenMargin * 2f, isPortrait ? 520f : Mathf.Clamp(safeWidth * 0.30f, 460f, 520f)),
+            360f,
             new Vector2(0f, Mathf.Clamp(safeHeight * 0.03f, 16f, 40f)));
 
         HexTacticsUiFactory.Stretch(teamBuilderScreen.Root, Vector2.zero, Vector2.one);
@@ -302,13 +307,13 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             ConfigureBottomCenteredCard(
                 planningScreen.Root,
                 safeWidth - screenMargin * 2f,
-                Mathf.Clamp(safeHeight * 0.20f, 180f, 250f),
+                Mathf.Clamp(safeHeight * 0.30f, 432f, 492f),
                 screenMargin);
 
             ConfigureTopCenteredCard(
                 resolvingScreen.Root,
                 Mathf.Clamp(safeWidth * 0.78f, 300f, 400f),
-                Mathf.Clamp(safeHeight * 0.12f, 120f, 152f),
+                184f,
                 screenMargin);
         }
         else
@@ -316,14 +321,14 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
             ConfigureTopLeftCard(
                 planningScreen.Root,
                 battlePanelWidth,
-                Mathf.Clamp(safeHeight * 0.26f, 220f, 280f),
+                Mathf.Clamp(safeHeight * 0.44f, 448f, 492f),
                 screenMargin,
                 screenMargin);
 
             ConfigureTopLeftCard(
                 resolvingScreen.Root,
                 Mathf.Clamp(battlePanelWidth * 0.92f, 300f, 376f),
-                Mathf.Clamp(safeHeight * 0.16f, 140f, 176f),
+                184f,
                 screenMargin,
                 screenMargin);
         }
@@ -375,8 +380,19 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
                 continue;
             }
 
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(worldLabelLayer, screenPoint, null, out var localPoint))
+            // WorldLabels spans the canvas. Map its pixel viewport directly to
+            // its local rect, avoiding the camera canvas plane's transform,
+            // which can still reflect the previous camera pose during layout.
+            var viewport = canvas.pixelRect;
+            if (viewport.width > 0f && viewport.height > 0f)
             {
+                var normalized = new Vector2(
+                    (screenPoint.x - viewport.xMin) / viewport.width,
+                    (screenPoint.y - viewport.yMin) / viewport.height);
+                var layerRect = worldLabelLayer.rect;
+                var localPoint = new Vector2(
+                    layerRect.xMin + normalized.x * layerRect.width,
+                    layerRect.yMin + normalized.y * layerRect.height);
                 var targetPosition = localPoint + new Vector2(0f, 14f);
                 worldLabelViews[i].RectTransform.anchoredPosition = ClampWorldLabelPosition(worldLabelViews[i].RectTransform, targetPosition);
             }
@@ -391,7 +407,8 @@ public sealed class HexTacticsCanvasView : HexTacticsUiGeneratedView
         }
 
         skillPopup.Bind(snapshot.SkillPopupTitle, snapshot.SelectedUnitSkillEntries, onSelectSkill);
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(floatingHudLayer, snapshot.SkillPopupScreenPosition, null, out var localPoint))
+        var uiCamera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(floatingHudLayer, snapshot.SkillPopupScreenPosition, uiCamera, out var localPoint))
         {
             skillPopup.Root.anchoredPosition = ClampFloatingHudPosition(skillPopup.Root, localPoint);
         }

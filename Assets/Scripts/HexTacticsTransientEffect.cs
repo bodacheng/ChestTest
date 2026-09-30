@@ -6,10 +6,25 @@ public sealed class HexTacticsTransientEffect : MonoBehaviour
 {
     [SerializeField, Min(0.1f)] private float fallbackLifetime = 1.4f;
     [SerializeField, Min(0f)] private float destroyDelayPadding = 0.12f;
+    [SerializeField, Tooltip("Optional authored core. Use this for effects whose brightest point is not their prefab origin.")]
+    private Transform visualCore;
+    [SerializeField] private Vector3 visualCoreOffset;
 
     private ParticleSystem[] particleSystems;
     private TrailRenderer[] trailRenderers;
     private Coroutine releaseRoutine;
+    private GameObject releaseTarget;
+
+    public void SetReleaseTarget(GameObject target)
+    {
+        releaseTarget = target;
+    }
+
+    public bool TryGetAuthoredVisualCorePosition(out Vector3 position)
+    {
+        position = visualCore != null ? visualCore.TransformPoint(visualCoreOffset) : Vector3.zero;
+        return visualCore != null;
+    }
 
     private void Awake()
     {
@@ -65,9 +80,12 @@ public sealed class HexTacticsTransientEffect : MonoBehaviour
                 continue;
             }
 
-            particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            particleSystem.Clear(true);
-            particleSystem.Play(true);
+            particleSystem.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+            particleSystem.Clear(false);
+            if (particleSystem.gameObject.activeInHierarchy)
+            {
+                particleSystem.Play(false);
+            }
         }
     }
 
@@ -111,7 +129,7 @@ public sealed class HexTacticsTransientEffect : MonoBehaviour
         return lifetime + destroyDelayPadding;
     }
 
-    private static float ResolveMaxCurveValue(ParticleSystem.MinMaxCurve curve)
+    internal static float ResolveMaxCurveValue(ParticleSystem.MinMaxCurve curve)
     {
         return curve.mode switch
         {
@@ -143,6 +161,6 @@ public sealed class HexTacticsTransientEffect : MonoBehaviour
     private IEnumerator ReleaseAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
-        Destroy(gameObject);
+        Destroy(releaseTarget != null ? releaseTarget : gameObject);
     }
 }

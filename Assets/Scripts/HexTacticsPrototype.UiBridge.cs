@@ -80,7 +80,7 @@ public sealed partial class HexTacticsPrototype
                 entry.Definition.MaxEnergy,
                 entry.Definition.SkillCount,
                 entry.Definition.PrimarySkill != null ? entry.Definition.PrimarySkill.DisplayName : "通常攻撃",
-                $"部署格 ({entry.Coord.Q},{entry.Coord.R})",
+                $"位置 ({entry.Coord.Q},{entry.Coord.R})",
                 BuildAvatarUiData(entry.Definition)));
         }
 
@@ -322,7 +322,7 @@ public sealed partial class HexTacticsPrototype
         var assignmentSummary = selectedUnit.HasAssignedCommand ? "已下令" : "待下令";
         var selectedSkill = selectedUnit.SelectedSkill;
         var skillSummary = BuildCompactSkillSummary(selectedSkill);
-        return $"{selectedUnit.RoleName}  HP {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  EN {selectedUnit.CurrentEnergy}/{selectedUnit.MaxEnergy}  {skillSummary}  {assignmentSummary}";
+        return $"生命 {selectedUnit.CurrentHealth}/{selectedUnit.MaxHealth}  ·  能量 {selectedUnit.CurrentEnergy}/{selectedUnit.MaxEnergy}  ·  {assignmentSummary}\n{skillSummary}";
     }
 
     private string BuildVictorySummary()

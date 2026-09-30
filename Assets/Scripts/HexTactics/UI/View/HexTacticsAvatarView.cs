@@ -48,7 +48,6 @@ public sealed class HexTacticsAvatarView : HexTacticsUiGeneratedView
         HexTacticsUiFactory.Stretch(iconRoot, Vector2.zero, Vector2.one);
         HexTacticsUiFactory.SetOffsets(iconRoot, iconInset, iconInset, iconInset, iconInset);
         iconImage = HexTacticsUiFactory.AddImage(iconRoot.gameObject, Color.white, false);
-        HexTacticsUiFactory.Stretch(iconImage.rectTransform, Vector2.zero, Vector2.one);
 
         fallbackText = HexTacticsUiFactory.CreateText(root, "FallbackText", string.Empty, fallbackFontSize, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
         HexTacticsUiFactory.Stretch(fallbackText.rectTransform, Vector2.zero, Vector2.one);

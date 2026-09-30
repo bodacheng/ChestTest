@@ -18,7 +18,7 @@ public static class HexTacticsCombatRuleAudit
 
     public static void RunBatchMode()
     {
-        var success = RunAudit(logSuccess: false);
+        var success = RunAudit(logSuccess: true);
         if (Application.isBatchMode)
         {
             EditorApplication.Exit(success ? 0 : 1);
@@ -253,12 +253,12 @@ public static class HexTacticsCombatRuleAudit
                 UnityEngine.Object.DestroyImmediate(root.transform.GetChild(i).gameObject);
             }
 
-            canAssignEnemyTargetMethod = GetMethod(prototypeType, "CanAssignEnemyTarget");
-            tryAssignAttackCommandMethod = GetMethod(prototypeType, "TryAssignAttackCommand");
-            canSelectMoveTargetMethod = GetMethod(prototypeType, "CanSelectMoveTarget");
-            canResolveAttackEventMethod = GetMethod(prototypeType, "CanResolveAttackEvent");
-            collectEnemyMoveContactsMethod = GetMethod(prototypeType, "CollectEnemyMoveContacts");
-            buildContactAttackEventsMethod = GetMethod(prototypeType, "BuildContactAttackEvents");
+            canAssignEnemyTargetMethod = GetMethod(prototypeType, "CanAssignEnemyTarget", unitType, coordType);
+            tryAssignAttackCommandMethod = GetMethod(prototypeType, "TryAssignAttackCommand", unitType, coordType, typeof(int));
+            canSelectMoveTargetMethod = GetMethod(prototypeType, "CanSelectMoveTarget", unitType, coordType);
+            canResolveAttackEventMethod = GetMethod(prototypeType, "CanResolveAttackEvent", attackEventType);
+            collectEnemyMoveContactsMethod = GetMethod(prototypeType, "CollectEnemyMoveContacts", typeof(List<>).MakeGenericType(moveIntentType));
+            buildContactAttackEventsMethod = GetMethod(prototypeType, "BuildContactAttackEvents", contactMapType);
 
             occupantProperty = cellType.GetProperty("Occupant", InstanceFlags);
         }
@@ -462,9 +462,9 @@ public static class HexTacticsCombatRuleAudit
                    ?? throw new MissingFieldException(owner.FullName, name);
         }
 
-        private static MethodInfo GetMethod(Type owner, string name)
+        private static MethodInfo GetMethod(Type owner, string name, params Type[] parameterTypes)
         {
-            return owner.GetMethod(name, InstanceFlags)
+            return owner.GetMethod(name, InstanceFlags, null, parameterTypes, null)
                    ?? throw new MissingMethodException(owner.FullName, name);
         }
 

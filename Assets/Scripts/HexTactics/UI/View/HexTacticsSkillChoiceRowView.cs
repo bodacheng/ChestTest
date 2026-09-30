@@ -11,7 +11,9 @@ public sealed class HexTacticsSkillChoiceRowView : HexTacticsUiGeneratedView
     [SerializeField] private Text titleText;
     [SerializeField] private Text detailText;
 
-    protected override int CurrentLayoutVersion => 3;
+    protected override int CurrentLayoutVersion => 4;
+
+    public int SkillIndex { get; private set; }
 
     protected override bool HasCurrentBindings =>
         panelImage != null &&
@@ -22,7 +24,8 @@ public sealed class HexTacticsSkillChoiceRowView : HexTacticsUiGeneratedView
     public void Bind(HexTacticsSkillChoiceUiData data, Action<int> onSelect)
     {
         EnsureBuilt();
-        titleText.text = data.Title;
+        SkillIndex = data.SkillIndex;
+        titleText.text = data.IsSelected ? $"当前 · {data.Title}" : data.Title;
         detailText.text = data.Detail;
 
         var panelColor = ResolvePanelColor(data);
@@ -62,39 +65,39 @@ public sealed class HexTacticsSkillChoiceRowView : HexTacticsUiGeneratedView
         button = root.gameObject.AddComponent<Button>();
         button.targetGraphic = panelImage;
         var colors = button.colors;
-        colors.normalColor = panelImage.color;
-        colors.highlightedColor = new Color(0.18f, 0.24f, 0.30f, 0.92f);
-        colors.pressedColor = new Color(0.07f, 0.10f, 0.14f, 0.96f);
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(1.12f, 1.12f, 1.12f, 1f);
+        colors.pressedColor = new Color(0.80f, 0.80f, 0.80f, 1f);
         colors.selectedColor = colors.highlightedColor;
-        colors.disabledColor = new Color(0.09f, 0.10f, 0.12f, 0.44f);
+        colors.disabledColor = new Color(0.68f, 0.68f, 0.68f, 0.80f);
         colors.fadeDuration = 0.08f;
         button.colors = colors;
         HexTacticsUiFactory.AddLayoutElement(root.gameObject, preferredHeight: HexTacticsSkillPopupView.RowHeight, flexibleWidth: 1f);
 
-        var layout = root.gameObject.AddComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(8, 8, 0, 0);
-        layout.spacing = 8f;
+        var layout = root.gameObject.AddComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(10, 10, 3, 3);
+        layout.spacing = 0f;
         layout.childAlignment = TextAnchor.MiddleLeft;
         layout.childControlHeight = true;
         layout.childControlWidth = true;
         layout.childForceExpandHeight = false;
         layout.childForceExpandWidth = true;
 
-        titleText = HexTacticsUiFactory.CreateText(root, "Title", string.Empty, 12, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+        titleText = HexTacticsUiFactory.CreateText(root, "Title", string.Empty, 14, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
         titleText.resizeTextForBestFit = true;
-        titleText.resizeTextMinSize = 9;
-        titleText.resizeTextMaxSize = 12;
-        titleText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        titleText.resizeTextMinSize = 12;
+        titleText.resizeTextMaxSize = 14;
+        titleText.horizontalOverflow = HorizontalWrapMode.Wrap;
         titleText.verticalOverflow = VerticalWrapMode.Truncate;
-        HexTacticsUiFactory.AddLayoutElement(titleText.gameObject, preferredHeight: HexTacticsSkillPopupView.RowHeight, flexibleWidth: 1f);
+        HexTacticsUiFactory.AddLayoutElement(titleText.gameObject, preferredHeight: 24f);
 
-        detailText = HexTacticsUiFactory.CreateText(root, "Detail", string.Empty, 10, TextAnchor.MiddleRight, new Color(0.82f, 0.88f, 0.92f));
+        detailText = HexTacticsUiFactory.CreateText(root, "Detail", string.Empty, 11, TextAnchor.MiddleLeft, new Color(0.82f, 0.88f, 0.92f));
         detailText.resizeTextForBestFit = true;
-        detailText.resizeTextMinSize = 8;
-        detailText.resizeTextMaxSize = 10;
-        detailText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        detailText.resizeTextMinSize = 11;
+        detailText.resizeTextMaxSize = 11;
+        detailText.horizontalOverflow = HorizontalWrapMode.Wrap;
         detailText.verticalOverflow = VerticalWrapMode.Truncate;
-        HexTacticsUiFactory.AddLayoutElement(detailText.gameObject, preferredWidth: 74f, preferredHeight: HexTacticsSkillPopupView.RowHeight);
+        HexTacticsUiFactory.AddLayoutElement(detailText.gameObject, preferredHeight: 18f);
     }
 
     public static HexTacticsSkillChoiceRowView CreateStandalone(Transform parent)

@@ -29,6 +29,7 @@ public sealed partial class HexTacticsPrototype
         moveCells.Clear();
         attackCells.Clear();
         ResetRoundResolutionState();
+        RefreshVisuals();
 
         yield return new WaitForSeconds(cpuThinkDelay);
 

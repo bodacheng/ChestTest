@@ -13,7 +13,7 @@ public sealed class HexTacticsCommandRowView : HexTacticsUiGeneratedView
     [SerializeField] private Text selectButtonText;
     [SerializeField] private Button waitButton;
 
-    protected override int CurrentLayoutVersion => 12;
+    protected override int CurrentLayoutVersion => 13;
 
     protected override bool HasCurrentBindings =>
         panelImage != null &&
@@ -54,12 +54,12 @@ public sealed class HexTacticsCommandRowView : HexTacticsUiGeneratedView
         root.anchorMin = new Vector2(0f, 1f);
         root.anchorMax = new Vector2(1f, 1f);
         root.pivot = new Vector2(0.5f, 1f);
-        root.sizeDelta = new Vector2(0f, 58f);
+        root.sizeDelta = new Vector2(0f, 104f);
 
         panelImage = HexTacticsUiFactory.AddImage(root.gameObject, new Color(0.06f, 0.08f, 0.10f, 0.74f));
         HexTacticsModernUiSkin.ApplyCardPanel(panelImage, new Color(1f, 1f, 1f, 0.92f));
         HexTacticsUiFactory.StylePanel(panelImage, new Color(1f, 1f, 1f, 0.04f), 0f);
-        HexTacticsUiFactory.AddLayoutElement(root.gameObject, preferredHeight: 58f);
+        HexTacticsUiFactory.AddLayoutElement(root.gameObject, preferredHeight: 104f);
 
         var layout = root.gameObject.AddComponent<HorizontalLayoutGroup>();
         layout.padding = new RectOffset(6, 6, 6, 6);
@@ -75,14 +75,17 @@ public sealed class HexTacticsCommandRowView : HexTacticsUiGeneratedView
         avatarView = HexTacticsAvatarView.CreateStandalone(avatarRoot, "AvatarView", 2f, 14);
 
         commandText = HexTacticsUiFactory.CreateText(root, "CommandText", string.Empty, 12, TextAnchor.MiddleLeft, Color.white);
+        commandText.resizeTextForBestFit = true;
+        commandText.resizeTextMinSize = 12;
+        commandText.resizeTextMaxSize = 12;
         commandText.verticalOverflow = VerticalWrapMode.Truncate;
-        HexTacticsUiFactory.AddLayoutElement(commandText.gameObject, flexibleWidth: 1f, preferredHeight: 42f);
+        HexTacticsUiFactory.AddLayoutElement(commandText.gameObject, flexibleWidth: 1f, preferredHeight: 92f);
 
         selectButton = HexTacticsUiFactory.CreateButton(root, "SelectButton", "查看", new Color(0.24f, 0.36f, 0.50f, 0.94f), Color.white, out selectButtonText);
-        HexTacticsUiFactory.AddLayoutElement(selectButton.gameObject, preferredWidth: 52f, preferredHeight: 26f);
+        HexTacticsUiFactory.AddLayoutElement(selectButton.gameObject, preferredWidth: 52f, preferredHeight: 34f);
 
         waitButton = HexTacticsUiFactory.CreateButton(root, "WaitButton", "待机", new Color(0.30f, 0.44f, 0.28f, 0.94f), Color.white, out _);
-        HexTacticsUiFactory.AddLayoutElement(waitButton.gameObject, preferredWidth: 46f, preferredHeight: 26f);
+        HexTacticsUiFactory.AddLayoutElement(waitButton.gameObject, preferredWidth: 52f, preferredHeight: 34f);
     }
 
     public static HexTacticsCommandRowView CreateStandalone(Transform parent)

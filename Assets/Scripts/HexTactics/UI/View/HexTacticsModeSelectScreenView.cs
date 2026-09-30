@@ -9,7 +9,7 @@ public sealed class HexTacticsModeSelectScreenView : HexTacticsUiGeneratedView
     [SerializeField] private Button hexModeButton;
     [SerializeField] private Button squareModeButton;
 
-    protected override int CurrentLayoutVersion => 5;
+    protected override int CurrentLayoutVersion => 6;
 
     protected override bool HasCurrentBindings => hexModeButton != null && squareModeButton != null;
 
@@ -30,7 +30,7 @@ public sealed class HexTacticsModeSelectScreenView : HexTacticsUiGeneratedView
         root.anchorMin = new Vector2(0.5f, 0.5f);
         root.anchorMax = new Vector2(0.5f, 0.5f);
         root.pivot = new Vector2(0.5f, 0.5f);
-        root.sizeDelta = new Vector2(520f, 286f);
+        root.sizeDelta = new Vector2(520f, 360f);
         root.anchoredPosition = new Vector2(0f, 40f);
 
         var panel = HexTacticsUiFactory.AddImage(root.gameObject, new Color(0.04f, 0.07f, 0.08f, 0.82f));
@@ -38,10 +38,10 @@ public sealed class HexTacticsModeSelectScreenView : HexTacticsUiGeneratedView
         HexTacticsUiFactory.StylePanel(panel, new Color(1f, 1f, 1f, 0.05f));
 
         var layout = root.gameObject.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(28, 28, 26, 24);
+        layout.padding = new RectOffset(24, 24, 22, 22);
         layout.spacing = 8f;
         layout.childAlignment = TextAnchor.UpperCenter;
-        layout.childControlHeight = false;
+        layout.childControlHeight = true;
         layout.childControlWidth = true;
         layout.childForceExpandHeight = false;
         layout.childForceExpandWidth = true;
@@ -54,13 +54,13 @@ public sealed class HexTacticsModeSelectScreenView : HexTacticsUiGeneratedView
         HexTacticsUiFactory.Stretch(chipText.rectTransform, Vector2.zero, Vector2.one);
 
         var title = HexTacticsUiFactory.CreateText(root, "Title", "选择棋盘模式", 28, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
-        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 34f);
+        HexTacticsUiFactory.AddLayoutElement(title.gameObject, preferredHeight: 46f);
 
-        var description = HexTacticsUiFactory.CreateText(root, "Description", "六边格保留原规则，方形格改为每步四方向移动。", 16, TextAnchor.MiddleCenter, new Color(0.82f, 0.88f, 0.90f));
-        HexTacticsUiFactory.AddLayoutElement(description.gameObject, preferredHeight: 22f);
+        var description = HexTacticsUiFactory.CreateText(root, "Description", "六边形采用六方向移动，方形采用四方向移动。", 16, TextAnchor.MiddleCenter, new Color(0.82f, 0.88f, 0.90f));
+        HexTacticsUiFactory.AddLayoutElement(description.gameObject, preferredHeight: 52f);
 
-        var hint = HexTacticsUiFactory.CreateText(root, "Hint", "当前开放单人对战，可随时返回这里切换棋盘。", 13, TextAnchor.MiddleCenter, new Color(0.62f, 0.72f, 0.76f));
-        HexTacticsUiFactory.AddLayoutElement(hint.gameObject, preferredHeight: 18f);
+        var hint = HexTacticsUiFactory.CreateText(root, "Hint", "编队部署 → 下达指令 → 同步结算\n六边形棋盘仅在操作时显示位置提示。", 13, TextAnchor.MiddleCenter, new Color(0.72f, 0.82f, 0.86f));
+        HexTacticsUiFactory.AddLayoutElement(hint.gameObject, preferredHeight: 44f);
 
         hexModeButton = HexTacticsUiFactory.CreateButton(root, "HexModeButton", "六边形格模式", new Color(0.19f, 0.46f, 0.46f, 0.94f), Color.white, out _);
         HexTacticsUiFactory.AddLayoutElement(hexModeButton.gameObject, preferredHeight: 44f, preferredWidth: 236f);

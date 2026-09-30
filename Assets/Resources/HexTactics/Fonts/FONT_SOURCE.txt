@@ -1,0 +1,6 @@
+Noto Sans SC Regular
+Source: https://github.com/notofonts/noto-cjk/blob/main/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf
+Downloaded: 2026-09-30
+Original copyright and attribution are retained in the font metadata.
+Licensed under the SIL Open Font License, Version 1.1. See OFL.txt.
+Bundled to provide consistent Simplified Chinese, Japanese kana, and Latin UI glyphs in editor and player builds.

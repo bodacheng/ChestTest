@@ -16,7 +16,7 @@ public sealed class HexTacticsWorldLabelView : HexTacticsUiGeneratedView
     [SerializeField] private RectTransform healthFillRect;
     [SerializeField] private Image healthFillImage;
 
-    protected override int CurrentLayoutVersion => 10;
+    protected override int CurrentLayoutVersion => 11;
 
     protected override bool HasCurrentBindings =>
         rectTransform != null &&
@@ -50,7 +50,9 @@ public sealed class HexTacticsWorldLabelView : HexTacticsUiGeneratedView
         HexTacticsUiFactory.ResetViewRoot(this);
 
         rectTransform = (RectTransform)transform;
+        rectTransform.anchorMin = rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         rectTransform.pivot = new Vector2(0.5f, 0f);
+        rectTransform.anchoredPosition = Vector2.zero;
         rectTransform.sizeDelta = new Vector2(52f, 10f);
 
         backgroundImage = HexTacticsUiFactory.AddImage(rectTransform.gameObject, new Color(0f, 0f, 0f, 0f), false);

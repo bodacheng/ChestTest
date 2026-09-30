@@ -40,19 +40,25 @@ public sealed partial class HexTacticsPrototype
         var effectRotation = ResolveHitEffectRotation(attacker, defender);
         SpawnProjectileReleaseBurst(attacker, defender, skill, startPosition, effectRotation);
 
-        var effectInstance = Instantiate(projectileEffectPrefab, startPosition, effectRotation, effectsRoot);
-        effectInstance.name = projectileEffectPrefab.name;
-        effectInstance.transform.localScale *= ResolveRangedWaveScale(attacker, defender) * ResolveProjectileEffectScale(skill);
+        var effectInstance = SpawnTransientEffect(
+            projectileEffectPrefab,
+            startPosition,
+            effectRotation,
+            ResolveRangedWaveScale(attacker, defender) * ResolveProjectileEffectScale(skill),
+            projectileEffectPrefab.name,
+            alignVisualCenter: true,
+            startPlayback: false);
+        if (effectInstance == null)
+        {
+            return;
+        }
+
+        ConfigureTravelingEffectCore(effectInstance.transform);
 
         var travelEffect = effectInstance.GetComponent<HexTacticsTravelingEffect>();
         if (travelEffect == null)
         {
             travelEffect = effectInstance.AddComponent<HexTacticsTravelingEffect>();
-        }
-
-        if (effectInstance.GetComponent<HexTacticsTransientEffect>() == null)
-        {
-            effectInstance.AddComponent<HexTacticsTransientEffect>();
         }
 
         travelEffect.Initialize(
@@ -62,6 +68,7 @@ public sealed partial class HexTacticsPrototype
             ResolveProjectileArcHeight(attacker, defender, skill),
             ResolveProjectileLateralSway(attacker, defender, skill),
             skill != null ? skill.ProjectileSpinDegreesPerSecond : 0f);
+        effectInstance.SetActive(true);
     }
 
     private void SpawnHitEffect(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
@@ -101,7 +108,7 @@ public sealed partial class HexTacticsPrototype
             return;
         }
 
-        var autoEffectPosition = ResolveHitEffectPosition(attacker, defender, entry);
+        var autoEffectPosition = ResolveConfiguredHitEffectPosition(attacker, defender, skill);
         var autoScale = ResolveConfiguredImpactEffectScale(entry.Scale);
         SpawnTransientEffect(
             entry.Prefab,
@@ -217,7 +224,13 @@ public sealed partial class HexTacticsPrototype
         }
 
         var releaseScale = ResolveRangedWaveScale(attacker, defender) * ResolveReleaseEffectScale(skill);
-        SpawnTransientEffect(releaseEffectPrefab, startPosition, effectRotation, releaseScale, releaseEffectPrefab.name + "_Release");
+        SpawnTransientEffect(
+            releaseEffectPrefab,
+            startPosition,
+            effectRotation,
+            releaseScale,
+            releaseEffectPrefab.name + "_Release",
+            alignVisualCenter: true);
     }
 
     private void TrySpawnImpactEcho(
@@ -464,17 +477,11 @@ public sealed partial class HexTacticsPrototype
 
     private Vector3 ResolveRangedWaveEndPosition(HexUnit attacker, HexUnit defender, HexTacticsSkillConfig skill)
     {
-        var direction = ResolvePlanarDirection(attacker, defender, Vector3.forward);
-        var height = Mathf.Max(unitHoverHeight * 0.8f, defender.VisualHeight * 0.5f);
-        var backwardOffset = Mathf.Max(hexRadius * 0.12f, defender.SelectionRadius * 0.18f);
-        var endPosition = defender.Transform.position + Vector3.up * height - direction * backwardOffset;
-        if (skill != null && skill.HasImpactEffect)
-        {
-            var configuredPosition = ResolveConfiguredHitEffectPosition(attacker, defender, skill);
-            endPosition = Vector3.Lerp(endPosition, configuredPosition, 0.55f);
-        }
-
-        return endPosition;
+        // Arrival and impact must share one anchor; blending with a point in front
+        // of the body left the projectile core visibly short of the explosion.
+        return skill != null
+            ? ResolveConfiguredHitEffectPosition(attacker, defender, skill)
+            : ResolveCenteredImpactEffectPosition(attacker, defender, hitEffectHeightNormalized, hitEffectForwardOffset);
     }
 
     private float ResolveRangedWaveScale(HexUnit attacker, HexUnit defender)
@@ -1177,27 +1184,56 @@ public sealed partial class HexTacticsPrototype
         float scale,
         string instanceName,
         bool alignVisualCenter = false,
-        float targetVisualExtent = 0f)
+        float targetVisualExtent = 0f,
+        bool startPlayback = true)
     {
         if (effectPrefab == null || effectsRoot == null)
         {
             return null;
         }
 
-        var effectInstance = Instantiate(effectPrefab, position, rotation, effectsRoot);
-        effectInstance.name = string.IsNullOrWhiteSpace(instanceName) ? effectPrefab.name : instanceName;
-        effectInstance.transform.localScale *= Mathf.Max(0.1f, scale);
-        if (effectInstance.GetComponent<HexTacticsTransientEffect>() == null)
+        // Keep the gameplay origin at the attack point. Only the authored visual
+        // content is offset, so rotation, travel and scaling all use that origin.
+        // Configure while inactive to avoid emitting world-space particles before
+        // the final placement has been established.
+        var effectInstance = new GameObject(string.IsNullOrWhiteSpace(instanceName) ? effectPrefab.name : instanceName);
+        effectInstance.SetActive(false);
+        effectInstance.transform.SetParent(effectsRoot, false);
+        effectInstance.transform.SetPositionAndRotation(position, rotation);
+        var visualInstance = Instantiate(effectPrefab, effectInstance.transform, false);
+        visualInstance.name = "Visuals";
+        var visualTransform = visualInstance.transform;
+        visualTransform.localPosition = Vector3.zero;
+        visualTransform.localRotation = Quaternion.identity;
+        visualTransform.localScale *= Mathf.Max(0.1f, scale);
+        var transientEffect = visualInstance.GetComponent<HexTacticsTransientEffect>();
+        if (transientEffect == null)
         {
-            effectInstance.AddComponent<HexTacticsTransientEffect>();
+            transientEffect = visualInstance.AddComponent<HexTacticsTransientEffect>();
+        }
+
+        transientEffect.SetReleaseTarget(effectInstance);
+        foreach (var nestedLifetime in visualInstance.GetComponentsInChildren<HexTacticsTransientEffect>(true))
+        {
+            if (nestedLifetime != transientEffect)
+            {
+                nestedLifetime.enabled = false;
+            }
+        }
+
+        foreach (var particleSystem in visualInstance.GetComponentsInChildren<ParticleSystem>(true))
+        {
+            var main = particleSystem.main;
+            main.scalingMode = ParticleSystemScalingMode.Hierarchy;
         }
 
         if (alignVisualCenter)
         {
-            NormalizeImpactEffectVisualScale(effectInstance.transform, targetVisualExtent);
-            AlignEffectVisualCenter(effectInstance.transform, position);
+            NormalizeImpactEffectVisualScale(visualTransform, targetVisualExtent);
+            AlignEffectVisualCenter(visualTransform, position);
         }
 
+        effectInstance.SetActive(startPlayback);
         return effectInstance;
     }
 
@@ -1282,18 +1318,192 @@ public sealed partial class HexTacticsPrototype
 
     private static void AlignEffectVisualCenter(Transform effectTransform, Vector3 desiredPosition)
     {
-        if (effectTransform == null || !TryGetEffectVisualBounds(effectTransform, out var bounds))
+        if (effectTransform == null || !TryResolveEffectCorePosition(effectTransform, out var corePosition))
         {
             return;
         }
 
-        var delta = desiredPosition - bounds.center;
+        // Particle bounds include moving debris and trails, and are often empty
+        // on the spawn frame. Anchor the authored bright core instead of the
+        // changing outer envelope of an explosion.
+        var transient = effectTransform.GetComponent<HexTacticsTransientEffect>();
+        var hasAuthoredCore = transient != null && transient.TryGetAuthoredVisualCorePosition(out _);
+        if (!hasAuthoredCore && TryResolveEffectCoreParticle(effectTransform, out var coreParticle))
+        {
+            var coreRenderer = coreParticle.GetComponent<ParticleSystemRenderer>();
+            coreRenderer.pivot = Vector3.zero;
+        }
+
+        var delta = desiredPosition - corePosition;
         if (delta.sqrMagnitude <= 0.000001f)
         {
             return;
         }
 
         effectTransform.position += delta;
+    }
+
+    private static bool TryResolveEffectCorePosition(Transform visualRoot, out Vector3 corePosition)
+    {
+        corePosition = Vector3.zero;
+        if (visualRoot == null)
+        {
+            return false;
+        }
+
+        var transient = visualRoot.GetComponent<HexTacticsTransientEffect>();
+        if (transient != null && transient.TryGetAuthoredVisualCorePosition(out corePosition))
+        {
+            return true;
+        }
+
+        foreach (var candidate in visualRoot.GetComponentsInChildren<Transform>(true))
+        {
+            var name = NormalizeAnimationName(candidate.name);
+            if ((name == "effectcore" || name == "visualcore" || name == "impactcore") &&
+                IsActiveWithinEffect(candidate, visualRoot))
+            {
+                corePosition = candidate.position;
+                return true;
+            }
+        }
+
+        if (TryResolveEffectCoreParticle(visualRoot, out var coreParticle))
+        {
+            var shape = coreParticle.shape;
+            corePosition = coreParticle.transform.TransformPoint(shape.enabled ? shape.position : Vector3.zero);
+            return true;
+        }
+
+        if (!TryGetStaticEffectBounds(visualRoot, out var bounds))
+        {
+            return false;
+        }
+
+        corePosition = bounds.center;
+        return true;
+    }
+
+    private static bool TryResolveEffectCoreParticle(Transform visualRoot, out ParticleSystem coreParticle)
+    {
+        coreParticle = null;
+        var bestScore = int.MinValue;
+        var bestSize = -1f;
+        foreach (var particleSystem in visualRoot.GetComponentsInChildren<ParticleSystem>(true))
+        {
+            var renderer = particleSystem.GetComponent<ParticleSystemRenderer>();
+            if (renderer == null || !renderer.enabled || renderer.renderMode == ParticleSystemRenderMode.None ||
+                !particleSystem.emission.enabled || !IsActiveWithinEffect(particleSystem.transform, visualRoot))
+            {
+                continue;
+            }
+
+            var name = NormalizeAnimationName(particleSystem.name);
+            var score = ResolveEffectCorePriority(name);
+            var main = particleSystem.main;
+            if (ResolveEffectCurveMagnitude(main.startSpeed) > 0.001f)
+            {
+                score -= 100;
+            }
+
+            var size = HexTacticsTransientEffect.ResolveMaxCurveValue(main.startSize);
+            if (score < bestScore || (score == bestScore && size <= bestSize))
+            {
+                continue;
+            }
+
+            bestScore = score;
+            bestSize = size;
+            coreParticle = particleSystem;
+        }
+
+        return coreParticle != null;
+    }
+
+    private static int ResolveEffectCorePriority(string name)
+    {
+        if (name.Contains("trail") || name.Contains("smoke") || name.Contains("debris") ||
+            name.Contains("spark") || name.Contains("particle") || name.Contains("ground") || name.Contains("shadow"))
+        {
+            return 0;
+        }
+
+        if (name.Contains("flash")) return 200;
+        if (name.Contains("beamimpact")) return 190;
+        if (name.Contains("flare")) return 180;
+        if (name.Contains("glow")) return 170;
+        if (name.Contains("ball")) return 160;
+        if (name.Contains("shockwave")) return 140;
+        if (name.Contains("impact")) return 130;
+        if (name.Contains("beam")) return 120;
+        if (name.Contains("circle")) return 110;
+        return 10;
+    }
+
+    private static float ResolveEffectCurveMagnitude(ParticleSystem.MinMaxCurve curve)
+    {
+        return curve.mode switch
+        {
+            ParticleSystemCurveMode.TwoConstants => Mathf.Max(Mathf.Abs(curve.constantMin), Mathf.Abs(curve.constantMax)),
+            ParticleSystemCurveMode.Curve => ResolveEffectCurveMagnitude(curve.curve) * Mathf.Abs(curve.curveMultiplier),
+            ParticleSystemCurveMode.TwoCurves => Mathf.Max(
+                ResolveEffectCurveMagnitude(curve.curveMin),
+                ResolveEffectCurveMagnitude(curve.curveMax)) * Mathf.Abs(curve.curveMultiplier),
+            _ => Mathf.Abs(curve.constant)
+        };
+    }
+
+    private static float ResolveEffectCurveMagnitude(AnimationCurve curve)
+    {
+        var magnitude = 0f;
+        if (curve == null)
+        {
+            return magnitude;
+        }
+
+        foreach (var key in curve.keys)
+        {
+            magnitude = Mathf.Max(magnitude, Mathf.Abs(key.value));
+        }
+
+        return magnitude;
+    }
+
+    private static bool IsActiveWithinEffect(Transform candidate, Transform visualRoot)
+    {
+        // The gameplay anchor is deliberately inactive while we configure it.
+        // Preserve authored child activation without relying on activeInHierarchy.
+        for (var current = candidate; current != null; current = current.parent)
+        {
+            if (!current.gameObject.activeSelf)
+            {
+                return false;
+            }
+
+            if (current == visualRoot)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void ConfigureTravelingEffectCore(Transform effectRoot)
+    {
+        foreach (var particleSystem in effectRoot.GetComponentsInChildren<ParticleSystem>(true))
+        {
+            var main = particleSystem.main;
+            if (ResolveEffectCorePriority(NormalizeAnimationName(particleSystem.name)) <= 0 ||
+                ResolveEffectCurveMagnitude(main.startSpeed) > 0.001f)
+            {
+                continue;
+            }
+
+            // The projectile's luminous body follows the travel anchor. Smoke
+            // and trails retain their authored simulation space behind it.
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+        }
     }
 
     private static void NormalizeImpactEffectVisualScale(Transform effectTransform, float targetVisualExtent)
@@ -1326,20 +1536,49 @@ public sealed partial class HexTacticsPrototype
             return false;
         }
 
+        if (TryResolveEffectCoreParticle(root, out var coreParticle))
+        {
+            var main = coreParticle.main;
+            var size = HexTacticsTransientEffect.ResolveMaxCurveValue(main.startSize);
+            if (main.startSize3D)
+            {
+                size = Mathf.Max(size, Mathf.Max(
+                    HexTacticsTransientEffect.ResolveMaxCurveValue(main.startSizeY),
+                    HexTacticsTransientEffect.ResolveMaxCurveValue(main.startSizeZ)));
+            }
+
+            var scale = coreParticle.transform.lossyScale;
+            var maximumScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)));
+            var shape = coreParticle.shape;
+            var center = coreParticle.transform.TransformPoint(shape.enabled ? shape.position : Vector3.zero);
+            bounds = new Bounds(center, Vector3.one * size * maximumScale);
+            return true;
+        }
+
+        return TryGetStaticEffectBounds(root, out bounds);
+    }
+
+    private static bool TryGetStaticEffectBounds(Transform root, out Bounds bounds)
+    {
+        bounds = default;
         var hasBounds = false;
         foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
         {
-            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
+            if (renderer == null || !renderer.enabled || renderer is ParticleSystemRenderer || renderer is TrailRenderer ||
+                !IsActiveWithinEffect(renderer.transform, root))
             {
                 continue;
             }
 
-            var rendererBounds = renderer.bounds;
-            if (rendererBounds.size.sqrMagnitude <= 0.0001f)
-            {
-                rendererBounds = new Bounds(renderer.transform.position, Vector3.zero);
-            }
-
+            var localBounds = renderer.localBounds;
+            var extentX = renderer.transform.TransformVector(Vector3.right * localBounds.extents.x);
+            var extentY = renderer.transform.TransformVector(Vector3.up * localBounds.extents.y);
+            var extentZ = renderer.transform.TransformVector(Vector3.forward * localBounds.extents.z);
+            var worldExtents = new Vector3(
+                Mathf.Abs(extentX.x) + Mathf.Abs(extentY.x) + Mathf.Abs(extentZ.x),
+                Mathf.Abs(extentX.y) + Mathf.Abs(extentY.y) + Mathf.Abs(extentZ.y),
+                Mathf.Abs(extentX.z) + Mathf.Abs(extentY.z) + Mathf.Abs(extentZ.z));
+            var rendererBounds = new Bounds(renderer.transform.TransformPoint(localBounds.center), worldExtents * 2f);
             if (!hasBounds)
             {
                 bounds = rendererBounds;
@@ -1348,29 +1587,6 @@ public sealed partial class HexTacticsPrototype
             }
 
             bounds.Encapsulate(rendererBounds);
-        }
-
-        if (hasBounds)
-        {
-            return true;
-        }
-
-        foreach (var particleSystem in root.GetComponentsInChildren<ParticleSystem>(true))
-        {
-            if (particleSystem == null || !particleSystem.gameObject.activeInHierarchy)
-            {
-                continue;
-            }
-
-            var pointBounds = new Bounds(particleSystem.transform.position, Vector3.zero);
-            if (!hasBounds)
-            {
-                bounds = pointBounds;
-                hasBounds = true;
-                continue;
-            }
-
-            bounds.Encapsulate(pointBounds);
         }
 
         return hasBounds;

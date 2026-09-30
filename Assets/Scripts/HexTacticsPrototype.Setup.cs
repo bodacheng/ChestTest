@@ -33,15 +33,19 @@ public sealed partial class HexTacticsPrototype
     {
         var platform = new GameObject("Platform");
         platform.transform.SetParent(boardRoot, false);
-        platform.transform.localPosition = new Vector3(0f, -tileHeight * 0.72f, 0f);
+        // Hidden cells still define the input plane. Bring the continuous arena
+        // surface up to that plane so hints, feet and clicks share the same height.
+        platform.transform.localPosition = new Vector3(0f,
+            boardTopology == BoardTopology.Hex ? -tileHeight * 0.125f : -tileHeight * 0.72f, 0f);
 
         var platformFilter = platform.AddComponent<MeshFilter>();
-        platformFilter.sharedMesh = boardTopology == BoardTopology.Square
+        platformMesh = boardTopology == BoardTopology.Square
             ? BuildSquarePrismMesh(
                 boardRadius * SquareCellSpacing + SquareCellHalfExtent * 1.35f,
                 boardRadius * SquareCellSpacing + SquareCellHalfExtent * 1.35f,
                 tileHeight * 1.25f)
             : BuildHexPrismMesh(hexRadius * (boardRadius * 1.9f + 1.5f), tileHeight * 1.25f);
+        platformFilter.sharedMesh = platformMesh;
         var platformRenderer = platform.AddComponent<MeshRenderer>();
         platformRenderer.sharedMaterial = platformMaterial;
 
@@ -61,12 +65,26 @@ public sealed partial class HexTacticsPrototype
                 cellObject.transform.SetParent(boardRoot, false);
                 cellObject.transform.localPosition = HexToWorld(coord);
 
-                var filter = cellObject.AddComponent<MeshFilter>();
-                filter.sharedMesh = cellMesh;
+                var visualObject = cellObject;
+                if (boardTopology == BoardTopology.Hex)
+                {
+                    visualObject = new GameObject("Action Hint");
+                    visualObject.transform.SetParent(cellObject.transform, false);
+                    visualObject.transform.localPosition = Vector3.up * (tileHeight * 0.5f + 0.012f);
+                }
 
-                var renderer = cellObject.AddComponent<MeshRenderer>();
+                var filter = visualObject.AddComponent<MeshFilter>();
+                filter.sharedMesh = boardTopology == BoardTopology.Hex ? cellHintMesh : cellMesh;
+
+                var renderer = visualObject.AddComponent<MeshRenderer>();
                 var baseMaterial = ((q - r) & 1) == 0 ? tilePrimaryMaterial : tileSecondaryMaterial;
                 renderer.sharedMaterial = baseMaterial;
+                if (boardTopology == BoardTopology.Hex)
+                {
+                    renderer.enabled = false;
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    renderer.receiveShadows = false;
+                }
 
                 var collider = cellObject.AddComponent<MeshCollider>();
                 collider.sharedMesh = cellMesh;
@@ -107,8 +125,8 @@ public sealed partial class HexTacticsPrototype
         var tanVertical = Mathf.Tan(verticalHalfFov);
         var tanHorizontal = tanVertical * mainCamera.aspect;
         var viewportMargins = GetViewportMargins();
-        var safeWidth = Mathf.Max(0.58f, 1f - viewportMargins.x - viewportMargins.y);
-        var safeHeight = Mathf.Max(0.68f, 1f - viewportMargins.z - viewportMargins.w);
+        var safeWidth = Mathf.Max(0.35f, 1f - viewportMargins.x - viewportMargins.y);
+        var safeHeight = Mathf.Max(0.35f, 1f - viewportMargins.z - viewportMargins.w);
         var safeTanHorizontal = tanHorizontal * safeWidth;
         var safeTanVertical = tanVertical * safeHeight;
 
@@ -269,11 +287,12 @@ public sealed partial class HexTacticsPrototype
 
     private Vector4 GetViewportMargins()
     {
-        var isPortrait = Screen.height > Screen.width * 1.05f;
+        var mainCamera = Camera.main;
+        var isPortrait = mainCamera != null ? mainCamera.aspect < 1f / 1.05f : Screen.height > Screen.width * 1.05f;
         return currentFlowState switch
         {
             FlowState.TeamBuilder => isPortrait ? new Vector4(0.05f, 0.05f, 0.14f, 0.34f) : new Vector4(0.22f, 0.24f, 0.08f, 0.06f),
-            FlowState.Planning => isPortrait ? new Vector4(0.06f, 0.06f, 0.06f, 0.30f) : new Vector4(0.26f, 0.04f, 0.06f, 0.04f),
+            FlowState.Planning => isPortrait ? new Vector4(0.06f, 0.06f, 0.06f, 0.38f) : new Vector4(0.26f, 0.04f, 0.06f, 0.04f),
             FlowState.Resolving => isPortrait ? new Vector4(0.06f, 0.06f, 0.20f, 0.05f) : new Vector4(0.22f, 0.04f, 0.06f, 0.04f),
             FlowState.Victory => new Vector4(0.08f, 0.08f, 0.06f, 0.06f),
             _ => new Vector4(0.06f, 0.06f, 0.05f, 0.05f)
